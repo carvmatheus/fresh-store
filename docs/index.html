@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshMarket Pro - Marketplace para Restaurantes</title>
+    <meta name="description" content="Fornecimento de produtos frescos para restaurantes com entrega rápida">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">🥬</span>
+                <h1>FreshMarket Pro</h1>
+            </div>
+            <button class="cart-btn" onclick="toggleCart()">
+                🛒 <span class="cart-badge" id="cartBadge">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <h2>Fornecimento Profissional para Restaurantes</h2>
+            <p>Verduras, legumes e produtos frescos de qualidade premium com entrega rápida</p>
+        </div>
+    </section>
+
+    <!-- Main -->
+    <main class="container main-content">
+        <!-- Delivery Simulator -->
+        <section class="simulator-card">
+            <h3>📍 Simular Entrega</h3>
+            <p class="simulator-description">Calcule o prazo e valor da entrega para seu endereço</p>
+            
+            <div class="simulator-form">
+                <input 
+                    type="text" 
+                    id="cep" 
+                    placeholder="Digite seu CEP (ex: 01234-567)" 
+                    maxlength="9"
+                    class="input-cep"
+                >
+                <button onclick="calculateDelivery()" class="btn-calculate">
+                    Calcular Frete
+                </button>
+            </div>
+
+            <div id="deliveryResult" class="delivery-result hidden">
+                <div class="result-grid">
+                    <div class="result-card">
+                        <span class="result-icon">📏</span>
+                        <span class="result-label">Distância</span>
+                        <span class="result-value" id="distance">-</span>
+                    </div>
+                    <div class="result-card">
+                        <span class="result-icon">⏱️</span>
+                        <span class="result-label">Tempo Estimado</span>
+                        <span class="result-value" id="time">-</span>
+                    </div>
+                    <div class="result-card">
+                        <span class="result-icon">🚚</span>
+                        <span class="result-label">Taxa de Entrega</span>
+                        <span class="result-value primary" id="fee">-</span>
+                    </div>
+                    <div class="result-card">
+                        <span class="result-icon">💰</span>
+                        <span class="result-label">Pedido Mínimo</span>
+                        <span class="result-value" id="minOrder">-</span>
+                    </div>
+                </div>
+                <div id="freeShipping" class="free-shipping hidden">
+                    <span class="alert-icon">🚚</span>
+                    <span>Entrega grátis para sua região!</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Categories -->
+        <section class="categories-section">
+            <h3>Categorias</h3>
+            <div class="categories" id="categories"></div>
+        </section>
+
+        <!-- Products -->
+        <div class="products-grid" id="productsGrid"></div>
+    </main>
+
+    <!-- Cart Sidebar -->
+    <aside class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <h3>Carrinho de Compras</h3>
+            <button class="close-btn" onclick="toggleCart()">✕</button>
+        </div>
+        
+        <div class="cart-content" id="cartContent">
+            <div class="empty-cart" id="emptyCart">
+                <span class="empty-icon">🛒</span>
+                <p>Seu carrinho está vazio</p>
+                <p class="empty-text">Adicione produtos para começar seu pedido</p>
+            </div>
+        </div>
+
+        <div class="cart-footer hidden" id="cartFooter">
+            <div class="cart-total">
+                <span>Total</span>
+                <span id="cartTotal">R$ 0,00</span>
+            </div>
+            <button class="btn-checkout">Finalizar Pedido</button>
+        </div>
+    </aside>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay" onclick="toggleCart()"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
