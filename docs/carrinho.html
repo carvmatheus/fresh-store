@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrinho - Da Horta Distribuidora</title>
+    <meta name="description" content="Finalize seu pedido de produtos frescos">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Banner Header -->
+    <div class="banner-header">
+        <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="back-link">← Voltar para Produtos</a>
+                <button class="cart-btn disabled">
+                    🛒 Carrinho <span class="cart-badge" id="cartBadge">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container cart-page">
+        <h1 class="page-title">Carrinho de Compras</h1>
+        
+        <!-- Empty Cart -->
+        <div class="empty-cart-page" id="emptyCartPage" style="display: none;">
+            <div class="empty-icon">🛒</div>
+            <h2>Seu carrinho está vazio</h2>
+            <p>Adicione produtos para começar seu pedido</p>
+            <a href="index.html" class="btn-primary">Ver Produtos</a>
+        </div>
+
+        <!-- Cart Content -->
+        <div class="cart-page-content" id="cartPageContent">
+            <div class="cart-grid">
+                <!-- Cart Items -->
+                <div class="cart-items-section">
+                    <h2>Itens do Pedido</h2>
+                    <div id="cartItemsList"></div>
+                </div>
+
+                <!-- Order Summary -->
+                <div class="order-summary-section">
+                    <div class="summary-card">
+                        <h2>Resumo do Pedido</h2>
+                        <div class="summary-line">
+                            <span>Subtotal:</span>
+                            <span id="summarySubtotal">R$ 0,00</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Taxa de Entrega:</span>
+                            <span id="summaryDelivery" class="text-muted">Calcular no checkout</span>
+                        </div>
+                        <div class="summary-divider"></div>
+                        <div class="summary-line total">
+                            <span>Total:</span>
+                            <span id="summaryTotal">R$ 0,00</span>
+                        </div>
+                        <button class="btn-checkout" onclick="proceedToCheckout()">
+                            Continuar para Checkout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checkout Section -->
+        <div class="checkout-section" id="checkoutSection" style="display: none;">
+            <button class="back-link" onclick="backToCart()">← Voltar para o Carrinho</button>
+            
+            <h1 class="page-title">Finalizar Pedido</h1>
+
+            <form id="checkoutForm" class="checkout-form">
+                <!-- Business Information -->
+                <div class="form-card">
+                    <h2>Dados da Empresa</h2>
+                    <div class="form-group">
+                        <label for="businessType">Tipo de Estabelecimento *</label>
+                        <select id="businessType" required>
+                            <option value="">Selecione...</option>
+                            <option value="restaurante">Restaurante</option>
+                            <option value="hotel">Hotel</option>
+                            <option value="mercado">Mercado</option>
+                            <option value="padaria">Padaria</option>
+                            <option value="lanchonete">Lanchonete</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cnpj">CNPJ *</label>
+                            <input type="text" id="cnpj" placeholder="00.000.000/0000-00" required maxlength="18">
+                        </div>
+                        <div class="form-group">
+                            <label for="ie">Inscrição Estadual</label>
+                            <input type="text" id="ie" placeholder="000.000.000.000">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="razaoSocial">Razão Social *</label>
+                        <input type="text" id="razaoSocial" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nomeFantasia">Nome Fantasia *</label>
+                        <input type="text" id="nomeFantasia" required>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="form-card">
+                    <h2>Contato</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contactName">Nome do Responsável *</label>
+                            <input type="text" id="contactName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactPhone">Telefone *</label>
+                            <input type="tel" id="contactPhone" placeholder="(11) 99999-9999" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactEmail">E-mail *</label>
+                        <input type="email" id="contactEmail" required>
+                    </div>
+                </div>
+
+                <!-- Delivery Address -->
+                <div class="form-card">
+                    <h2>Endereço de Entrega</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cep">CEP *</label>
+                            <input type="text" id="cep" placeholder="00000-000" required maxlength="9">
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn-secondary" onclick="calculateDelivery()">
+                                📍 Calcular Frete
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="street">Endereço *</label>
+                        <input type="text" id="street" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="number">Número *</label>
+                            <input type="text" id="number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="complement">Complemento</label>
+                            <input type="text" id="complement">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="neighborhood">Bairro *</label>
+                            <input type="text" id="neighborhood" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="city">Cidade *</label>
+                            <input type="text" id="city" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="state">Estado *</label>
+                        <input type="text" id="state" placeholder="SP" required maxlength="2">
+                    </div>
+
+                    <!-- Delivery Info -->
+                    <div id="deliveryInfo" class="delivery-info hidden">
+                        <h3>Informações de Entrega</h3>
+                        <div class="delivery-grid">
+                            <div class="delivery-item">
+                                <span class="delivery-icon">📏</span>
+                                <div>
+                                    <span class="delivery-label">Distância</span>
+                                    <span class="delivery-value" id="deliveryDistance">-</span>
+                                </div>
+                            </div>
+                            <div class="delivery-item">
+                                <span class="delivery-icon">⏱️</span>
+                                <div>
+                                    <span class="delivery-label">Tempo Estimado</span>
+                                    <span class="delivery-value" id="deliveryTime">-</span>
+                                </div>
+                            </div>
+                            <div class="delivery-item">
+                                <span class="delivery-icon">🚚</span>
+                                <div>
+                                    <span class="delivery-label">Taxa de Entrega</span>
+                                    <span class="delivery-value primary" id="deliveryFee">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment and Observations -->
+                <div class="form-card">
+                    <h2>Pagamento e Observações</h2>
+                    <div class="form-group">
+                        <label for="paymentMethod">Forma de Pagamento *</label>
+                        <select id="paymentMethod" required>
+                            <option value="">Selecione...</option>
+                            <option value="boleto">Boleto Bancário</option>
+                            <option value="transferencia">Transferência Bancária</option>
+                            <option value="cartao">Cartão de Crédito Empresarial</option>
+                            <option value="prazo">Pagamento a Prazo (15/30 dias)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observations">Observações</label>
+                        <textarea id="observations" rows="4" placeholder="Informações adicionais sobre o pedido..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Order Summary Final -->
+                <div class="form-card final-summary">
+                    <h2>Resumo Final do Pedido</h2>
+                    <div id="finalCartItems" class="final-items-list"></div>
+                    
+                    <div class="summary-totals">
+                        <div class="summary-line">
+                            <span>Subtotal:</span>
+                            <span id="finalSubtotal">R$ 0,00</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Taxa de Entrega:</span>
+                            <span id="finalDeliveryFee">R$ 0,00</span>
+                        </div>
+                        <div class="summary-divider"></div>
+                        <div class="summary-line total large">
+                            <span>Total do Pedido:</span>
+                            <span id="finalTotal">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-finalize">
+                        ✓ Finalizar Pedido
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Success Modal -->
+        <div class="modal" id="successModal">
+            <div class="modal-content success">
+                <div class="success-icon">✅</div>
+                <h2>Pedido Realizado com Sucesso!</h2>
+                <p class="success-message">Seu pedido foi registrado e em breve entraremos em contato.</p>
+                <div class="order-details">
+                    <p><strong>Número do Pedido:</strong> <span id="orderNumber">-</span></p>
+                    <p><strong>Total:</strong> <span id="orderTotal">-</span></p>
+                    <p><strong>Previsão de Entrega:</strong> <span id="orderDelivery">-</span></p>
+                </div>
+                <button class="btn-primary" onclick="closeSuccessModal()">Fazer Novo Pedido</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="cart.js"></script>
+</body>
+</html>
+
