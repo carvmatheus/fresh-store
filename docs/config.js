@@ -3,8 +3,8 @@
  */
 
 const API_CONFIG = {
-    // URL base da API (alterar em produção)
-    BASE_URL: 'http://localhost:8000/api',
+    // URL da API no Render.com (produção)
+    BASE_URL: 'https://dahorta-backend.onrender.com/api',
     
     // Timeout para requisições (30 segundos)
     TIMEOUT: 30000,
