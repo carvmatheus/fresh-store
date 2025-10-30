@@ -17,10 +17,16 @@
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <a href="index.html" class="back-link">← Voltar para Produtos</a>
-                <button class="cart-btn disabled">
-                    🛒 Carrinho <span class="cart-badge" id="cartBadge">0</span>
-                </button>
+                <div class="header-left">
+                    <a href="index.html" class="back-link header-back">
+                        <span>←</span> Voltar para Produtos
+                    </a>
+                </div>
+                <div class="header-actions">
+                    <button class="cart-btn disabled">
+                        🛒 Carrinho <span class="cart-badge" id="cartBadge">0</span>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -275,6 +281,10 @@
         </div>
     </main>
 
+    <!-- API Scripts -->
+    <script src="config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="auth.js"></script>
     <script src="cart.js"></script>
 </body>
 </html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Conta - Da Horta Distribuidora</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Banner Header -->
+    <div class="banner-header">
+        <a href="index.html">
+            <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
+        </a>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-left">
+                    <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Menu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                    <button class="login-btn" onclick="goToLogin()" id="loginBtn">
+                        <span class="login-icon">👤</span>
+                        <span class="login-text">Entrar</span>
+                    </button>
+                </div>
+                
+                <div class="header-actions">
+                    <button class="cart-btn" onclick="toggleCart()">
+                        🛒 Carrinho <span class="cart-badge" id="cartBadge">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Side Menu -->
+    <nav class="side-menu" id="sideMenu">
+        <div class="side-menu-header">
+            <h3>Menu</h3>
+            <button class="close-menu-btn" onclick="toggleMenu()">✕</button>
+        </div>
+        <div class="side-menu-content">
+            <div class="user-info" id="userInfo">
+                <div class="user-avatar">👤</div>
+                <p class="user-name" id="userName">Visitante</p>
+            </div>
+            <ul class="menu-list">
+                <li><a href="index.html">🏠 Início</a></li>
+                <li><a href="carrinho.html">🛒 Carrinho</a></li>
+                <li class="menu-auth-item active" id="menuClienteLink">
+                    <a href="cliente.html">📦 Meus Pedidos</a>
+                </li>
+                <li class="menu-auth-item" id="menuAdminLink" style="display: none;">
+                    <a href="admin.html">⚙️ Administração</a>
+                </li>
+                <li class="menu-divider"></li>
+                <li id="menuLoginLink">
+                    <a href="login.html">🔐 Entrar</a>
+                </li>
+                <li id="menuLogoutLink">
+                    <a href="#" onclick="logout()">🚪 Sair</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+    <!-- Main Content -->
+    <main class="container cliente-page">
+        <div class="page-header">
+            <h1>Minha Conta</h1>
+            <p class="page-subtitle">Gerencie seus pedidos e histórico</p>
+        </div>
+
+        <!-- Cliente Info -->
+        <div class="cliente-info-card">
+            <div class="info-row">
+                <div class="info-item">
+                    <span class="info-label">Nome:</span>
+                    <span class="info-value" id="clienteName">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Empresa:</span>
+                    <span class="info-value" id="clienteCompany">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">E-mail:</span>
+                    <span class="info-value" id="clienteEmail">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('pedidos')" id="tabPedidos">
+                Pedidos Ativos
+            </button>
+            <button class="tab-btn" onclick="switchTab('historico')" id="tabHistorico">
+                Histórico
+            </button>
+        </div>
+
+        <!-- Pedidos Ativos -->
+        <div class="tab-content active" id="contentPedidos">
+            <div class="orders-list" id="ordersList">
+                <!-- Pedidos serão carregados aqui -->
+            </div>
+        </div>
+
+        <!-- Histórico -->
+        <div class="tab-content" id="contentHistorico">
+            <div class="orders-list" id="historyList">
+                <!-- Histórico será carregado aqui -->
+            </div>
+        </div>
+    </main>
+
+    <!-- API Scripts -->
+    <script src="config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="auth.js"></script>
+    <script src="cliente.js"></script>
+    <script>
+        // Proteger página - apenas clientes
+        requireAuth('cliente');
+        
+        // Toggle menu
+        function toggleMenu() {
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.getElementById('overlay');
+            
+            if (menu && overlay) {
+                menu.classList.toggle('open');
+                overlay.classList.toggle('show');
+            }
+        }
+        
+        // Atualizar badge do carrinho
+        const cart = JSON.parse(localStorage.getItem('freshStoreCart')) || [];
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        document.getElementById('cartBadge').textContent = totalItems;
+    </script>
+</body>
+</html>
+

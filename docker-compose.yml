@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: dahorta-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: da_horta_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - dahorta-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (Python/FastAPI)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: dahorta-backend
+    restart: unless-stopped
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - DB_NAME=da_horta_db
+      - SECRET_KEY=${SECRET_KEY:-sua-chave-secreta-super-segura-mude-em-producao}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=10080
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - dahorta-network
+    volumes:
+      - ./backend:/app
+    command: >
+      sh -c "
+        echo 'Aguardando MongoDB...' &&
+        sleep 5 &&
+        echo 'Inicializando banco de dados...' &&
+        python init_db.py &&
+        echo 'Iniciando servidor...' &&
+        uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  # Frontend (Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: dahorta-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - dahorta-network
+    environment:
+      - API_URL=http://localhost:8000
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+networks:
+  dahorta-network:
+    driver: bridge
+

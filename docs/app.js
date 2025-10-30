@@ -1,138 +1,26 @@
-// Dados dos produtos
-const products = [
-  {
-    id: 1,
-    name: "Alface Americana",
-    category: "verduras",
-    price: 4.5,
-    unit: "unidade",
-    minOrder: 5,
-    stock: 150,
-    image: "images/fresh-lettuce.png",
-    description: "Alface fresca e crocante"
-  },
-  {
-    id: 2,
-    name: "Tomate Italiano",
-    category: "legumes",
-    price: 6.9,
-    unit: "kg",
-    minOrder: 2,
-    stock: 200,
-    image: "images/italian-tomatoes.jpg",
-    description: "Tomate italiano premium"
-  },
-  {
-    id: 3,
-    name: "Cebola Roxa",
-    category: "legumes",
-    price: 5.5,
-    unit: "kg",
-    minOrder: 3,
-    stock: 180,
-    image: "images/red-onion.jpg",
-    description: "Cebola roxa de qualidade"
-  },
-  {
-    id: 4,
-    name: "Rúcula Orgânica",
-    category: "verduras",
-    price: 8.9,
-    unit: "maço",
-    minOrder: 3,
-    stock: 100,
-    image: "images/organic-arugula.jpg",
-    description: "Rúcula orgânica fresca"
-  },
-  {
-    id: 5,
-    name: "Batata Inglesa",
-    category: "legumes",
-    price: 4.2,
-    unit: "kg",
-    minOrder: 5,
-    stock: 300,
-    image: "images/batata-inglesa.jpg",
-    description: "Batata inglesa selecionada"
-  },
-  {
-    id: 6,
-    name: "Cenoura",
-    category: "legumes",
-    price: 3.8,
-    unit: "kg",
-    minOrder: 5,
-    stock: 250,
-    image: "images/cenoura-fresca.jpg",
-    description: "Cenoura fresca e doce"
-  },
-  {
-    id: 7,
-    name: "Banana Prata",
-    category: "frutas",
-    price: 5.5,
-    unit: "kg",
-    minOrder: 5,
-    stock: 200,
-    image: "images/banana-prata.jpg",
-    description: "Banana prata madura"
-  },
-  {
-    id: 8,
-    name: "Maçã Fuji",
-    category: "frutas",
-    price: 7.9,
-    unit: "kg",
-    minOrder: 3,
-    stock: 150,
-    image: "images/ma---fuji-vermelha.jpg",
-    description: "Maçã fuji importada"
-  },
-  {
-    id: 9,
-    name: "Manjericão Fresco",
-    category: "temperos",
-    price: 6.5,
-    unit: "maço",
-    minOrder: 2,
-    stock: 80,
-    image: "images/manjeric-o-fresco.jpg",
-    description: "Manjericão fresco aromático"
-  },
-  {
-    id: 10,
-    name: "Alho Branco",
-    category: "temperos",
-    price: 18.9,
-    unit: "kg",
-    minOrder: 1,
-    stock: 120,
-    image: "images/alho-branco.jpg",
-    description: "Alho Branco de primeira"
-  },
-  {
-    id: 11,
-    name: "Arroz Integral",
-    category: "graos",
-    price: 12.9,
-    unit: "kg",
-    minOrder: 10,
-    stock: 500,
-    image: "images/arroz-integral.jpg",
-    description: "Arroz integral tipo 1"
-  },
-  {
-    id: 12,
-    name: "Feijão Preto",
-    category: "graos",
-    price: 8.5,
-    unit: "kg",
-    minOrder: 10,
-    stock: 400,
-    image: "images/feij-o-preto.jpg",
-    description: "Feijão preto selecionado"
+// ==================== SISTEMA DINÂMICO DE PRODUTOS (API) ====================
+// Todos os produtos vêm da API backend
+
+// Carregar produtos da API
+async function loadProductsFromAPI() {
+  try {
+    const productsData = await api.getProducts();
+    console.log('✅ Produtos carregados da API:', productsData.length);
+    return productsData;
+  } catch (error) {
+    console.error('❌ Erro ao carregar produtos da API:', error);
+    // Fallback: tentar localStorage (compatibilidade temporária)
+    const adminProducts = localStorage.getItem('adminProducts');
+    if (adminProducts) {
+      console.log('⚠️ Usando produtos do localStorage (fallback)');
+      return JSON.parse(adminProducts);
+    }
+    return [];
   }
-];
+}
+
+// Produtos dinâmicos (carregados da API)
+let products = [];
 
 const categories = [
   { id: "all", name: "Todos os Produtos" },
@@ -146,9 +34,13 @@ const categories = [
 // Estado da aplicação
 let cart = [];
 let selectedCategory = "all";
+let searchQuery = '';
 
 // Inicialização
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Carregar produtos da API
+  products = await loadProductsFromAPI();
+  
   loadCategories();
   loadProducts();
   loadCartFromStorage();
@@ -176,12 +68,52 @@ function filterCategory(categoryId) {
   loadProducts();
 }
 
+// Buscar produtos
+function handleSearch(query) {
+  searchQuery = query.toLowerCase().trim();
+  loadProducts();
+}
+
 // Carregar produtos
 function loadProducts() {
   const container = document.getElementById('productsGrid');
-  const filtered = selectedCategory === 'all' 
+  
+  // Verificar se há produtos
+  if (products.length === 0) {
+    container.innerHTML = `
+      <div class="empty-products-state">
+        <span class="empty-products-icon">📦</span>
+        <h3>Nenhum produto cadastrado</h3>
+        <p>Acesse o painel de administração para adicionar produtos ao catálogo.</p>
+        <a href="login.html" class="btn-primary">Ir para Login</a>
+      </div>
+    `;
+    return;
+  }
+  
+  let filtered = selectedCategory === 'all' 
     ? products 
     : products.filter(p => p.category === selectedCategory);
+  
+  // Aplicar busca se houver
+  if (searchQuery) {
+    filtered = filtered.filter(p => 
+      p.name.toLowerCase().includes(searchQuery) ||
+      p.description.toLowerCase().includes(searchQuery)
+    );
+  }
+  
+  // Se não houver resultados após filtrar
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-products-state">
+        <span class="empty-products-icon">🔍</span>
+        <h3>Nenhum produto encontrado</h3>
+        <p>Tente ajustar os filtros ou busca.</p>
+      </div>
+    `;
+    return;
+  }
   
   container.innerHTML = filtered.map(product => `
     <div class="product-card">
@@ -196,12 +128,15 @@ function loadProducts() {
           📦 Estoque: ${product.stock} ${product.unit}
         </div>
         ${product.minOrder > 1 ? `
-          <p class="product-min-order">Pedido mínimo: ${product.minOrder} ${product.unit}</p>
+          <div class="product-min">
+            Pedido mínimo: ${product.minOrder} ${product.unit}
+          </div>
         ` : ''}
         <div class="product-footer">
-          <div class="product-price-box">
-            <span class="product-price">R$ ${product.price.toFixed(2)}</span>
-            <span class="product-unit">por ${product.unit}</span>
+          <div class="product-price">
+            <span class="price-label">R$</span>
+            <span class="price-value">${product.price.toFixed(2)}</span>
+            <span class="price-unit">/${product.unit}</span>
           </div>
           <button class="btn-add-cart" onclick="addToCart(${product.id})">
             🛒 <span>Adicionar</span>
@@ -210,6 +145,33 @@ function loadProducts() {
       </div>
     </div>
   `).join('');
+}
+
+// Renderizar produtos (alias para compatibilidade)
+function renderProducts(productsList = null) {
+  if (productsList) {
+    const container = document.getElementById('productsGrid');
+    container.innerHTML = productsList.map(product => `
+      <div class="product-card">
+        <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
+        <div class="product-content">
+          <div class="product-header">
+            <h4 class="product-name">${product.name}</h4>
+            <span class="product-badge">${product.category}</span>
+          </div>
+          <p class="product-description">${product.description}</p>
+          <div class="product-footer">
+            <div class="product-price">
+              <span>R$ ${product.price.toFixed(2)}/${product.unit}</span>
+            </div>
+            <button class="btn-add-cart" onclick="addToCart(${product.id})">
+              🛒 Adicionar
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
 }
 
 // Adicionar ao carrinho
@@ -332,12 +294,46 @@ function updateCartUI() {
 // Toggle carrinho lateral
 function toggleCart() {
   const sidebar = document.getElementById('cartSidebar');
+  const menu = document.getElementById('sideMenu');
   const overlay = document.getElementById('overlay');
+  
+  // Fechar menu se estiver aberto
+  if (menu && menu.classList.contains('open')) {
+    menu.classList.remove('open');
+  }
   
   if (sidebar && overlay) {
     sidebar.classList.toggle('open');
     overlay.classList.toggle('show');
   }
+}
+
+// Toggle menu hamburguer
+function toggleMenu() {
+  const menu = document.getElementById('sideMenu');
+  const sidebar = document.getElementById('cartSidebar');
+  const overlay = document.getElementById('overlay');
+  
+  // Fechar carrinho se estiver aberto
+  if (sidebar && sidebar.classList.contains('open')) {
+    sidebar.classList.remove('open');
+  }
+  
+  if (menu && overlay) {
+    menu.classList.toggle('open');
+    overlay.classList.toggle('show');
+  }
+}
+
+// Fechar overlays ao clicar fora
+function closeOverlays() {
+  const sidebar = document.getElementById('cartSidebar');
+  const menu = document.getElementById('sideMenu');
+  const overlay = document.getElementById('overlay');
+  
+  if (sidebar) sidebar.classList.remove('open');
+  if (menu) menu.classList.remove('open');
+  if (overlay) overlay.classList.remove('show');
 }
 
 // LocalStorage
@@ -355,6 +351,8 @@ function loadCartFromStorage() {
 // Simulador de entrega
 function setupCEPMask() {
   const input = document.getElementById('cep');
+  if (!input) return;
+  
   input.addEventListener('input', (e) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 5) {
@@ -368,49 +366,36 @@ function calculateDelivery() {
   const cep = document.getElementById('cep').value.replace(/\D/g, '');
   
   if (cep.length !== 8) {
-    alert('Por favor, insira um CEP válido (8 dígitos)');
+    alert('Por favor, digite um CEP válido');
     return;
   }
   
-  // Simula cálculo baseado no CEP
-  const lastDigits = parseInt(cep.slice(-3));
-  const distance = Math.floor((lastDigits / 1000) * 50) + 5; // 5-55 km
+  // Simulação baseada no CEP
+  const distance = Math.abs(parseInt(cep.substring(0, 5)) - 12000) / 100;
+  const baseFee = 15;
+  const deliveryFee = baseFee + (distance * 2);
   
-  // Calcula tempo
-  const hours = Math.floor(distance / 20);
-  const minutes = Math.floor(((distance % 20) / 20) * 60);
-  const estimatedTime = hours > 0 ? `${hours}h ${minutes}min` : `${minutes} minutos`;
+  let deliveryDays = 1;
+  if (distance > 50) deliveryDays = 2;
+  if (distance > 100) deliveryDays = 3;
   
-  // Calcula taxa
-  let deliveryFee = 0;
-  let minOrderValue = 100;
+  const deliveryDate = new Date();
+  deliveryDate.setDate(deliveryDate.getDate() + deliveryDays);
   
-  if (distance <= 10) {
-    deliveryFee = 0;
-    minOrderValue = 100;
-  } else if (distance <= 20) {
-    deliveryFee = 15;
-    minOrderValue = 150;
-  } else if (distance <= 30) {
-    deliveryFee = 25;
-    minOrderValue = 200;
-  } else {
-    deliveryFee = 35;
-    minOrderValue = 250;
-  }
-  
-  // Mostra resultado
-  document.getElementById('distance').textContent = `${distance} km`;
-  document.getElementById('time').textContent = estimatedTime;
-  document.getElementById('fee').textContent = deliveryFee === 0 ? 'GRÁTIS' : `R$ ${deliveryFee.toFixed(2)}`;
-  document.getElementById('minOrder').textContent = `R$ ${minOrderValue.toFixed(2)}`;
-  
-  document.getElementById('deliveryResult').classList.remove('hidden');
-  
-  if (deliveryFee === 0) {
-    document.getElementById('freeShipping').classList.remove('hidden');
-  } else {
-    document.getElementById('freeShipping').classList.add('hidden');
-  }
+  const result = document.getElementById('deliveryResult');
+  result.classList.remove('hidden');
+  result.innerHTML = `
+    <div class="result-item">
+      <span class="result-label">Taxa de Entrega:</span>
+      <span class="result-value">R$ ${deliveryFee.toFixed(2)}</span>
+    </div>
+    <div class="result-item">
+      <span class="result-label">Prazo:</span>
+      <span class="result-value">${deliveryDays} ${deliveryDays === 1 ? 'dia útil' : 'dias úteis'}</span>
+    </div>
+    <div class="result-item">
+      <span class="result-label">Previsão:</span>
+      <span class="result-value">${deliveryDate.toLocaleDateString('pt-BR')}</span>
+    </div>
+  `;
 }
-

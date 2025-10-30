@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Da Horta Distribuidora</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Banner Header -->
+    <div class="banner-header">
+        <a href="index.html">
+            <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
+        </a>
+    </div>
+
+    <!-- Login Container -->
+    <main class="container login-container">
+        <div class="login-card">
+            <h1>Bem-vindo!</h1>
+            <p class="login-subtitle">Entre para acessar sua conta</p>
+
+            <div class="alert alert-error hidden" id="loginError">
+                <span>⚠️</span>
+                <p id="loginErrorMsg">Erro ao fazer login</p>
+            </div>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="loginEmail">E-mail ou Usuário</label>
+                    <input 
+                        type="text" 
+                        id="loginEmail" 
+                        name="email" 
+                        placeholder="seu@email.com"
+                        required
+                        autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">Senha</label>
+                    <input 
+                        type="password" 
+                        id="loginPassword" 
+                        name="password" 
+                        placeholder="Digite sua senha"
+                        required
+                        autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn-primary btn-login">
+                    Entrar
+                </button>
+            </form>
+
+            <div class="login-divider">
+                <span>ou</span>
+            </div>
+
+            <div class="demo-accounts">
+                <h3>Contas de Demonstração</h3>
+                <p class="demo-subtitle">Use estas credenciais para testar:</p>
+                
+                <div class="demo-card">
+                    <div class="demo-header">
+                        <span class="demo-icon">👤</span>
+                        <h4>Cliente</h4>
+                    </div>
+                    <p class="demo-credentials">
+                        <strong>Usuário:</strong> cliente<br>
+                        <strong>Senha:</strong> cliente123
+                    </p>
+                    <button type="button" class="btn-demo" onclick="loginAs('cliente', 'cliente123')">
+                        Entrar como Cliente
+                    </button>
+                </div>
+
+                <div class="demo-card">
+                    <div class="demo-header">
+                        <span class="demo-icon">⚙️</span>
+                        <h4>Administrador</h4>
+                    </div>
+                    <p class="demo-credentials">
+                        <strong>Usuário:</strong> admin<br>
+                        <strong>Senha:</strong> admin123
+                    </p>
+                    <button type="button" class="btn-demo" onclick="loginAs('admin', 'admin123')">
+                        Entrar como Admin
+                    </button>
+                </div>
+            </div>
+
+            <div class="login-footer">
+                <a href="index.html" class="back-link">← Voltar para o início</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- API Scripts -->
+    <script src="config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Redirecionar se já estiver logado
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (currentUser) {
+            if (currentUser.role === 'admin') {
+                window.location.href = 'admin.html';
+            } else {
+                window.location.href = 'cliente.html';
+            }
+        }
+
+        // Handle form submission
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('loginForm');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('loginEmail').value.trim();
+                    const password = document.getElementById('loginPassword').value;
+                    console.log('Tentando login com:', email);
+                    if (typeof login === 'function') {
+                        login(email, password);
+                    } else {
+                        console.error('Função login não encontrada!');
+                        alert('Erro ao carregar sistema de login. Recarregue a página.');
+                    }
+                });
+            }
+        });
+
+        // Login as demo user
+        function loginAs(username, password) {
+            document.getElementById('loginEmail').value = username;
+            document.getElementById('loginPassword').value = password;
+            if (typeof login === 'function') {
+                login(username, password);
+            } else {
+                console.error('Função login não encontrada!');
+                alert('Erro ao carregar sistema de login. Recarregue a página.');
+            }
+        }
+    </script>
+</body>
+</html>
+

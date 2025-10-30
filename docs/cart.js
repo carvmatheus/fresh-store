@@ -256,8 +256,8 @@ function calculateDelivery() {
   updateFinalTotal();
 }
 
-// Submit do formulário
-document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+// Submit do formulário (usando API)
+document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   
   if (!deliveryEstimate) {
@@ -268,53 +268,58 @@ document.getElementById('checkoutForm').addEventListener('submit', (e) => {
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const total = subtotal + deliveryEstimate.deliveryFee;
   
-  // Gerar número do pedido
-  const orderNumber = 'DH' + Date.now().toString().slice(-8);
-  
-  // Simular salvamento
+  // Preparar dados do pedido para API
   const orderData = {
-    orderNumber,
-    businessType: document.getElementById('businessType').value,
-    cnpj: document.getElementById('cnpj').value,
-    razaoSocial: document.getElementById('razaoSocial').value,
-    nomeFantasia: document.getElementById('nomeFantasia').value,
-    contactName: document.getElementById('contactName').value,
-    contactPhone: document.getElementById('contactPhone').value,
-    contactEmail: document.getElementById('contactEmail').value,
-    address: {
-      cep: document.getElementById('cep').value,
+    items: cart.map(item => ({
+      product_id: item.id.toString(),
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      price: item.price,
+      image: item.image
+    })),
+    shipping_address: {
       street: document.getElementById('street').value,
       number: document.getElementById('number').value,
-      complement: document.getElementById('complement').value,
+      complement: document.getElementById('complement').value || '',
       neighborhood: document.getElementById('neighborhood').value,
       city: document.getElementById('city').value,
-      state: document.getElementById('state').value
+      state: document.getElementById('state').value,
+      zipcode: document.getElementById('cep').value
     },
-    paymentMethod: document.getElementById('paymentMethod').value,
-    observations: document.getElementById('observations').value,
-    items: cart,
-    subtotal,
-    deliveryFee: deliveryEstimate.deliveryFee,
-    total,
-    delivery: deliveryEstimate,
-    date: new Date().toISOString()
+    contact_info: {
+      phone: document.getElementById('contactPhone').value,
+      email: document.getElementById('contactEmail').value,
+      name: document.getElementById('contactName').value
+    },
+    delivery_fee: deliveryEstimate.deliveryFee,
+    notes: `Tipo de negócio: ${document.getElementById('businessType').value}\nCNPJ: ${document.getElementById('cnpj').value}\nRazão Social: ${document.getElementById('razaoSocial').value}\nNome Fantasia: ${document.getElementById('nomeFantasia').value}\nPagamento: ${document.getElementById('paymentMethod').value}\nObservações: ${document.getElementById('observations').value || 'Nenhuma'}`,
   };
   
-  // Salvar no localStorage (simulação)
-  const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-  orders.push(orderData);
-  localStorage.setItem('orders', JSON.stringify(orders));
-  
-  // Mostrar modal de sucesso
-  document.getElementById('orderNumber').textContent = orderNumber;
-  document.getElementById('orderTotal').textContent = `R$ ${total.toFixed(2)}`;
-  document.getElementById('orderDelivery').textContent = deliveryEstimate.estimatedTime;
-  document.getElementById('successModal').classList.add('show');
-  
-  // Limpar carrinho
-  cart = [];
-  saveCartToStorage();
+  try {
+    // Criar pedido via API
+    const order = await api.createOrder(orderData);
+    
+    // Limpar carrinho
+    cart = [];
+    saveCartToStorage();
+    
+    // Exibir sucesso
+    showSuccessModal(order.order_number, order.delivery_date);
+  } catch (error) {
+    console.error('Erro ao criar pedido:', error);
+    alert('Erro ao processar pedido: ' + error.message + '\n\nSe não estiver logado, será necessário fazer login primeiro.');
+  }
 });
+
+// Mostrar modal de sucesso
+function showSuccessModal(orderNumber, deliveryDate) {
+  const deliveryDateFormatted = new Date(deliveryDate).toLocaleDateString('pt-BR');
+  document.getElementById('orderNumber').textContent = orderNumber;
+  document.getElementById('orderTotal').textContent = `R$ ${(cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + deliveryEstimate.deliveryFee).toFixed(2)}`;
+  document.getElementById('orderDelivery').textContent = `Previsão: ${deliveryDateFormatted}`;
+  document.getElementById('successModal').classList.add('show');
+}
 
 // Fechar modal de sucesso
 function closeSuccessModal() {
