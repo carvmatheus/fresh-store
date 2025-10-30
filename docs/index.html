@@ -17,20 +17,12 @@
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <a href="carrinho.html" class="cart-btn">
+                <button class="cart-btn" onclick="toggleCart()">
                     🛒 Carrinho <span class="cart-badge" id="cartBadge">0</span>
-                </a>
+                </button>
             </div>
         </div>
     </header>
-
-    <!-- Hero -->
-    <section class="hero">
-        <div class="container">
-            <h2>Fornecimento Profissional para Restaurantes</h2>
-            <p>Verduras, legumes e produtos frescos de qualidade premium com entrega rápida</p>
-        </div>
-    </section>
 
     <!-- Main -->
     <main class="container main-content">
@@ -112,7 +104,7 @@
                 <span>Total</span>
                 <span id="cartTotal">R$ 0,00</span>
             </div>
-            <button class="btn-checkout">Finalizar Pedido</button>
+            <a href="carrinho.html" class="btn-checkout">Ver Carrinho Completo</a>
         </div>
     </aside>
 

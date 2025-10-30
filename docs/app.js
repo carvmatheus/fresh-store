@@ -101,14 +101,14 @@ const products = [
   },
   {
     id: 10,
-    name: "Alho Nacional",
+    name: "Alho Branco",
     category: "temperos",
     price: 18.9,
     unit: "kg",
     minOrder: 1,
     stock: 120,
     image: "images/alho-branco.jpg",
-    description: "Alho nacional de primeira"
+    description: "Alho Branco de primeira"
   },
   {
     id: 11,
@@ -280,15 +280,26 @@ function updateCartUI() {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalValue = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
-  badge.textContent = totalItems;
+  if (badge) {
+    badge.textContent = totalItems;
+  }
+  
+  // Se não estiver na página principal, sai
+  if (!content) return;
   
   if (cart.length === 0) {
-    emptyCart.classList.remove('hidden');
-    footer.classList.add('hidden');
-    content.innerHTML = emptyCart.outerHTML;
+    if (emptyCart) emptyCart.classList.remove('hidden');
+    if (footer) footer.classList.add('hidden');
+    content.innerHTML = `
+      <div class="empty-cart">
+        <span class="empty-icon">🛒</span>
+        <p>Seu carrinho está vazio</p>
+        <p class="empty-text">Adicione produtos para começar seu pedido</p>
+      </div>
+    `;
   } else {
-    emptyCart.classList.add('hidden');
-    footer.classList.remove('hidden');
+    if (emptyCart) emptyCart.classList.add('hidden');
+    if (footer) footer.classList.remove('hidden');
     
     content.innerHTML = cart.map(item => `
       <div class="cart-item">
@@ -311,17 +322,22 @@ function updateCartUI() {
       </div>
     `).join('');
     
-    document.getElementById('cartTotal').textContent = `R$ ${totalValue.toFixed(2)}`;
+    const totalElement = document.getElementById('cartTotal');
+    if (totalElement) {
+      totalElement.textContent = `R$ ${totalValue.toFixed(2)}`;
+    }
   }
 }
 
-// Toggle carrinho
+// Toggle carrinho lateral
 function toggleCart() {
   const sidebar = document.getElementById('cartSidebar');
   const overlay = document.getElementById('overlay');
   
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('show');
+  if (sidebar && overlay) {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('show');
+  }
 }
 
 // LocalStorage
