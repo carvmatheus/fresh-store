@@ -8,7 +8,7 @@ const products = [
     unit: "unidade",
     minOrder: 5,
     stock: 150,
-    image: "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400",
+    image: "images/fresh-lettuce.png",
     description: "Alface fresca e crocante"
   },
   {
@@ -19,7 +19,7 @@ const products = [
     unit: "kg",
     minOrder: 2,
     stock: 200,
-    image: "https://images.unsplash.com/photo-1546094096-0df4bcaaa337?w=400",
+    image: "images/italian-tomatoes.jpg",
     description: "Tomate italiano premium"
   },
   {
@@ -30,7 +30,7 @@ const products = [
     unit: "kg",
     minOrder: 3,
     stock: 180,
-    image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400",
+    image: "images/red-onion.jpg",
     description: "Cebola roxa de qualidade"
   },
   {
@@ -41,7 +41,7 @@ const products = [
     unit: "maço",
     minOrder: 3,
     stock: 100,
-    image: "https://images.unsplash.com/photo-1622205313162-be1d5712a43f?w=400",
+    image: "images/organic-arugula.jpg",
     description: "Rúcula orgânica fresca"
   },
   {
@@ -52,7 +52,7 @@ const products = [
     unit: "kg",
     minOrder: 5,
     stock: 300,
-    image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400",
+    image: "images/batata-inglesa.jpg",
     description: "Batata inglesa selecionada"
   },
   {
@@ -63,7 +63,7 @@ const products = [
     unit: "kg",
     minOrder: 5,
     stock: 250,
-    image: "https://images.unsplash.com/photo-1447175008436-054170c2e979?w=400",
+    image: "images/cenoura-fresca.jpg",
     description: "Cenoura fresca e doce"
   },
   {
@@ -74,7 +74,7 @@ const products = [
     unit: "kg",
     minOrder: 5,
     stock: 200,
-    image: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400",
+    image: "images/banana-prata.jpg",
     description: "Banana prata madura"
   },
   {
@@ -85,7 +85,7 @@ const products = [
     unit: "kg",
     minOrder: 3,
     stock: 150,
-    image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400",
+    image: "images/ma---fuji-vermelha.jpg",
     description: "Maçã fuji importada"
   },
   {
@@ -96,7 +96,7 @@ const products = [
     unit: "maço",
     minOrder: 2,
     stock: 80,
-    image: "https://images.unsplash.com/photo-1618375569909-3c8616cf7733?w=400",
+    image: "images/manjeric-o-fresco.jpg",
     description: "Manjericão fresco aromático"
   },
   {
@@ -107,7 +107,7 @@ const products = [
     unit: "kg",
     minOrder: 1,
     stock: 120,
-    image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400",
+    image: "images/alho-branco.jpg",
     description: "Alho nacional de primeira"
   },
   {
@@ -118,7 +118,7 @@ const products = [
     unit: "kg",
     minOrder: 10,
     stock: 500,
-    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400",
+    image: "images/arroz-integral.jpg",
     description: "Arroz integral tipo 1"
   },
   {
@@ -129,7 +129,7 @@ const products = [
     unit: "kg",
     minOrder: 10,
     stock: 400,
-    image: "https://images.unsplash.com/photo-1585797465523-37f8c7c4e98d?w=400",
+    image: "images/feij-o-preto.jpg",
     description: "Feijão preto selecionado"
   }
 ];
