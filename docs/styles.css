@@ -33,37 +33,40 @@ body {
     display: none !important;
 }
 
-/* Header */
+/* Banner Header */
+.banner-header {
+    width: 100%;
+    background: linear-gradient(135deg, #8bc34a 0%, #689f38 100%);
+    overflow: hidden;
+}
+
+.banner-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-height: 250px;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* Navigation Header */
 .header {
     background: var(--white);
     border-bottom: 1px solid var(--gray-200);
     position: sticky;
     top: 0;
     z-index: 50;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .header .container {
+    padding: 0.75rem 1rem;
+}
+
+.header-content {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    height: 4rem;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.logo-icon {
-    font-size: 1.75rem;
-}
-
-.logo h1 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--primary);
 }
 
 .cart-btn {
@@ -98,21 +101,23 @@ body {
 
 /* Hero */
 .hero {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: white;
-    padding: 3rem 1rem;
+    background: var(--white);
+    color: var(--gray-900);
+    padding: 2rem 1rem;
     text-align: center;
+    border-bottom: 2px solid var(--gray-100);
 }
 
 .hero h2 {
-    font-size: clamp(1.5rem, 4vw, 3rem);
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
     font-weight: 700;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--primary);
 }
 
 .hero p {
-    font-size: clamp(1rem, 2vw, 1.25rem);
-    opacity: 0.95;
+    font-size: clamp(1rem, 2vw, 1.125rem);
+    color: var(--gray-600);
     max-width: 600px;
     margin: 0 auto;
 }
@@ -573,8 +578,16 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .banner-image {
+        max-height: 150px;
+    }
+    
+    .hero {
+        padding: 1.5rem 1rem;
+    }
+    
     .hero h2 {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
     }
     
     .simulator-form {
@@ -591,6 +604,11 @@ body {
     
     .cart-sidebar {
         width: 100%;
+    }
+    
+    .cart-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
     }
 }
 

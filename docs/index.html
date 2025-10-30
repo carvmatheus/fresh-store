@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FreshMarket Pro - Marketplace para Restaurantes</title>
-    <meta name="description" content="Fornecimento de produtos frescos para restaurantes com entrega rápida">
+    <title>Da Horta Distribuidora - Fornecimento para Restaurantes</title>
+    <meta name="description" content="Fornecimento de produtos frescos para restaurantes, hotéis e mercados">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Header -->
+    <!-- Banner Header -->
+    <div class="banner-header">
+        <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora - Para seu restaurante, hotel ou mercado" class="banner-image">
+    </div>
+
+    <!-- Navigation Header -->
     <header class="header">
         <div class="container">
-            <div class="logo">
-                <span class="logo-icon">🥬</span>
-                <h1>FreshMarket Pro</h1>
+            <div class="header-content">
+                <button class="cart-btn" onclick="toggleCart()">
+                    🛒 Carrinho <span class="cart-badge" id="cartBadge">0</span>
+                </button>
             </div>
-            <button class="cart-btn" onclick="toggleCart()">
-                🛒 <span class="cart-badge" id="cartBadge">0</span>
-            </button>
         </div>
     </header>
 
