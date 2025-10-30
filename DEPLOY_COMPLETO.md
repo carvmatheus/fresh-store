@@ -354,8 +354,10 @@ https://render.com → Sign up with GitHub
 5. Add IP: `0.0.0.0/0` (permitir todos)
 6. Obter connection string:
    ```
-   mongodb+srv://usuario:senha@cluster.mongodb.net/da_horta_db
+   mongodb+srv://<username>:<password>@<cluster>.mongodb.net/da_horta_db
    ```
+   
+   **IMPORTANTE:** Substituir `<username>`, `<password>` e `<cluster>` pelos seus valores reais!
 
 #### 4.3. Deploy Backend
 
