@@ -998,7 +998,7 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
     .banner-image {
-        max-height: 150px;
+        max-height: 80px;
     }
     
     .hero {
