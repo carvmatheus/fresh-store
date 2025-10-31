@@ -1,14 +1,13 @@
 /**
  * Configuração da API - Da Horta Distribuidora
- * 
- * IMPORTANTE: Configurar BASE_URL conforme ambiente
+ * Backend: PostgreSQL + Cloudinary
  */
 
 // Detectar ambiente
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
 const API_CONFIG = {
-    // URL da API - ajustar conforme necessário
+    // URL da API
     BASE_URL: isProduction 
         ? 'https://dahorta-backend.onrender.com/api'  // Produção (Render)
         : 'http://localhost:8000/api',                 // Desenvolvimento local
@@ -22,15 +21,21 @@ const API_CONFIG = {
     
     // Configuração de CORS
     CREDENTIALS: 'omit',
-    MODE: 'cors'
+    MODE: 'cors',
+    
+    // Backend info
+    DATABASE: 'PostgreSQL',
+    STORAGE: 'Cloudinary',
+    VERSION: '2.0'
 };
 
 // Log de configuração
-console.log('🔧 API Config:', {
+console.log('🔧 Da Horta API Config:', {
     environment: isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO',
     baseUrl: API_CONFIG.BASE_URL,
-    timeout: API_CONFIG.TIMEOUT,
-    retries: API_CONFIG.MAX_RETRIES
+    database: API_CONFIG.DATABASE,
+    storage: API_CONFIG.STORAGE,
+    version: API_CONFIG.VERSION
 });
 
 // Exportar configuração
