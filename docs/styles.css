@@ -1015,6 +1015,171 @@ body {
     opacity: 0.9;
 }
 
+/* Delivery Estimate Card - NOVA VERSÃO BONITA */
+.delivery-estimate-card {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 1rem;
+    padding: 0;
+    margin-top: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+    animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.estimate-header {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.estimate-icon {
+    font-size: 1.5rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.estimate-header h3 {
+    color: white;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.estimate-body {
+    background: white;
+    padding: 1.5rem;
+}
+
+.estimate-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.estimate-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--gray-50);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    transition: transform 0.2s;
+}
+
+.estimate-item:hover {
+    transform: translateY(-2px);
+}
+
+.estimate-icon-sm {
+    font-size: 1.75rem;
+}
+
+.estimate-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.estimate-label {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.estimate-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.estimate-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gray-200), transparent);
+    margin: 1rem 0;
+}
+
+.estimate-fee {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    border: 2px solid #10b981;
+}
+
+.estimate-icon-lg {
+    font-size: 2.5rem;
+}
+
+.estimate-fee-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.estimate-price {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .estimate-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .estimate-header {
+        padding: 0.875rem 1rem;
+    }
+    
+    .estimate-header h3 {
+        font-size: 1rem;
+    }
+    
+    .estimate-body {
+        padding: 1rem;
+    }
+    
+    .estimate-fee {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+    }
+    
+    .estimate-price {
+        font-size: 1.5rem;
+    }
+}
+
+/* Mantém compatibilidade com versão antiga */
 .delivery-info {
     background: var(--gray-50);
     border-radius: 0.5rem;

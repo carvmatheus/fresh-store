@@ -189,28 +189,34 @@
                     </div>
 
                     <!-- Delivery Info -->
-                    <div id="deliveryInfo" class="delivery-info hidden">
-                        <h3>Informações de Entrega</h3>
-                        <div class="delivery-grid">
-                            <div class="delivery-item">
-                                <span class="delivery-icon">📏</span>
-                                <div>
-                                    <span class="delivery-label">Distância</span>
-                                    <span class="delivery-value" id="deliveryDistance">-</span>
+                    <div id="deliveryInfo" class="delivery-estimate-card hidden">
+                        <div class="estimate-header">
+                            <span class="estimate-icon">✅</span>
+                            <h3>Frete Calculado!</h3>
+                        </div>
+                        <div class="estimate-body">
+                            <div class="estimate-row">
+                                <div class="estimate-item distance">
+                                    <span class="estimate-icon-sm">📏</span>
+                                    <div class="estimate-info">
+                                        <span class="estimate-label">Distância</span>
+                                        <span class="estimate-value" id="deliveryDistance">-</span>
+                                    </div>
+                                </div>
+                                <div class="estimate-item time">
+                                    <span class="estimate-icon-sm">⏱️</span>
+                                    <div class="estimate-info">
+                                        <span class="estimate-label">Tempo</span>
+                                        <span class="estimate-value" id="deliveryTime">-</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="delivery-item">
-                                <span class="delivery-icon">⏱️</span>
-                                <div>
-                                    <span class="delivery-label">Tempo Estimado</span>
-                                    <span class="delivery-value" id="deliveryTime">-</span>
-                                </div>
-                            </div>
-                            <div class="delivery-item">
-                                <span class="delivery-icon">🚚</span>
-                                <div>
-                                    <span class="delivery-label">Taxa de Entrega</span>
-                                    <span class="delivery-value primary" id="deliveryFee">-</span>
+                            <div class="estimate-divider"></div>
+                            <div class="estimate-fee">
+                                <span class="estimate-icon-lg">🚚</span>
+                                <div class="estimate-fee-info">
+                                    <span class="estimate-label">Taxa de Entrega</span>
+                                    <span class="estimate-price" id="deliveryFee">R$ 0,00</span>
                                 </div>
                             </div>
                         </div>
