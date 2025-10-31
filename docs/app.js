@@ -9,16 +9,16 @@ async function loadProductsFromAPI() {
     console.log('✅ Produtos carregados da API:', productsData.length);
     console.log('📦 Primeiro produto:', productsData[0]);
     
-    // Normalizar dados: converter campos do PostgreSQL para formato esperado
+    // Normalizar dados: converter campos do backend para formato esperado
     const normalized = productsData.map(p => ({
-      id: p.id,
+      id: String(p.id), // Garantir que ID é string
       name: p.name,
       category: p.category,
       price: parseFloat(p.price),
       unit: p.unit,
-      minOrder: p.min_order || 1,
+      minOrder: p.minOrder || p.min_order || 1, // Suportar MongoDB (minOrder) e PostgreSQL (min_order)
       stock: p.stock,
-      image: p.image_url || p.image || 'https://via.placeholder.com/400',
+      image: p.image || p.image_url || 'https://via.placeholder.com/400', // MongoDB usa 'image', PostgreSQL usa 'image_url'
       description: p.description || '',
       isActive: p.is_active !== false
     }));
@@ -204,17 +204,20 @@ function renderProducts(productsList = null) {
 function addToCart(productId) {
   console.log('🛒 Tentando adicionar produto:', productId);
   
-  const product = products.find(p => p.id === productId || p.id === String(productId));
+  // Normalizar productId para string
+  const normalizedId = String(productId);
+  
+  const product = products.find(p => String(p.id) === normalizedId);
   if (!product) {
-    console.error('❌ Produto não encontrado:', productId);
-    console.log('Produtos disponíveis:', products.map(p => p.id));
+    console.error('❌ Produto não encontrado:', normalizedId);
+    console.log('Produtos disponíveis:', products.map(p => ({ id: p.id, name: p.name })));
     alert('Produto não encontrado!');
     return;
   }
   
   console.log('✅ Produto encontrado:', product.name);
   
-  const existingItem = cart.find(item => item.id === productId || item.id === String(productId));
+  const existingItem = cart.find(item => String(item.id) === normalizedId);
   
   if (existingItem) {
     existingItem.quantity += product.minOrder || 1;
@@ -222,7 +225,7 @@ function addToCart(productId) {
   } else {
     const cartItem = {
       ...product,
-      id: String(product.id), // Garantir que é string para consistência
+      id: normalizedId, // Garantir que é string para consistência
       quantity: product.minOrder || 1
     };
     cart.push(cartItem);
@@ -244,13 +247,14 @@ function addToCart(productId) {
 
 // Atualizar quantidade
 function updateQuantity(productId, delta) {
-  const item = cart.find(i => i.id === productId);
+  const normalizedId = String(productId);
+  const item = cart.find(i => String(i.id) === normalizedId);
   if (!item) return;
   
   const newQty = item.quantity + delta;
   
-  if (newQty < item.minOrder) {
-    alert(`Quantidade mínima: ${item.minOrder}`);
+  if (newQty < (item.minOrder || 1)) {
+    alert(`Quantidade mínima: ${item.minOrder || 1}`);
     return;
   }
   
@@ -260,7 +264,7 @@ function updateQuantity(productId, delta) {
   }
   
   if (newQty === 0) {
-    removeFromCart(productId);
+    removeFromCart(normalizedId);
   } else {
     item.quantity = newQty;
     saveCartToStorage();
@@ -270,7 +274,8 @@ function updateQuantity(productId, delta) {
 
 // Remover do carrinho
 function removeFromCart(productId) {
-  cart = cart.filter(item => item.id !== productId);
+  const normalizedId = String(productId);
+  cart = cart.filter(item => String(item.id) !== normalizedId);
   saveCartToStorage();
   updateCartUI();
 }
@@ -312,14 +317,14 @@ function updateCartUI() {
         <div class="cart-item-content">
           <div class="cart-item-header">
             <h4 class="cart-item-name">${item.name}</h4>
-            <button class="btn-remove" onclick="removeFromCart(${item.id})">Remover</button>
+            <button class="btn-remove" onclick="removeFromCart('${item.id}')">Remover</button>
           </div>
           <p class="cart-item-details">R$ ${item.price.toFixed(2)} / ${item.unit}</p>
           <div class="cart-item-actions">
             <div class="qty-controls">
-              <button class="qty-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
+              <button class="qty-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
               <span>${item.quantity}</span>
-              <button class="qty-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+              <button class="qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
             </div>
             <span class="cart-item-price">R$ ${(item.price * item.quantity).toFixed(2)}</span>
           </div>

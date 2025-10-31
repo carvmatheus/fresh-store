@@ -54,10 +54,10 @@ function loadProductsTable() {
   }
   
   tbody.innerHTML = products.map(product => {
-    // Normalizar dados do PostgreSQL
-    const imageUrl = product.image_url || product.image || 'https://via.placeholder.com/50?text=Img';
-    const minOrder = product.min_order || product.minOrder || 1;
-    const productId = product.id;
+    // Normalizar dados do backend (MongoDB ou PostgreSQL)
+    const imageUrl = product.image || product.image_url || 'https://via.placeholder.com/50?text=Img';
+    const minOrder = product.minOrder || product.min_order || 1;
+    const productId = String(product.id);
     
     return `
     <tr>
@@ -129,9 +129,9 @@ function editProduct(id) {
   currentEditId = id;
   document.getElementById('modalTitle').textContent = 'Editar Produto';
   
-  // Normalizar dados do PostgreSQL
-  const imageUrl = product.image_url || product.image || '';
-  const minOrder = product.min_order || product.minOrder || 1;
+  // Normalizar dados do backend (MongoDB ou PostgreSQL)
+  const imageUrl = product.image || product.image_url || '';
+  const minOrder = product.minOrder || product.min_order || 1;
   
   // Preencher form
   if (document.getElementById('productId')) {
@@ -174,15 +174,15 @@ async function saveProduct() {
     return;
   }
   
-  // Dados no formato PostgreSQL
+  // Dados no formato do backend (MongoDB)
   const formData = {
     name: document.getElementById('productName').value,
     category: document.getElementById('productCategory').value,
     price: parseFloat(document.getElementById('productPrice').value),
     unit: document.getElementById('productUnit').value,
-    min_order: parseInt(document.getElementById('productMinOrder').value),  // PostgreSQL
+    minOrder: parseInt(document.getElementById('productMinOrder').value),  // MongoDB usa minOrder
     stock: parseInt(document.getElementById('productStock').value),
-    image_url: imageValue,  // PostgreSQL
+    image: imageValue,  // MongoDB usa image
     description: document.getElementById('productDescription').value
   };
   

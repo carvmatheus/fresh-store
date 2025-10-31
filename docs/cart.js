@@ -58,12 +58,12 @@ function renderCartItems() {
       </div>
       <div class="cart-item-controls">
         <div class="quantity-control">
-          <button class="qty-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
+          <button class="qty-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
           <span class="qty-display">${item.quantity}</span>
-          <button class="qty-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+          <button class="qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
         </div>
         <p class="item-total">R$ ${(item.price * item.quantity).toFixed(2)}</p>
-        <button class="btn-remove" onclick="removeItem(${item.id})">Remover</button>
+        <button class="btn-remove" onclick="removeItem('${item.id}')">Remover</button>
       </div>
     </div>
   `).join('');
@@ -71,13 +71,14 @@ function renderCartItems() {
 
 // Atualizar quantidade
 function updateQuantity(productId, delta) {
-  const item = cart.find(i => i.id === productId);
+  const normalizedId = String(productId);
+  const item = cart.find(i => String(i.id) === normalizedId);
   if (!item) return;
   
   const newQty = item.quantity + delta;
   
-  if (newQty < item.minOrder) {
-    alert(`Quantidade mínima: ${item.minOrder} ${item.unit}`);
+  if (newQty < (item.minOrder || 1)) {
+    alert(`Quantidade mínima: ${item.minOrder || 1} ${item.unit}`);
     return;
   }
   
@@ -94,7 +95,8 @@ function updateQuantity(productId, delta) {
 // Remover item
 function removeItem(productId) {
   if (confirm('Deseja remover este item do carrinho?')) {
-    cart = cart.filter(item => item.id !== productId);
+    const normalizedId = String(productId);
+    cart = cart.filter(item => String(item.id) !== normalizedId);
     saveCartToStorage();
     renderCart();
   }
@@ -271,7 +273,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
   // Preparar dados do pedido para API
   const orderData = {
     items: cart.map(item => ({
-      product_id: item.id.toString(),
+      product_id: String(item.id),
       name: item.name,
       quantity: item.quantity,
       unit: item.unit,
