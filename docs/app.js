@@ -164,7 +164,7 @@ function loadProducts() {
             <span class="price-value">${product.price.toFixed(2)}</span>
             <span class="price-unit">/${product.unit}</span>
           </div>
-          <button class="btn-add-cart" onclick="addToCart(${product.id})">
+          <button class="btn-add-cart" onclick="addToCart('${product.id}')">
             🛒 <span>Adicionar</span>
           </button>
         </div>
@@ -190,7 +190,7 @@ function renderProducts(productsList = null) {
             <div class="product-price">
               <span>R$ ${product.price.toFixed(2)}/${product.unit}</span>
             </div>
-            <button class="btn-add-cart" onclick="addToCart(${product.id})">
+            <button class="btn-add-cart" onclick="addToCart('${product.id}')">
               🛒 Adicionar
             </button>
           </div>
