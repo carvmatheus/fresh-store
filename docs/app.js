@@ -4,11 +4,31 @@
 // Carregar produtos da API
 async function loadProductsFromAPI() {
   try {
+    console.log('📡 Carregando produtos da API...', API_CONFIG.BASE_URL);
     const productsData = await api.getProducts();
     console.log('✅ Produtos carregados da API:', productsData.length);
-    return productsData;
+    console.log('📦 Primeiro produto:', productsData[0]);
+    
+    // Normalizar dados: converter campos do PostgreSQL para formato esperado
+    const normalized = productsData.map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      price: parseFloat(p.price),
+      unit: p.unit,
+      minOrder: p.min_order || 1,
+      stock: p.stock,
+      image: p.image_url || p.image || 'https://via.placeholder.com/400',
+      description: p.description || '',
+      isActive: p.is_active !== false
+    }));
+    
+    console.log('✅ Produtos normalizados:', normalized.length);
+    return normalized;
   } catch (error) {
     console.error('❌ Erro ao carregar produtos da API:', error);
+    console.error('URL tentada:', API_CONFIG.BASE_URL + '/products');
+    
     // Fallback: tentar localStorage (compatibilidade temporária)
     const adminProducts = localStorage.getItem('adminProducts');
     if (adminProducts) {
@@ -30,6 +50,12 @@ const categories = [
   { id: "temperos", name: "Temperos" },
   { id: "graos", name: "Grãos e Cereais" }
 ];
+
+// Traduzir categoria para nome legível
+function getCategoryName(categoryId) {
+  const category = categories.find(cat => cat.id === categoryId);
+  return category ? category.name : categoryId;
+}
 
 // Estado da aplicação
 let cart = [];
@@ -121,7 +147,7 @@ function loadProducts() {
       <div class="product-content">
         <div class="product-header">
           <h4 class="product-name">${product.name}</h4>
-          <span class="product-badge">${product.category}</span>
+          <span class="product-badge">${getCategoryName(product.category)}</span>
         </div>
         <p class="product-description">${product.description}</p>
         <div class="product-meta">
@@ -157,7 +183,7 @@ function renderProducts(productsList = null) {
         <div class="product-content">
           <div class="product-header">
             <h4 class="product-name">${product.name}</h4>
-            <span class="product-badge">${product.category}</span>
+            <span class="product-badge">${getCategoryName(product.category)}</span>
           </div>
           <p class="product-description">${product.description}</p>
           <div class="product-footer">
@@ -176,27 +202,44 @@ function renderProducts(productsList = null) {
 
 // Adicionar ao carrinho
 function addToCart(productId) {
-  const product = products.find(p => p.id === productId);
-  if (!product) return;
+  console.log('🛒 Tentando adicionar produto:', productId);
   
-  const existingItem = cart.find(item => item.id === productId);
+  const product = products.find(p => p.id === productId || p.id === String(productId));
+  if (!product) {
+    console.error('❌ Produto não encontrado:', productId);
+    console.log('Produtos disponíveis:', products.map(p => p.id));
+    alert('Produto não encontrado!');
+    return;
+  }
+  
+  console.log('✅ Produto encontrado:', product.name);
+  
+  const existingItem = cart.find(item => item.id === productId || item.id === String(productId));
   
   if (existingItem) {
     existingItem.quantity += product.minOrder || 1;
+    console.log('➕ Quantidade aumentada:', existingItem.quantity);
   } else {
-    cart.push({
+    const cartItem = {
       ...product,
+      id: String(product.id), // Garantir que é string para consistência
       quantity: product.minOrder || 1
-    });
+    };
+    cart.push(cartItem);
+    console.log('➕ Produto adicionado ao carrinho:', cartItem);
   }
   
   saveCartToStorage();
   updateCartUI();
   
+  console.log('🛒 Carrinho atual:', cart.length, 'itens');
+  
   // Feedback visual
   const badge = document.getElementById('cartBadge');
-  badge.style.transform = 'scale(1.3)';
-  setTimeout(() => badge.style.transform = 'scale(1)', 200);
+  if (badge) {
+    badge.style.transform = 'scale(1.3)';
+    setTimeout(() => badge.style.transform = 'scale(1)', 200);
+  }
 }
 
 // Atualizar quantidade
