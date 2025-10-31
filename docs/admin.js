@@ -5,8 +5,34 @@ let products = [];
 let currentEditId = null;
 let allProducts = [];
 
+// Verificar autenticação admin
+function checkAdminAuth() {
+  const token = localStorage.getItem('auth_token');
+  const user = localStorage.getItem('currentUser');
+  
+  if (!token || !user) {
+    alert('⚠️ Você precisa estar logado como administrador para acessar esta página!\n\nRedirecionando para login...');
+    window.location.href = 'login.html';
+    return false;
+  }
+  
+  const userData = JSON.parse(user);
+  if (userData.role !== 'admin') {
+    alert('⚠️ Acesso negado! Esta página é apenas para administradores.');
+    window.location.href = 'index.html';
+    return false;
+  }
+  
+  return true;
+}
+
 // Inicializar
 document.addEventListener('DOMContentLoaded', async () => {
+  // Verificar autenticação antes de carregar produtos
+  if (!checkAdminAuth()) {
+    return;
+  }
+  
   await loadProducts();
   loadProductsTable();
   
@@ -54,9 +80,9 @@ function loadProductsTable() {
   }
   
   tbody.innerHTML = products.map(product => {
-    // Normalizar dados do backend (MongoDB ou PostgreSQL)
-    const imageUrl = product.image || product.image_url || 'https://via.placeholder.com/50?text=Img';
-    const minOrder = product.minOrder || product.min_order || 1;
+    // Normalizar dados do PostgreSQL
+    const imageUrl = product.image_url || 'https://via.placeholder.com/50?text=Img';
+    const minOrder = product.min_order || 1;
     const productId = String(product.id);
     
     return `
@@ -129,9 +155,9 @@ function editProduct(id) {
   currentEditId = id;
   document.getElementById('modalTitle').textContent = 'Editar Produto';
   
-  // Normalizar dados do backend (MongoDB ou PostgreSQL)
-  const imageUrl = product.image || product.image_url || '';
-  const minOrder = product.minOrder || product.min_order || 1;
+  // Normalizar dados do PostgreSQL
+  const imageUrl = product.image_url || '';
+  const minOrder = product.min_order || 1;
   
   // Preencher form
   if (document.getElementById('productId')) {
@@ -174,15 +200,15 @@ async function saveProduct() {
     return;
   }
   
-  // Dados no formato do backend (MongoDB)
+  // Dados no formato do PostgreSQL
   const formData = {
     name: document.getElementById('productName').value,
     category: document.getElementById('productCategory').value,
     price: parseFloat(document.getElementById('productPrice').value),
     unit: document.getElementById('productUnit').value,
-    minOrder: parseInt(document.getElementById('productMinOrder').value),  // MongoDB usa minOrder
+    min_order: parseInt(document.getElementById('productMinOrder').value),  // PostgreSQL usa min_order
     stock: parseInt(document.getElementById('productStock').value),
-    image: imageValue,  // MongoDB usa image
+    image_url: imageValue,  // PostgreSQL usa image_url
     description: document.getElementById('productDescription').value
   };
   

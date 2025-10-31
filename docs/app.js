@@ -9,16 +9,16 @@ async function loadProductsFromAPI() {
     console.log('✅ Produtos carregados da API:', productsData.length);
     console.log('📦 Primeiro produto:', productsData[0]);
     
-    // Normalizar dados: converter campos do backend para formato esperado
+    // Normalizar dados: converter campos do PostgreSQL para formato esperado
     const normalized = productsData.map(p => ({
       id: String(p.id), // Garantir que ID é string
       name: p.name,
       category: p.category,
       price: parseFloat(p.price),
       unit: p.unit,
-      minOrder: p.minOrder || p.min_order || 1, // Suportar MongoDB (minOrder) e PostgreSQL (min_order)
+      minOrder: p.min_order || 1, // PostgreSQL usa min_order
       stock: p.stock,
-      image: p.image || p.image_url || 'https://via.placeholder.com/400', // MongoDB usa 'image', PostgreSQL usa 'image_url'
+      image: p.image_url || 'https://via.placeholder.com/400', // PostgreSQL usa image_url
       description: p.description || '',
       isActive: p.is_active !== false
     }));
