@@ -53,32 +53,39 @@ function loadProductsTable() {
     return;
   }
   
-  tbody.innerHTML = products.map(product => `
+  tbody.innerHTML = products.map(product => {
+    // Normalizar dados do PostgreSQL
+    const imageUrl = product.image_url || product.image || 'https://via.placeholder.com/50?text=Img';
+    const minOrder = product.min_order || product.minOrder || 1;
+    const productId = product.id;
+    
+    return `
     <tr>
-      <td>${product.id}</td>
+      <td>${productId}</td>
       <td>
         <img 
-          src="${product.image}" 
+          src="${imageUrl}" 
           alt="${product.name}" 
           class="product-thumb"
           onerror="this.src='https://via.placeholder.com/50?text=Img'">
       </td>
       <td><strong>${product.name}</strong></td>
       <td><span class="category-badge">${getCategoryLabel(product.category)}</span></td>
-      <td>R$ ${product.price.toFixed(2)}</td>
+      <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
       <td>${product.unit}</td>
-      <td>${product.minOrder}</td>
+      <td>${minOrder}</td>
       <td>${product.stock}</td>
       <td class="actions-cell">
-        <button class="btn-icon btn-edit" onclick="editProduct(${product.id})" title="Editar">
+        <button class="btn-icon btn-edit" onclick='editProduct("${productId}")' title="Editar">
           ✏️
         </button>
-        <button class="btn-icon btn-delete" onclick="deleteProduct(${product.id})" title="Excluir">
+        <button class="btn-icon btn-delete" onclick='deleteProduct("${productId}")' title="Excluir">
           🗑️
         </button>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
   
   console.log('Tabela atualizada com sucesso');
 }
@@ -113,29 +120,38 @@ function closeProductModal() {
 
 // Editar produto
 function editProduct(id) {
-  const product = allProducts.find(p => p.id === id);
-  if (!product) return;
+  const product = allProducts.find(p => p.id === id || p.id === String(id));
+  if (!product) {
+    console.error('Produto não encontrado:', id);
+    return;
+  }
   
   currentEditId = id;
   document.getElementById('modalTitle').textContent = 'Editar Produto';
   
+  // Normalizar dados do PostgreSQL
+  const imageUrl = product.image_url || product.image || '';
+  const minOrder = product.min_order || product.minOrder || 1;
+  
   // Preencher form
-  document.getElementById('productId').value = product.id;
+  if (document.getElementById('productId')) {
+    document.getElementById('productId').value = product.id;
+  }
   document.getElementById('productName').value = product.name;
   document.getElementById('productCategory').value = product.category;
-  document.getElementById('productPrice').value = product.price;
+  document.getElementById('productPrice').value = parseFloat(product.price);
   document.getElementById('productUnit').value = product.unit;
-  document.getElementById('productMinOrder').value = product.minOrder;
+  document.getElementById('productMinOrder').value = minOrder;
   document.getElementById('productStock').value = product.stock;
-  document.getElementById('productImage').value = product.image;
+  document.getElementById('productImage').value = imageUrl;
   document.getElementById('productDescription').value = product.description || '';
   
   // Mostrar preview da imagem existente
   const preview = document.getElementById('imagePreview');
-  if (product.image) {
+  if (imageUrl) {
     preview.onclick = null;
     preview.innerHTML = `
-      <img src="${product.image}" alt="Preview" class="preview-image" onclick="document.getElementById('productImageFile').click()">
+      <img src="${imageUrl}" alt="Preview" class="preview-image" onclick="document.getElementById('productImageFile').click()">
       <button type="button" class="btn-remove-image" onclick="removeImage(event)">
         🗑️ Remover
       </button>
@@ -158,14 +174,15 @@ async function saveProduct() {
     return;
   }
   
+  // Dados no formato PostgreSQL
   const formData = {
     name: document.getElementById('productName').value,
     category: document.getElementById('productCategory').value,
     price: parseFloat(document.getElementById('productPrice').value),
     unit: document.getElementById('productUnit').value,
-    minOrder: parseInt(document.getElementById('productMinOrder').value),
+    min_order: parseInt(document.getElementById('productMinOrder').value),  // PostgreSQL
     stock: parseInt(document.getElementById('productStock').value),
-    image: imageValue,
+    image_url: imageValue,  // PostgreSQL
     description: document.getElementById('productDescription').value
   };
   
