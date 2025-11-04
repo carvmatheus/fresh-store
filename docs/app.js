@@ -472,39 +472,108 @@ function setupCEPMask() {
 }
 
 function calculateDelivery() {
-  const cep = document.getElementById('cep').value.replace(/\D/g, '');
+  const cepInput = document.getElementById('cep');
+  const cep = cepInput.value.replace(/\D/g, '');
+  const errorDiv = document.getElementById('deliveryError');
+  const resultDiv = document.getElementById('deliveryResult');
+  const btnCalculate = document.getElementById('btnCalculate');
   
+  // Esconder erros anteriores
+  if (errorDiv) {
+    errorDiv.classList.add('hidden');
+  }
+  if (resultDiv) {
+    resultDiv.classList.add('hidden');
+  }
+  
+  // Validar CEP
   if (cep.length !== 8) {
-    alert('Por favor, digite um CEP válido');
+    if (errorDiv) {
+      const errorMessage = document.getElementById('errorMessage');
+      if (errorMessage) {
+        errorMessage.textContent = 'Por favor, digite um CEP válido (8 dígitos)';
+      }
+      errorDiv.classList.remove('hidden');
+    } else {
+      alert('Por favor, digite um CEP válido');
+    }
     return;
   }
   
-  // Simulação baseada no CEP
-  const distance = Math.abs(parseInt(cep.substring(0, 5)) - 12000) / 100;
-  const baseFee = 15;
-  const deliveryFee = baseFee + (distance * 2);
+  // Desabilitar botão durante cálculo
+  if (btnCalculate) {
+    btnCalculate.disabled = true;
+    btnCalculate.textContent = 'Calculando...';
+  }
   
-  let deliveryDays = 1;
-  if (distance > 50) deliveryDays = 2;
-  if (distance > 100) deliveryDays = 3;
-  
-  const deliveryDate = new Date();
-  deliveryDate.setDate(deliveryDate.getDate() + deliveryDays);
-  
-  const result = document.getElementById('deliveryResult');
-  result.classList.remove('hidden');
-  result.innerHTML = `
-    <div class="result-item">
-      <span class="result-label">Taxa de Entrega:</span>
-      <span class="result-value">R$ ${deliveryFee.toFixed(2)}</span>
-    </div>
-    <div class="result-item">
-      <span class="result-label">Prazo:</span>
-      <span class="result-value">${deliveryDays} ${deliveryDays === 1 ? 'dia útil' : 'dias úteis'}</span>
-    </div>
-    <div class="result-item">
-      <span class="result-label">Previsão:</span>
-      <span class="result-value">${deliveryDate.toLocaleDateString('pt-BR')}</span>
-    </div>
-  `;
+  // Simular delay de cálculo (opcional)
+  setTimeout(() => {
+    // Simulação baseada no CEP
+    const cepNum = parseInt(cep.substring(0, 5));
+    const baseCep = 12000;
+    const distance = Math.abs(cepNum - baseCep) / 100;
+    
+    // Calcular taxa de entrega
+    let deliveryFee = 0;
+    let estimatedTime = '30-45 min';
+    
+    if (distance <= 10) {
+      deliveryFee = 0;
+      estimatedTime = '30-45 min';
+    } else if (distance <= 20) {
+      deliveryFee = 15;
+      estimatedTime = '45-60 min';
+    } else if (distance <= 30) {
+      deliveryFee = 25;
+      estimatedTime = '60-90 min';
+    } else {
+      deliveryFee = 35;
+      estimatedTime = '90-120 min';
+    }
+    
+    // Calcular prazo de entrega
+    let deliveryDays = 1;
+    if (distance > 50) deliveryDays = 2;
+    if (distance > 100) deliveryDays = 3;
+    
+    const deliveryDate = new Date();
+    deliveryDate.setDate(deliveryDate.getDate() + deliveryDays);
+    
+    // Valor mínimo do pedido
+    const minOrderValue = distance <= 20 ? 100 : 150;
+    
+    // Atualizar resultados
+    const distanceEl = document.getElementById('distance');
+    const timeEl = document.getElementById('time');
+    const feeEl = document.getElementById('fee');
+    const minOrderEl = document.getElementById('minOrder');
+    const freeShippingEl = document.getElementById('freeShipping');
+    
+    if (distanceEl) distanceEl.textContent = `${distance.toFixed(1)} km`;
+    if (timeEl) timeEl.textContent = estimatedTime;
+    if (feeEl) {
+      feeEl.textContent = deliveryFee === 0 ? 'GRÁTIS' : `R$ ${deliveryFee.toFixed(2)}`;
+    }
+    if (minOrderEl) minOrderEl.textContent = `R$ ${minOrderValue.toFixed(2)}`;
+    
+    // Mostrar/ocultar frete grátis
+    if (freeShippingEl) {
+      if (deliveryFee === 0) {
+        freeShippingEl.classList.remove('hidden');
+      } else {
+        freeShippingEl.classList.add('hidden');
+      }
+    }
+    
+    // Mostrar resultado
+    if (resultDiv) {
+      resultDiv.classList.remove('hidden');
+    }
+    
+    // Reabilitar botão
+    if (btnCalculate) {
+      btnCalculate.disabled = false;
+      btnCalculate.textContent = 'Calcular Frete';
+    }
+  }, 500); // Simular delay de 500ms
 }
