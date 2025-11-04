@@ -95,17 +95,44 @@ class ApiClient {
             token_length: data.access_token ? data.access_token.length : 0
         });
         
+        // Verificar se recebeu token
+        if (!data.access_token) {
+            console.error('❌ ERRO: Backend não retornou access_token!');
+            console.error('❌ Resposta completa:', data);
+            throw new Error('Servidor não retornou token de autenticação');
+        }
+        
         // Salvar token JWT
         this.token = data.access_token;
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('currentUser', JSON.stringify(data.user));
         
-        // Confirmar salvamento
-        const tokenSalvo = localStorage.getItem('auth_token');
-        const userSalvo = localStorage.getItem('currentUser');
+        // Aguardar um pouco para garantir persistência
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        // Confirmar salvamento (múltiplas verificações)
+        let tokenSalvo = localStorage.getItem('auth_token');
+        let userSalvo = localStorage.getItem('currentUser');
+        
+        // Se não salvou, tentar novamente
+        if (!tokenSalvo && data.access_token) {
+            console.warn('⚠️ Token não foi salvo na primeira tentativa. Tentando novamente...');
+            localStorage.setItem('auth_token', data.access_token);
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            
+            // Verificar novamente
+            tokenSalvo = localStorage.getItem('auth_token');
+            userSalvo = localStorage.getItem('currentUser');
+        }
         
         console.log('✅ Token JWT salvo:', !!tokenSalvo, `(${tokenSalvo ? tokenSalvo.substring(0, 20) + '...' : 'VAZIO'})`);
         console.log('✅ Usuário salvo:', !!userSalvo);
+        
+        if (!tokenSalvo) {
+            console.error('❌ ERRO CRÍTICO: Token não foi salvo após múltiplas tentativas!');
+            throw new Error('Falha ao salvar token no localStorage');
+        }
+        
         console.log('✅ Login realizado com sucesso:', data.user.username, '-', data.user.role);
         
         return data;

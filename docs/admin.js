@@ -3,8 +3,13 @@
 // VERIFICAÇÃO IMEDIATA DE AUTENTICAÇÃO (ANTES DE QUALQUER CÓDIGO)
 // Isso garante redirecionamento mesmo se código antigo estiver em cache
 (function() {
+  // Verificação síncrona imediata
   const token = localStorage.getItem('auth_token');
   const user = localStorage.getItem('currentUser');
+  
+  console.log('🔐 [VERIFICAÇÃO IMEDIATA] Verificando autenticação...');
+  console.log('   - Token presente:', !!token);
+  console.log('   - Usuário presente:', !!user);
   
   if (!token || !user) {
     console.warn('⚠️ [VERIFICAÇÃO IMEDIATA] Sem token ou usuário - redirecionando...');
@@ -14,11 +19,16 @@
   
   try {
     const userData = JSON.parse(user);
+    console.log('   - Usuário:', userData.username);
+    console.log('   - Role:', userData.role);
+    
     if (userData.role !== 'admin') {
       console.warn('⚠️ [VERIFICAÇÃO IMEDIATA] Usuário não é admin - redirecionando...');
       window.location.replace('index.html');
       return;
     }
+    
+    console.log('✅ [VERIFICAÇÃO IMEDIATA] Autenticação OK');
   } catch (error) {
     console.warn('⚠️ [VERIFICAÇÃO IMEDIATA] Erro ao parsear usuário - redirecionando...');
     localStorage.removeItem('auth_token');
@@ -26,6 +36,17 @@
     window.location.replace('login.html');
     return;
   }
+  
+  // Verificação adicional após 100ms (caso o token tenha sido salvo logo antes)
+  setTimeout(() => {
+    const tokenCheck = localStorage.getItem('auth_token');
+    const userCheck = localStorage.getItem('currentUser');
+    
+    if (!tokenCheck || !userCheck) {
+      console.warn('⚠️ [VERIFICAÇÃO TARDIA] Token ou usuário desapareceu - redirecionando...');
+      window.location.replace('login.html');
+    }
+  }, 100);
 })();
 
 // Estado global

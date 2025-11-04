@@ -16,26 +16,55 @@ async function login(usernameOrEmail, password) {
     console.log('🎭 Role:', result.user.role);
     console.log('🔑 Token JWT recebido:', result.access_token ? 'SIM' : 'NÃO');
     
-    // Verificar se o token foi salvo
-    const savedToken = localStorage.getItem('auth_token');
-    const savedUser = localStorage.getItem('currentUser');
+    // Aguardar um pouco para garantir que localStorage foi persistido
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Verificar se o token foi salvo (múltiplas tentativas)
+    let savedToken = localStorage.getItem('auth_token');
+    let savedUser = localStorage.getItem('currentUser');
     
     console.log('💾 Token salvo no localStorage:', !!savedToken);
     console.log('💾 Usuário salvo no localStorage:', !!savedUser);
     
+    // Se não salvou, tentar salvar manualmente
+    if (!savedToken && result.access_token) {
+      console.warn('⚠️ Token não foi salvo automaticamente. Salvando manualmente...');
+      localStorage.setItem('auth_token', result.access_token);
+      localStorage.setItem('currentUser', JSON.stringify(result.user));
+      
+      // Verificar novamente
+      savedToken = localStorage.getItem('auth_token');
+      savedUser = localStorage.getItem('currentUser');
+      
+      console.log('💾 Token salvo manualmente:', !!savedToken);
+      console.log('💾 Usuário salvo manualmente:', !!savedUser);
+    }
+    
     if (!savedToken) {
       console.error('❌ ERRO: Token JWT não foi salvo no localStorage!');
-      throw new Error('Token não foi salvo corretamente');
+      console.error('❌ Token da resposta:', result.access_token ? 'PRESENTE' : 'AUSENTE');
+      throw new Error('Token não foi salvo corretamente. Tente novamente.');
     }
+    
+    // Verificar se o usuário está correto
+    if (!savedUser) {
+      console.error('❌ ERRO: Usuário não foi salvo no localStorage!');
+      throw new Error('Dados do usuário não foram salvos. Tente novamente.');
+    }
+    
+    // Confirmar dados salvos antes de redirecionar
+    console.log('✅ Dados confirmados no localStorage:');
+    console.log('   - Token:', savedToken.substring(0, 20) + '...');
+    console.log('   - Usuário:', JSON.parse(savedUser).username);
     
     // Redirecionar baseado no role
-    console.log('🔀 Redirecionando para:', result.user.role === 'admin' ? 'admin.html' : 'cliente.html');
+    const redirectUrl = result.user.role === 'admin' ? 'admin.html' : 'cliente.html';
+    console.log('🔀 Redirecionando para:', redirectUrl);
     
-    if (result.user.role === 'admin') {
-      window.location.replace('admin.html');
-    } else {
-      window.location.replace('cliente.html');
-    }
+    // Usar setTimeout para garantir que o redirecionamento aconteça
+    setTimeout(() => {
+      window.location.replace(redirectUrl);
+    }, 50);
     
     return true;
   } catch (error) {
