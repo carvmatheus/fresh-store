@@ -1,69 +1,57 @@
 // Sistema de Autenticação - Da Horta Distribuidora
+// Sempre usa JWT do backend (PostgreSQL)
 
-// Usuários demo (em produção, isso viria de um backend)
-const DEMO_USERS = [
-  {
-    id: 1,
-    username: 'cliente',
-    email: 'cliente@dahorta.com',
-    password: 'cliente123',
-    role: 'cliente',
-    name: 'João Silva',
-    company: 'Restaurante Bom Sabor'
-  },
-  {
-    id: 2,
-    username: 'admin',
-    email: 'admin@dahorta.com',
-    password: 'admin123',
-    role: 'admin',
-    name: 'Jean Dutra',
-    company: 'Da Horta Distribuidora'
-  }
-];
-
-// Login (usando API backend)
+// Login (sempre via API backend com JWT)
 async function login(usernameOrEmail, password) {
-  console.log('Login chamado com:', usernameOrEmail);
+  console.log('🔐 Iniciando login com:', usernameOrEmail);
+  console.log('🌐 API URL:', API_CONFIG.BASE_URL);
   
   try {
-    // Tentar login via API
+    // Login via API - gera JWT
+    console.log('📡 Enviando requisição de login para backend...');
     const result = await api.login(usernameOrEmail, password);
     
-    console.log('✅ Login bem-sucedido via API:', result.user.username);
+    console.log('✅ Login bem-sucedido via API!');
+    console.log('👤 Usuário:', result.user.username);
+    console.log('🎭 Role:', result.user.role);
+    console.log('🔑 Token JWT recebido:', result.access_token ? 'SIM' : 'NÃO');
+    
+    // Verificar se o token foi salvo
+    const savedToken = localStorage.getItem('auth_token');
+    const savedUser = localStorage.getItem('currentUser');
+    
+    console.log('💾 Token salvo no localStorage:', !!savedToken);
+    console.log('💾 Usuário salvo no localStorage:', !!savedUser);
+    
+    if (!savedToken) {
+      console.error('❌ ERRO: Token JWT não foi salvo no localStorage!');
+      throw new Error('Token não foi salvo corretamente');
+    }
     
     // Redirecionar baseado no role
+    console.log('🔀 Redirecionando para:', result.user.role === 'admin' ? 'admin.html' : 'cliente.html');
+    
     if (result.user.role === 'admin') {
-      window.location.href = 'admin.html';
+      window.location.replace('admin.html');
     } else {
-      window.location.href = 'cliente.html';
+      window.location.replace('cliente.html');
     }
     
     return true;
   } catch (error) {
-    console.error('❌ Login falhou:', error);
+    console.error('❌ Erro no login:', error);
+    console.error('❌ Mensagem:', error.message);
+    console.error('❌ Stack:', error.stack);
     
-    // Fallback: tentar usuários demo (desenvolvimento)
-    console.log('⚠️ Tentando fallback com usuários demo...');
-    const user = DEMO_USERS.find(u => 
-      (u.username === usernameOrEmail || u.email === usernameOrEmail) && 
-      u.password === password
-    );
-
-    if (user) {
-      const { password: _, ...userWithoutPassword } = user;
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-      console.log('✅ Login bem-sucedido (fallback):', user.username);
-      
-      if (user.role === 'admin') {
-        window.location.href = 'admin.html';
-      } else {
-        window.location.href = 'cliente.html';
-      }
-      return true;
+    // Mostrar erro apropriado
+    if (error.message.includes('Failed to fetch') || error.message.includes('Load failed')) {
+      showLoginError('Erro de conexão com o servidor. Verifique sua internet ou aguarde o servidor iniciar (cold start ~30s).');
+    } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      showLoginError('Usuário ou senha incorretos');
+    } else {
+      showLoginError('Erro ao fazer login: ' + error.message);
     }
     
-    showLoginError('Usuário ou senha incorretos');
     return false;
   }
 }

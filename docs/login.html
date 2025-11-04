@@ -100,53 +100,61 @@
     <script src="config.js"></script>
     <script src="api-client.js"></script>
     <script src="auth.js"></script>
+    
+    <!-- Login Script -->
     <script>
+        console.log('🔐 Página de login carregada');
+        
         // Redirecionar se já estiver logado
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         if (currentUser) {
+            console.log('👤 Usuário já logado:', currentUser.username);
             if (currentUser.role === 'admin') {
-                window.location.href = 'admin.html';
+                window.location.replace('admin.html');
             } else {
-                window.location.href = 'cliente.html';
+                window.location.replace('cliente.html');
             }
         }
 
         // Handle form submission
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ DOM carregado');
+            
             const form = document.getElementById('loginForm');
             if (form) {
-                form.addEventListener('submit', (e) => {
+                form.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const email = document.getElementById('loginEmail').value.trim();
                     const password = document.getElementById('loginPassword').value;
-                    console.log('Tentando login com:', email);
+                    
+                    console.log('🔐 Formulário submetido. Usuário:', email);
+                    
                     if (typeof login === 'function') {
-                        login(email, password);
+                        await login(email, password);
                     } else {
-                        console.error('Função login não encontrada!');
+                        console.error('❌ Função login não encontrada!');
                         alert('Erro ao carregar sistema de login. Recarregue a página.');
                     }
                 });
+            } else {
+                console.error('❌ Formulário de login não encontrado!');
             }
         });
 
         // Login as demo user
-        function loginAs(username, password) {
+        async function loginAs(username, password) {
+            console.log('🔐 Login rápido:', username);
             document.getElementById('loginEmail').value = username;
             document.getElementById('loginPassword').value = password;
+            
             if (typeof login === 'function') {
-                login(username, password);
+                await login(username, password);
             } else {
-                console.error('Função login não encontrada!');
+                console.error('❌ Função login não encontrada!');
                 alert('Erro ao carregar sistema de login. Recarregue a página.');
             }
         }
     </script>
-
-    <!-- API Scripts -->
-    <script src="config.js"></script>
-    <script src="api-client.js"></script>
-    <script src="auth.js"></script>
 </body>
 </html>
 

@@ -78,19 +78,36 @@ class ApiClient {
     // =============================
 
     /**
-     * Login de usuário
+     * Login de usuário - Gera e salva JWT
      */
     async login(username, password) {
+        console.log('📡 ApiClient: Enviando credenciais para', this.baseURL + '/auth/login');
+        
         const data = await this.request('/auth/login', {
             method: 'POST',
             body: JSON.stringify({ username, password })
         });
         
+        console.log('📦 Resposta do backend:', {
+            user: data.user.username,
+            role: data.user.role,
+            token_presente: !!data.access_token,
+            token_length: data.access_token ? data.access_token.length : 0
+        });
+        
+        // Salvar token JWT
         this.token = data.access_token;
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('currentUser', JSON.stringify(data.user));
         
-        console.log('✅ Login realizado:', data.user.username);
+        // Confirmar salvamento
+        const tokenSalvo = localStorage.getItem('auth_token');
+        const userSalvo = localStorage.getItem('currentUser');
+        
+        console.log('✅ Token JWT salvo:', !!tokenSalvo, `(${tokenSalvo ? tokenSalvo.substring(0, 20) + '...' : 'VAZIO'})`);
+        console.log('✅ Usuário salvo:', !!userSalvo);
+        console.log('✅ Login realizado com sucesso:', data.user.username, '-', data.user.role);
+        
         return data;
     }
 
