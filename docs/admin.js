@@ -10,37 +10,121 @@ function checkAdminAuth() {
   const token = localStorage.getItem('auth_token');
   const user = localStorage.getItem('currentUser');
   
+  console.log('🔐 Verificando autenticação admin...');
+  console.log('Token presente:', !!token);
+  console.log('User presente:', !!user);
+  
   if (!token || !user) {
+    console.warn('⚠️ Token ou usuário não encontrado');
     alert('⚠️ Você precisa estar logado como administrador para acessar esta página!\n\nRedirecionando para login...');
     window.location.href = 'login.html';
     return false;
   }
   
-  const userData = JSON.parse(user);
-  if (userData.role !== 'admin') {
-    alert('⚠️ Acesso negado! Esta página é apenas para administradores.');
-    window.location.href = 'index.html';
+  try {
+    const userData = JSON.parse(user);
+    console.log('👤 Usuário:', userData.username, '- Role:', userData.role);
+    
+    if (userData.role !== 'admin') {
+      console.warn('⚠️ Usuário não é admin');
+      alert('⚠️ Acesso negado! Esta página é apenas para administradores.');
+      window.location.href = 'index.html';
+      return false;
+    }
+    
+    console.log('✅ Autenticação admin OK');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao parsear usuário:', error);
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('currentUser');
+    window.location.href = 'login.html';
     return false;
   }
-  
-  return true;
+}
+
+// Validar token com o backend
+async function validateToken() {
+  try {
+    console.log('🔐 Validando token com backend...');
+    const user = await api.getCurrentUser();
+    console.log('✅ Token válido. Usuário:', user.username);
+    
+    // Atualizar dados do usuário no localStorage
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Token inválido ou expirado:', error);
+    
+    // Limpar dados de autenticação
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('currentUser');
+    
+    alert('⚠️ Sua sessão expirou. Por favor, faça login novamente.');
+    window.location.href = 'login.html';
+    return false;
+  }
+}
+
+// Executar ação com retry automático em caso de erro de autenticação
+async function executeWithAuthRetry(actionFn, actionName = 'Ação') {
+  try {
+    return await actionFn();
+  } catch (error) {
+    console.error(`❌ Erro ao executar ${actionName}:`, error);
+    
+    // Se for erro 401/403, tentar validar token novamente
+    if (error.message.includes('401') || error.message.includes('403') || error.message.includes('Not authenticated')) {
+      console.warn('⚠️ Erro de autenticação detectado. Validando token...');
+      
+      const isValid = await validateToken();
+      if (!isValid) {
+        return; // Já foi redirecionado para login
+      }
+      
+      // Tentar novamente após validar token
+      console.log('🔄 Tentando novamente após validar token...');
+      try {
+        return await actionFn();
+      } catch (retryError) {
+        console.error(`❌ Erro após retry:`, retryError);
+        throw retryError;
+      }
+    }
+    
+    throw error;
+  }
 }
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', async () => {
-  // Verificar autenticação antes de carregar produtos
+  console.log('🚀 Inicializando painel admin...');
+  
+  // Verificar autenticação básica (localStorage)
   if (!checkAdminAuth()) {
     return;
   }
   
-  await loadProducts();
-  loadProductsTable();
+  // Validar token com o backend
+  const isTokenValid = await validateToken();
+  if (!isTokenValid) {
+    return; // Já foi redirecionado para login
+  }
+  
+  // Carregar produtos
+  await executeWithAuthRetry(async () => {
+    await loadProducts();
+    loadProductsTable();
+  }, 'Carregar produtos');
   
   // Form submit handler
-  document.getElementById('productForm').addEventListener('submit', (e) => {
+  document.getElementById('productForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    saveProduct();
+    await executeWithAuthRetry(() => saveProduct(), 'Salvar produto');
   });
+  
+  console.log('✅ Painel admin inicializado com sucesso');
 });
 
 // Carregar produtos da API
@@ -144,52 +228,55 @@ function closeProductModal() {
   currentEditId = null;
 }
 
-// Editar produto
-function editProduct(id) {
-  const product = allProducts.find(p => p.id === id || p.id === String(id));
-  if (!product) {
-    console.error('Produto não encontrado:', id);
-    return;
-  }
-  
-  currentEditId = id;
-  document.getElementById('modalTitle').textContent = 'Editar Produto';
-  
-  // Normalizar dados do PostgreSQL
-  const imageUrl = product.image_url || '';
-  const minOrder = product.min_order || 1;
-  
-  // Preencher form
-  if (document.getElementById('productId')) {
-    document.getElementById('productId').value = product.id;
-  }
-  document.getElementById('productName').value = product.name;
-  document.getElementById('productCategory').value = product.category;
-  document.getElementById('productPrice').value = parseFloat(product.price);
-  document.getElementById('productUnit').value = product.unit;
-  document.getElementById('productMinOrder').value = minOrder;
-  document.getElementById('productStock').value = product.stock;
-  document.getElementById('productImage').value = imageUrl;
-  document.getElementById('productDescription').value = product.description || '';
-  
-  // Mostrar preview da imagem existente
-  const preview = document.getElementById('imagePreview');
-  if (imageUrl) {
-    preview.onclick = null;
-    preview.innerHTML = `
-      <img src="${imageUrl}" alt="Preview" class="preview-image" onclick="document.getElementById('productImageFile').click()">
-      <button type="button" class="btn-remove-image" onclick="removeImage(event)">
-        🗑️ Remover
-      </button>
-    `;
-  } else {
-    preview.onclick = function() { document.getElementById('productImageFile').click(); };
-  }
-  
-  document.getElementById('productModal').classList.add('show');
+// Editar produto (com retry automático)
+async function editProduct(id) {
+  await executeWithAuthRetry(async () => {
+    const product = allProducts.find(p => p.id === id || p.id === String(id));
+    if (!product) {
+      console.error('Produto não encontrado:', id);
+      alert('Produto não encontrado!');
+      return;
+    }
+    
+    currentEditId = id;
+    document.getElementById('modalTitle').textContent = 'Editar Produto';
+    
+    // Normalizar dados do PostgreSQL
+    const imageUrl = product.image_url || '';
+    const minOrder = product.min_order || 1;
+    
+    // Preencher form
+    if (document.getElementById('productId')) {
+      document.getElementById('productId').value = product.id;
+    }
+    document.getElementById('productName').value = product.name;
+    document.getElementById('productCategory').value = product.category;
+    document.getElementById('productPrice').value = parseFloat(product.price);
+    document.getElementById('productUnit').value = product.unit;
+    document.getElementById('productMinOrder').value = minOrder;
+    document.getElementById('productStock').value = product.stock;
+    document.getElementById('productImage').value = imageUrl;
+    document.getElementById('productDescription').value = product.description || '';
+    
+    // Mostrar preview da imagem existente
+    const preview = document.getElementById('imagePreview');
+    if (imageUrl) {
+      preview.onclick = null;
+      preview.innerHTML = `
+        <img src="${imageUrl}" alt="Preview" class="preview-image" onclick="document.getElementById('productImageFile').click()">
+        <button type="button" class="btn-remove-image" onclick="removeImage(event)">
+          🗑️ Remover
+        </button>
+      `;
+    } else {
+      preview.onclick = function() { document.getElementById('productImageFile').click(); };
+    }
+    
+    document.getElementById('productModal').classList.add('show');
+  }, `Editar produto ${id}`);
 }
 
-// Salvar produto (criar ou editar)
+// Salvar produto (criar ou editar) com retry automático
 async function saveProduct() {
   console.log('saveProduct chamado');
   
@@ -214,44 +301,53 @@ async function saveProduct() {
   
   console.log('Dados do produto:', formData);
   
-  try {
-    if (currentEditId) {
-      // Editar existente
-      await api.updateProduct(currentEditId, formData);
-      alert('Produto atualizado com sucesso!');
-    } else {
-      // Criar novo
-      await api.createProduct(formData);
-      alert('Produto criado com sucesso!');
+  await executeWithAuthRetry(async () => {
+    try {
+      if (currentEditId) {
+        // Editar existente
+        console.log('🔄 Atualizando produto:', currentEditId);
+        await api.updateProduct(currentEditId, formData);
+        alert('✅ Produto atualizado com sucesso!');
+      } else {
+        // Criar novo
+        console.log('➕ Criando novo produto');
+        await api.createProduct(formData);
+        alert('✅ Produto criado com sucesso!');
+      }
+      
+      // Recarregar lista
+      await loadProducts();
+      loadProductsTable();
+      closeProductModal();
+    } catch (error) {
+      console.error('❌ Erro ao salvar produto:', error);
+      alert('❌ Erro ao salvar produto: ' + error.message);
+      throw error; // Re-throw para o executeWithAuthRetry
     }
-    
-    // Recarregar lista
-    await loadProducts();
-    loadProductsTable();
-    closeProductModal();
-  } catch (error) {
-    console.error('Erro ao salvar produto:', error);
-    alert('Erro ao salvar produto: ' + error.message);
-  }
+  }, currentEditId ? 'Atualizar produto' : 'Criar produto');
 }
 
-// Deletar produto
+// Deletar produto com retry automático
 async function deleteProduct(id) {
-  if (!confirm('Tem certeza que deseja excluir este produto?')) {
+  if (!confirm('⚠️ Tem certeza que deseja excluir este produto?\n\nEsta ação não pode ser desfeita.')) {
     return;
   }
   
-  try {
-    await api.deleteProduct(id);
-    alert('Produto excluído com sucesso!');
-    
-    // Recarregar lista
-    await loadProducts();
-    loadProductsTable();
-  } catch (error) {
-    console.error('Erro ao excluir produto:', error);
-    alert('Erro ao excluir produto: ' + error.message);
-  }
+  await executeWithAuthRetry(async () => {
+    try {
+      console.log('🗑️ Deletando produto:', id);
+      await api.deleteProduct(id);
+      alert('✅ Produto excluído com sucesso!');
+      
+      // Recarregar lista
+      await loadProducts();
+      loadProductsTable();
+    } catch (error) {
+      console.error('❌ Erro ao excluir produto:', error);
+      alert('❌ Erro ao excluir produto: ' + error.message);
+      throw error; // Re-throw para o executeWithAuthRetry
+    }
+  }, `Deletar produto ${id}`);
 }
 
 // Filtrar produtos
