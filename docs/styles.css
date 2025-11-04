@@ -306,39 +306,19 @@ body {
 }
 
 .simulator-header {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    color: white;
-}
-
-.simulator-icon {
-    font-size: 2rem;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.1);
-    }
+    padding: 1rem 1.5rem;
+    border-bottom: 2px solid var(--gray-200);
+    background: white;
 }
 
 .simulator-header h3 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     margin: 0;
-    font-weight: 700;
-    color: white;
-}
-
-.simulator-description {
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0.25rem 0 0 0;
-    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .simulator-form {
@@ -346,6 +326,7 @@ body {
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
+    background: white;
 }
 
 .input-cep {
@@ -2434,18 +2415,11 @@ body {
     }
     
     .simulator-header {
-        padding: 1rem;
-        flex-direction: column;
-        text-align: center;
-        gap: 0.75rem;
-    }
-    
-    .simulator-icon {
-        font-size: 1.5rem;
+        padding: 0.875rem 1rem;
     }
     
     .simulator-header h3 {
-        font-size: 1.25rem;
+        font-size: 1.125rem;
     }
     
     .result-grid {
