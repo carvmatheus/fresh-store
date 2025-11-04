@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug API - Da Horta</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .test-section {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #4ec9b0;
+            margin-top: 0;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        pre {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .warning { color: #dcdcaa; }
+        .info { color: #569cd6; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug API - Da Horta Distribuidora</h1>
+    
+    <div class="test-section">
+        <h2>1️⃣ Verificar Backend</h2>
+        <button onclick="testBackend()">Testar Backend</button>
+        <pre id="backend-result">Aguardando teste...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>2️⃣ Verificar Produtos na API</h2>
+        <button onclick="testProducts()">Listar Produtos</button>
+        <button onclick="seedProducts()">Adicionar Produtos</button>
+        <pre id="products-result">Aguardando teste...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>3️⃣ Testar app.js (Frontend)</h2>
+        <button onclick="testFrontendLoad()">Carregar Produtos (app.js)</button>
+        <pre id="frontend-result">Aguardando teste...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>4️⃣ Status do Banco</h2>
+        <button onclick="testStatus()">Verificar Status</button>
+        <pre id="status-result">Aguardando teste...</pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://dahorta-backend.onrender.com/api';
+
+        async function testBackend() {
+            const result = document.getElementById('backend-result');
+            result.textContent = '⏳ Testando...';
+            
+            try {
+                const response = await fetch('https://dahorta-backend.onrender.com/');
+                const data = await response.json();
+                
+                result.innerHTML = `<span class="success">✅ BACKEND ONLINE</span>\n\n` + 
+                    JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ ERRO</span>\n\n${error.message}`;
+            }
+        }
+
+        async function testProducts() {
+            const result = document.getElementById('products-result');
+            result.textContent = '⏳ Carregando produtos... (pode demorar no cold start)';
+            
+            try {
+                console.log('📡 Fazendo request para:', `${API_URL}/products`);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
+                
+                const response = await fetch(`${API_URL}/products`, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                clearTimeout(timeoutId);
+                
+                console.log('✅ Response status:', response.status);
+                console.log('✅ Response headers:', [...response.headers.entries()]);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Data received:', data);
+                
+                if (Array.isArray(data)) {
+                    result.innerHTML = `<span class="success">✅ ${data.length} PRODUTOS ENCONTRADOS</span>\n\n`;
+                    
+                    if (data.length === 0) {
+                        result.innerHTML += `<span class="warning">⚠️ Nenhum produto no banco!</span>\n`;
+                        result.innerHTML += `<span class="info">Execute: Adicionar Produtos</span>\n\n`;
+                    } else {
+                        // Mostrar primeiro produto completo
+                        result.innerHTML += `Primeiro produto:\n${JSON.stringify(data[0], null, 2)}\n\n`;
+                        
+                        // Lista resumida
+                        result.innerHTML += `\nLista de produtos:\n`;
+                        data.forEach((p, i) => {
+                            result.innerHTML += `${i+1}. ${p.name} - R$ ${p.price} - ${p.image_url ? '✅ imagem' : '❌ sem imagem'}\n`;
+                        });
+                    }
+                } else {
+                    result.innerHTML = `<span class="error">❌ RESPOSTA INVÁLIDA</span>\n\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                console.error('❌ Erro completo:', error);
+                result.innerHTML = `<span class="error">❌ ERRO</span>\n\n`;
+                result.innerHTML += `Tipo: ${error.name}\n`;
+                result.innerHTML += `Mensagem: ${error.message}\n\n`;
+                
+                if (error.name === 'AbortError') {
+                    result.innerHTML += `<span class="warning">⚠️ Timeout - API demorou mais de 30s (cold start do Render)</span>\n`;
+                    result.innerHTML += `<span class="info">💡 Tente novamente em 10 segundos</span>`;
+                } else {
+                    result.innerHTML += `Stack: ${error.stack}\n\n`;
+                    result.innerHTML += `<span class="info">💡 Possíveis causas:</span>\n`;
+                    result.innerHTML += `- CORS bloqueado\n`;
+                    result.innerHTML += `- API offline\n`;
+                    result.innerHTML += `- Cold start do Render (aguarde 10-30s)\n`;
+                }
+            }
+        }
+
+        async function seedProducts() {
+            const result = document.getElementById('products-result');
+            result.textContent = '⏳ Adicionando produtos...';
+            
+            try {
+                const response = await fetch(`${API_URL}/init/seed-products`);
+                const data = await response.json();
+                
+                result.innerHTML = `<span class="success">✅ PRODUTOS ADICIONADOS</span>\n\n` + 
+                    JSON.stringify(data, null, 2);
+                
+                // Recarregar lista de produtos
+                setTimeout(() => testProducts(), 1000);
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ ERRO</span>\n\n${error.message}`;
+            }
+        }
+
+        async function testFrontendLoad() {
+            const result = document.getElementById('frontend-result');
+            result.textContent = '⏳ Simulando carregamento do app.js...';
+            
+            try {
+                // Simular a função loadProductsFromAPI do app.js
+                console.log('📡 Carregando produtos da API...', API_URL);
+                const response = await fetch(`${API_URL}/products`);
+                const productsData = await response.json();
+                console.log('✅ Produtos carregados da API:', productsData.length);
+                console.log('📦 Primeiro produto:', productsData[0]);
+                
+                // Normalizar dados (igual ao app.js)
+                const normalized = productsData.map(p => ({
+                    id: String(p.id),
+                    name: p.name,
+                    category: p.category,
+                    price: parseFloat(p.price),
+                    unit: p.unit,
+                    minOrder: p.min_order || 1,
+                    stock: p.stock,
+                    image: p.image_url || 'https://via.placeholder.com/400',
+                    description: p.description || '',
+                    isActive: p.is_active !== false
+                }));
+                
+                console.log('✅ Produtos normalizados:', normalized.length);
+                
+                result.innerHTML = `<span class="success">✅ FRONTEND FUNCIONANDO</span>\n\n`;
+                result.innerHTML += `Produtos recebidos: ${productsData.length}\n`;
+                result.innerHTML += `Produtos normalizados: ${normalized.length}\n\n`;
+                
+                if (normalized.length > 0) {
+                    result.innerHTML += `Primeiro produto normalizado:\n${JSON.stringify(normalized[0], null, 2)}`;
+                } else {
+                    result.innerHTML += `<span class="warning">⚠️ Nenhum produto para normalizar</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ ERRO NO FRONTEND</span>\n\n`;
+                result.innerHTML += `${error.message}\n\n`;
+                result.innerHTML += `Stack: ${error.stack}`;
+                console.error('❌ Erro ao carregar produtos:', error);
+            }
+        }
+
+        async function testStatus() {
+            const result = document.getElementById('status-result');
+            result.textContent = '⏳ Verificando status...';
+            
+            try {
+                const response = await fetch(`${API_URL}/init/status`);
+                const data = await response.json();
+                
+                result.innerHTML = `<span class="info">📊 STATUS DO BANCO</span>\n\n`;
+                result.innerHTML += `Tabelas: ${data.tables?.join(', ')}\n`;
+                result.innerHTML += `Usuários: ${data.users_count}\n`;
+                result.innerHTML += `Produtos: ${data.products_count}\n`;
+                result.innerHTML += `Admin existe: ${data.admin_exists ? '✅ Sim' : '❌ Não'}\n\n`;
+                
+                if (data.products_count === 0) {
+                    result.innerHTML += `<span class="warning">⚠️ Nenhum produto no banco!</span>\n`;
+                    result.innerHTML += `<span class="info">👉 Clique em "Adicionar Produtos" acima</span>\n`;
+                }
+                
+                result.innerHTML += `\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ ERRO</span>\n\n${error.message}`;
+            }
+        }
+
+        // Executar testes automaticamente ao carregar
+        window.onload = () => {
+            console.log('🔍 Iniciando testes automáticos...');
+            testBackend();
+            setTimeout(() => testProducts(), 1000);
+            setTimeout(() => testStatus(), 2000);
+        };
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Debug Frontend - Da Horta</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #0d1117;
+            color: #c9d1d9;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 { color: #58a6ff; margin-bottom: 20px; }
+        h2 { color: #8b949e; margin-top: 20px; margin-bottom: 10px; }
+        .box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        pre {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .success { background: #238636; color: white; }
+        .error { background: #da3633; color: white; }
+        .warning { background: #9e6a03; color: white; }
+        .info { background: #1f6feb; color: white; }
+        #productsGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .product-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        .product-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .product-content {
+            padding: 16px;
+        }
+        .product-name {
+            color: #58a6ff;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .product-price {
+            color: #7ee787;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #2ea043; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Frontend - Da Horta</h1>
+    
+    <div class="box">
+        <h2>1️⃣ Configuração da API</h2>
+        <pre id="config-info">Carregando...</pre>
+    </div>
+
+    <div class="box">
+        <h2>2️⃣ Teste de Fetch</h2>
+        <button onclick="testFetch()">Testar Fetch Direto</button>
+        <pre id="fetch-result">Clique no botão para testar...</pre>
+    </div>
+
+    <div class="box">
+        <h2>3️⃣ Simulação do app.js</h2>
+        <button onclick="simulateAppJs()">Simular loadProductsFromAPI()</button>
+        <pre id="simulation-result">Clique no botão para simular...</pre>
+    </div>
+
+    <div class="box">
+        <h2>4️⃣ Produtos Renderizados</h2>
+        <span class="status info" id="products-count">0 produtos</span>
+        <div id="productsGrid"></div>
+    </div>
+
+    <!-- Scripts da aplicação (mesmos que index.html) -->
+    <script src="config.js"></script>
+    <script src="api-client.js"></script>
+    
+    <script>
+        // Mostrar configuração
+        document.getElementById('config-info').textContent = JSON.stringify({
+            BASE_URL: API_CONFIG.BASE_URL,
+            isProduction: window.location.hostname !== 'localhost',
+            hostname: window.location.hostname,
+            DATABASE: API_CONFIG.DATABASE,
+            STORAGE: API_CONFIG.STORAGE
+        }, null, 2);
+
+        // Teste direto de fetch
+        async function testFetch() {
+            const result = document.getElementById('fetch-result');
+            result.textContent = '⏳ Testando...';
+            
+            try {
+                const url = API_CONFIG.BASE_URL + '/products';
+                console.log('📡 Fetch URL:', url);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                console.log('📊 Response Status:', response.status);
+                console.log('📊 Response Headers:', Object.fromEntries(response.headers.entries()));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Dados recebidos:', data.length, 'produtos');
+                
+                let output = `<span class="status success">✅ ${data.length} PRODUTOS RETORNADOS</span>\n\n`;
+                output += `Status: ${response.status}\n`;
+                output += `Content-Type: ${response.headers.get('content-type')}\n\n`;
+                output += 'Primeiro produto:\n';
+                output += JSON.stringify(data[0], null, 2);
+                
+                result.innerHTML = output;
+                return data;
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                result.innerHTML = `<span class="status error">❌ ERRO</span>\n\n${error.message}\n\n`;
+                result.innerHTML += `Stack: ${error.stack || 'N/A'}`;
+                return [];
+            }
+        }
+
+        // Simular app.js
+        async function simulateAppJs() {
+            const result = document.getElementById('simulation-result');
+            result.textContent = '⏳ Simulando loadProductsFromAPI()...';
+            
+            try {
+                console.log('📡 Carregando produtos da API...', API_CONFIG.BASE_URL);
+                
+                // Usar o api-client.js
+                const productsData = await api.getProducts();
+                console.log('✅ Produtos carregados da API:', productsData.length);
+                console.log('📦 Primeiro produto RAW:', productsData[0]);
+                
+                // Normalizar dados (igual app.js)
+                const normalized = productsData.map(p => ({
+                    id: String(p.id),
+                    name: p.name,
+                    category: p.category,
+                    price: parseFloat(p.price),
+                    unit: p.unit,
+                    minOrder: p.min_order || 1,
+                    stock: p.stock,
+                    image: p.image_url || 'https://via.placeholder.com/400',
+                    description: p.description || '',
+                    isActive: p.is_active !== false
+                }));
+                
+                console.log('✅ Produtos normalizados:', normalized.length);
+                console.log('📦 Primeiro produto NORMALIZADO:', normalized[0]);
+                
+                let output = `<span class="status success">✅ ${normalized.length} PRODUTOS NORMALIZADOS</span>\n\n`;
+                output += 'Dados RAW:\n';
+                output += JSON.stringify(productsData[0], null, 2);
+                output += '\n\nDados NORMALIZADOS:\n';
+                output += JSON.stringify(normalized[0], null, 2);
+                
+                result.innerHTML = output;
+                
+                // Renderizar produtos
+                renderProducts(normalized);
+                
+                return normalized;
+            } catch (error) {
+                console.error('❌ Erro ao carregar produtos da API:', error);
+                result.innerHTML = `<span class="status error">❌ ERRO</span>\n\n${error.message}\n\n`;
+                result.innerHTML += `URL tentada: ${API_CONFIG.BASE_URL}/products\n`;
+                result.innerHTML += `Stack: ${error.stack || 'N/A'}`;
+                return [];
+            }
+        }
+
+        // Renderizar produtos
+        function renderProducts(products) {
+            const container = document.getElementById('productsGrid');
+            const countEl = document.getElementById('products-count');
+            
+            countEl.textContent = `${products.length} produtos`;
+            countEl.className = `status ${products.length > 0 ? 'success' : 'error'}`;
+            
+            if (products.length === 0) {
+                container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #8b949e;">Nenhum produto para exibir</p>';
+                return;
+            }
+            
+            container.innerHTML = products.map(p => `
+                <div class="product-card">
+                    <img src="${p.image}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/200?text=Erro+Imagem'">
+                    <div class="product-content">
+                        <h3 class="product-name">${p.name}</h3>
+                        <p style="color: #8b949e; font-size: 14px; margin: 8px 0;">${p.description}</p>
+                        <div class="product-price">R$ ${p.price.toFixed(2)}/${p.unit}</div>
+                        <p style="color: #8b949e; font-size: 12px; margin-top: 8px;">
+                            📦 Estoque: ${p.stock} ${p.unit}<br>
+                            🔢 Min: ${p.minOrder} ${p.unit}
+                        </p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Auto-executar ao carregar
+        window.onload = async () => {
+            console.log('🔍 Página de debug carregada');
+            console.log('📍 Hostname:', window.location.hostname);
+            console.log('🌐 API URL:', API_CONFIG.BASE_URL);
+            
+            // Executar testes automaticamente
+            setTimeout(() => {
+                console.log('🚀 Executando testes...');
+                simulateAppJs();
+            }, 500);
+        };
+    </script>
+</body>
+</html>
+
