@@ -1,5 +1,33 @@
 // Admin.js - Gestão de produtos (API Backend)
 
+// VERIFICAÇÃO IMEDIATA DE AUTENTICAÇÃO (ANTES DE QUALQUER CÓDIGO)
+// Isso garante redirecionamento mesmo se código antigo estiver em cache
+(function() {
+  const token = localStorage.getItem('auth_token');
+  const user = localStorage.getItem('currentUser');
+  
+  if (!token || !user) {
+    console.warn('⚠️ [VERIFICAÇÃO IMEDIATA] Sem token ou usuário - redirecionando...');
+    window.location.replace('login.html');
+    return;
+  }
+  
+  try {
+    const userData = JSON.parse(user);
+    if (userData.role !== 'admin') {
+      console.warn('⚠️ [VERIFICAÇÃO IMEDIATA] Usuário não é admin - redirecionando...');
+      window.location.replace('index.html');
+      return;
+    }
+  } catch (error) {
+    console.warn('⚠️ [VERIFICAÇÃO IMEDIATA] Erro ao parsear usuário - redirecionando...');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('currentUser');
+    window.location.replace('login.html');
+    return;
+  }
+})();
+
 // Estado global
 let products = [];
 let currentEditId = null;
