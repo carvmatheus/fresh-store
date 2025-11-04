@@ -8,10 +8,8 @@
 </head>
 <body>
     <!-- Banner Header -->
-    <div class="banner-header">
-        <a href="index.html">
-            <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
-        </a>
+    <div class="banner-header" onclick="goToHome()" style="cursor: pointer;" title="Clique para voltar à home">
+        <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
     </div>
 
     <!-- Login Container -->
@@ -152,6 +150,20 @@
             } else {
                 console.error('❌ Função login não encontrada!');
                 alert('Erro ao carregar sistema de login. Recarregue a página.');
+            }
+        }
+        
+        // Ir para home
+        function goToHome() {
+            const currentPath = window.location.pathname;
+            const currentFile = currentPath.split('/').pop();
+            
+            // Se já estiver na index.html, recarregar a página
+            if (currentFile === 'index.html' || currentFile === '' || currentFile === 'docs/') {
+                window.location.href = 'index.html';
+            } else {
+                // Redirecionar para index.html
+                window.location.href = 'index.html';
             }
         }
     </script>
