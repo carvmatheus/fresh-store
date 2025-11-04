@@ -28,16 +28,31 @@ class ApiClient {
      */
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
+        
+        // Detectar se body é FormData
+        const isFormData = options.body instanceof FormData;
+        
+        // Configurar headers
+        const headers = {
+            ...this.getHeaders(),
+            ...options.headers
+        };
+        
+        // Se for FormData, remover Content-Type para o browser definir automaticamente (com boundary)
+        if (isFormData) {
+            delete headers['Content-Type'];
+        }
+        
         const config = {
             ...options,
-            headers: {
-                ...this.getHeaders(),
-                ...options.headers
-            }
+            headers: headers
         };
 
         try {
             console.log(`📡 API Request: ${options.method || 'GET'} ${url}`);
+            if (isFormData) {
+                console.log('   📦 FormData detectado (arquivo + dados)');
+            }
             
             // Criar timeout para a requisição (30 segundos para Render cold start)
             const controller = new AbortController();
@@ -204,11 +219,17 @@ class ApiClient {
 
     /**
      * Criar novo produto (admin)
+     * Aceita FormData (com arquivo) ou objeto JSON
      */
     async createProduct(productData) {
+        // Se for FormData, enviar diretamente; senão, converter para JSON
+        const body = productData instanceof FormData 
+            ? productData 
+            : JSON.stringify(productData);
+        
         const product = await this.request('/products', {
             method: 'POST',
-            body: JSON.stringify(productData)
+            body: body
         });
         console.log('✅ Produto criado:', product.name);
         return product;
@@ -216,11 +237,17 @@ class ApiClient {
 
     /**
      * Atualizar produto (admin)
+     * Aceita FormData (com arquivo) ou objeto JSON
      */
     async updateProduct(id, productData) {
+        // Se for FormData, enviar diretamente; senão, converter para JSON
+        const body = productData instanceof FormData 
+            ? productData 
+            : JSON.stringify(productData);
+        
         const product = await this.request(`/products/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(productData)
+            body: body
         });
         console.log('✅ Produto atualizado:', product.name);
         return product;

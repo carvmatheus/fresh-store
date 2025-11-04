@@ -335,26 +335,39 @@ async function editProduct(id) {
 async function saveProduct() {
   console.log('saveProduct chamado');
   
-  // Validar imagem
-  const imageValue = document.getElementById('productImage').value;
-  if (!imageValue) {
-    alert('Por favor, selecione uma imagem para o produto!');
+  // Pegar arquivo de imagem se houver
+  const imageFileInput = document.getElementById('productImageFile');
+  const imageFile = imageFileInput && imageFileInput.files && imageFileInput.files[0] ? imageFileInput.files[0] : null;
+  const imageUrl = document.getElementById('productImage').value;
+  
+  // Validar imagem (arquivo ou URL)
+  if (!imageFile && !imageUrl) {
+    alert('Por favor, selecione uma imagem ou forneça uma URL para o produto!');
     return;
   }
   
-  // Dados no formato do PostgreSQL
-  const formData = {
-    name: document.getElementById('productName').value,
-    category: document.getElementById('productCategory').value,
-    price: parseFloat(document.getElementById('productPrice').value),
-    unit: document.getElementById('productUnit').value,
-    min_order: parseInt(document.getElementById('productMinOrder').value),  // PostgreSQL usa min_order
-    stock: parseInt(document.getElementById('productStock').value),
-    image_url: imageValue,  // PostgreSQL usa image_url
-    description: document.getElementById('productDescription').value
-  };
+  // Criar FormData para enviar arquivo + dados
+  const formData = new FormData();
   
-  console.log('Dados do produto:', formData);
+  // Adicionar campos do produto
+  formData.append('name', document.getElementById('productName').value);
+  formData.append('category', document.getElementById('productCategory').value);
+  formData.append('price', parseFloat(document.getElementById('productPrice').value));
+  formData.append('unit', document.getElementById('productUnit').value);
+  formData.append('min_order', parseInt(document.getElementById('productMinOrder').value) || 1);
+  formData.append('stock', parseInt(document.getElementById('productStock').value));
+  formData.append('description', document.getElementById('productDescription').value || '');
+  
+  // Adicionar imagem: arquivo tem prioridade sobre URL
+  if (imageFile) {
+    console.log('📤 Enviando arquivo de imagem:', imageFile.name, imageFile.type);
+    formData.append('image_file', imageFile);
+  } else if (imageUrl) {
+    console.log('📤 Enviando URL de imagem:', imageUrl);
+    formData.append('image_url', imageUrl);
+  }
+  
+  console.log('📦 Dados do produto preparados para envio');
   
   await executeWithAuthRetry(async () => {
     try {
@@ -374,6 +387,11 @@ async function saveProduct() {
       await loadProducts();
       loadProductsTable();
       closeProductModal();
+      
+      // Limpar input de arquivo
+      if (imageFileInput) {
+        imageFileInput.value = '';
+      }
     } catch (error) {
       console.error('❌ Erro ao salvar produto:', error);
       alert('❌ Erro ao salvar produto: ' + error.message);
