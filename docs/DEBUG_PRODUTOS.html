@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Debug Produtos - Da Horta</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #0d1117;
+            color: #c9d1d9;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 { color: #58a6ff; margin-bottom: 20px; }
+        h2 { color: #8b949e; margin-top: 20px; margin-bottom: 10px; }
+        .box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        pre {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            color: #c9d1d9;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover { background: #2ea043; }
+        button.danger { background: #da3633; }
+        button.danger:hover { background: #f85149; }
+        .success { color: #3fb950; }
+        .error { color: #f85149; }
+        .warning { color: #d29922; }
+        .info { color: #58a6ff; }
+        input, select, textarea {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 8px;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #8b949e;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Produtos - Da Horta</h1>
+    
+    <div class="box">
+        <h2>1️⃣ Listar Produtos do Banco</h2>
+        <button onclick="listProducts()">📋 Listar Produtos</button>
+        <button onclick="listProductsRaw()">📋 Listar Produtos (RAW SQL)</button>
+        <div id="productsList"></div>
+    </div>
+    
+    <div class="box">
+        <h2>2️⃣ Criar Produto de Teste</h2>
+        <div class="form-group">
+            <label>Nome:</label>
+            <input type="text" id="testName" value="Produto Teste Debug">
+        </div>
+        <div class="form-group">
+            <label>Categoria:</label>
+            <select id="testCategory">
+                <option value="verduras">Verduras</option>
+                <option value="legumes">Legumes</option>
+                <option value="frutas">Frutas</option>
+                <option value="temperos">Temperos</option>
+                <option value="graos">Grãos</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Preço:</label>
+            <input type="number" id="testPrice" value="10.50" step="0.01">
+        </div>
+        <div class="form-group">
+            <label>Unidade:</label>
+            <input type="text" id="testUnit" value="kg">
+        </div>
+        <div class="form-group">
+            <label>Estoque:</label>
+            <input type="number" id="testStock" value="100">
+        </div>
+        <div class="form-group">
+            <label>URL da Imagem:</label>
+            <input type="text" id="testImageUrl" value="https://res.cloudinary.com/dqwtzs1vf/image/upload/v1761869709/fresh-lettuce_fkdfdk.png" placeholder="URL da imagem">
+        </div>
+        <button onclick="createTestProduct()">➕ Criar Produto de Teste</button>
+        <div id="createResult"></div>
+    </div>
+    
+    <div class="box">
+        <h2>3️⃣ Editar Produto</h2>
+        <div class="form-group">
+            <label>ID do Produto (UUID):</label>
+            <input type="text" id="editProductId" placeholder="Cole o UUID do produto aqui">
+        </div>
+        <div class="form-group">
+            <label>Novo Nome:</label>
+            <input type="text" id="editName" value="Produto Editado Debug">
+        </div>
+        <div class="form-group">
+            <label>Novo Preço:</label>
+            <input type="number" id="editPrice" value="15.75" step="0.01">
+        </div>
+        <div class="form-group">
+            <label>Novo Estoque:</label>
+            <input type="number" id="editStock" value="200">
+        </div>
+        <button onclick="editTestProduct()">✏️ Editar Produto</button>
+        <div id="editResult"></div>
+    </div>
+    
+    <div class="box">
+        <h2>4️⃣ Verificar no Banco (SQL Direto)</h2>
+        <p>Execute no seu banco PostgreSQL:</p>
+        <pre id="sqlQueries">
+-- Verificar último produto criado
+SELECT * FROM products ORDER BY created_at DESC LIMIT 1;
+
+-- Verificar produto por nome
+SELECT * FROM products WHERE name LIKE '%Debug%' ORDER BY created_at DESC;
+
+-- Contar produtos
+SELECT COUNT(*) as total FROM products;
+
+-- Verificar produtos criados hoje
+SELECT * FROM products WHERE DATE(created_at) = CURRENT_DATE ORDER BY created_at DESC;
+        </pre>
+        <button onclick="copySQL()">📋 Copiar SQL</button>
+    </div>
+    
+    <div class="box">
+        <h2>5️⃣ Logs do Backend</h2>
+        <p>Verifique os logs do Render para ver:</p>
+        <ul>
+            <li>✅ [CRIAR] Commit realizado - produto salvo no banco!</li>
+            <li>✅ [EDITAR] Commit realizado - produto atualizado no banco!</li>
+            <li>❌ Erros de commit ou rollback</li>
+        </ul>
+        <div id="logsInfo"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="api-client.js"></script>
+    <script>
+        const API_URL = API_CONFIG.BASE_URL;
+        
+        // Listar produtos
+        async function listProducts() {
+            const resultDiv = document.getElementById('productsList');
+            resultDiv.innerHTML = '<p class="info">⏳ Carregando produtos...</p>';
+            
+            try {
+                const response = await fetch(API_URL + '/products');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ ${data.length} produtos encontrados</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">❌ Erro: ${data.detail || 'Erro desconhecido'}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Erro: ${error.message}</p>`;
+            }
+        }
+        
+        // Listar produtos com SQL direto (se houver endpoint)
+        async function listProductsRaw() {
+            const resultDiv = document.getElementById('productsList');
+            resultDiv.innerHTML = '<p class="info">⏳ Tentando listar produtos via SQL direto...</p>';
+            
+            try {
+                // Tentar endpoint de debug se existir
+                const response = await fetch(API_URL + '/products?raw=true');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Produtos encontrados (RAW)</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p class="warning">⚠️ Endpoint RAW não disponível. Usando endpoint normal...</p>`;
+                    await listProducts();
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="warning">⚠️ Endpoint RAW não disponível. Usando endpoint normal...</p>`;
+                await listProducts();
+            }
+        }
+        
+        // Criar produto de teste
+        async function createTestProduct() {
+            const resultDiv = document.getElementById('createResult');
+            resultDiv.innerHTML = '<p class="info">⏳ Criando produto...</p>';
+            
+            const formData = new FormData();
+            formData.append('name', document.getElementById('testName').value);
+            formData.append('category', document.getElementById('testCategory').value);
+            formData.append('price', document.getElementById('testPrice').value);
+            formData.append('unit', document.getElementById('testUnit').value);
+            formData.append('stock', document.getElementById('testStock').value);
+            formData.append('description', 'Produto criado para teste de debug');
+            formData.append('image_url', document.getElementById('testImageUrl').value);
+            
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    resultDiv.innerHTML = '<p class="error">❌ Erro: Não autenticado. Faça login primeiro.</p>';
+                    return;
+                }
+                
+                console.log('📤 Criando produto:', {
+                    name: formData.get('name'),
+                    category: formData.get('category'),
+                    price: formData.get('price'),
+                    stock: formData.get('stock')
+                });
+                
+                const response = await fetch(API_URL + '/products', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Produto criado com sucesso!</p>
+                        <p class="info">ID: ${data.id}</p>
+                        <p class="info">Nome: ${data.name}</p>
+                        <p class="info">Preço: R$ ${data.price}</p>
+                        <p class="info">Estoque: ${data.stock}</p>
+                        <p class="info">Imagem: ${data.image_url}</p>
+                        <p class="warning">⚠️ Agora execute no banco: SELECT * FROM products WHERE id = '${data.id}';</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    
+                    // Copiar ID para o campo de edição
+                    document.getElementById('editProductId').value = data.id;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Erro ao criar produto: ${data.detail || 'Erro desconhecido'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Erro: ${error.message}</p>`;
+                console.error('Erro:', error);
+            }
+        }
+        
+        // Editar produto de teste
+        async function editTestProduct() {
+            const resultDiv = document.getElementById('editResult');
+            const productId = document.getElementById('editProductId').value;
+            
+            if (!productId) {
+                resultDiv.innerHTML = '<p class="error">❌ Erro: ID do produto não fornecido</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">⏳ Editando produto...</p>';
+            
+            const formData = new FormData();
+            formData.append('name', document.getElementById('editName').value);
+            formData.append('price', document.getElementById('editPrice').value);
+            formData.append('stock', document.getElementById('editStock').value);
+            
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    resultDiv.innerHTML = '<p class="error">❌ Erro: Não autenticado. Faça login primeiro.</p>';
+                    return;
+                }
+                
+                console.log('📤 Editando produto:', {
+                    id: productId,
+                    name: formData.get('name'),
+                    price: formData.get('price'),
+                    stock: formData.get('stock')
+                });
+                
+                const response = await fetch(API_URL + '/products/' + productId, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Produto editado com sucesso!</p>
+                        <p class="info">ID: ${data.id}</p>
+                        <p class="info">Nome: ${data.name}</p>
+                        <p class="info">Preço: R$ ${data.price}</p>
+                        <p class="info">Estoque: ${data.stock}</p>
+                        <p class="warning">⚠️ Agora execute no banco: SELECT * FROM products WHERE id = '${data.id}';</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Erro ao editar produto: ${data.detail || 'Erro desconhecido'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Erro: ${error.message}</p>`;
+                console.error('Erro:', error);
+            }
+        }
+        
+        // Copiar SQL
+        function copySQL() {
+            const sql = document.getElementById('sqlQueries').textContent;
+            navigator.clipboard.writeText(sql).then(() => {
+                alert('✅ SQL copiado para a área de transferência!');
+            });
+        }
+        
+        // Verificar autenticação
+        window.onload = function() {
+            const token = localStorage.getItem('auth_token');
+            const user = localStorage.getItem('currentUser');
+            
+            if (!token || !user) {
+                document.body.innerHTML = `
+                    <div class="box">
+                        <h2>⚠️ Não Autenticado</h2>
+                        <p>Você precisa estar logado como admin para testar.</p>
+                        <p><a href="login.html" style="color: #58a6ff;">Ir para Login</a></p>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                const userData = JSON.parse(user);
+                if (userData.role !== 'admin') {
+                    document.body.innerHTML = `
+                        <div class="box">
+                            <h2>⚠️ Acesso Negado</h2>
+                            <p>Você precisa ser admin para testar.</p>
+                            <p>Usuário atual: ${userData.username} (${userData.role})</p>
+                            <p><a href="login.html" style="color: #58a6ff;">Ir para Login</a></p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                document.getElementById('logsInfo').innerHTML = `
+                    <p class="success">✅ Autenticado como: ${userData.username} (${userData.role})</p>
+                    <p class="info">Token: ${token.substring(0, 20)}...</p>
+                `;
+            } catch (error) {
+                console.error('Erro ao parsear usuário:', error);
+            }
+        };
+    </script>
+</body>
+</html>
