@@ -203,7 +203,7 @@ function loadProducts() {
   }
   
   container.innerHTML = filtered.map(product => `
-    <div class="product-card" onclick="addToCart('${product.id}')" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
+    <div class="product-card" data-product-id="${product.id}" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
       <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
       <div class="product-content">
         <div class="product-header">
@@ -232,6 +232,20 @@ function loadProducts() {
       </div>
     </div>
   `).join('');
+  
+  // Adicionar event listeners aos cards após renderizar
+  container.querySelectorAll('.product-card').forEach(card => {
+    const productId = card.getAttribute('data-product-id');
+    if (productId) {
+      card.addEventListener('click', function(e) {
+        // Não adicionar se clicou no botão (já tem stopPropagation)
+        if (e.target.closest('.btn-add-cart')) {
+          return;
+        }
+        addToCart(productId);
+      });
+    }
+  });
 }
 
 // Renderizar produtos (alias para compatibilidade)
@@ -239,7 +253,7 @@ function renderProducts(productsList = null) {
   if (productsList) {
     const container = document.getElementById('productsGrid');
     container.innerHTML = productsList.map(product => `
-      <div class="product-card" onclick="addToCart('${product.id}')" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
+      <div class="product-card" data-product-id="${product.id}" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
         <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
         <div class="product-content">
           <div class="product-header">
@@ -258,6 +272,20 @@ function renderProducts(productsList = null) {
         </div>
       </div>
     `).join('');
+    
+    // Adicionar event listeners aos cards após renderizar
+    container.querySelectorAll('.product-card').forEach(card => {
+      const productId = card.getAttribute('data-product-id');
+      if (productId) {
+        card.addEventListener('click', function(e) {
+          // Não adicionar se clicou no botão (já tem stopPropagation)
+          if (e.target.closest('.btn-add-cart')) {
+            return;
+          }
+          addToCart(productId);
+        });
+      }
+    });
   }
 }
 
@@ -443,6 +471,20 @@ function closeOverlays() {
   if (sidebar) sidebar.classList.remove('open');
   if (menu) menu.classList.remove('open');
   if (overlay) overlay.classList.remove('show');
+}
+
+// Ir para home
+function goToHome() {
+  const currentPath = window.location.pathname;
+  const currentFile = currentPath.split('/').pop();
+  
+  // Se já estiver na index.html, recarregar a página
+  if (currentFile === 'index.html' || currentFile === '' || currentFile === 'docs/') {
+    window.location.reload();
+  } else {
+    // Redirecionar para index.html
+    window.location.href = 'index.html';
+  }
 }
 
 // LocalStorage
