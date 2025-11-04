@@ -5,37 +5,77 @@
 async function loadProductsFromAPI() {
   try {
     console.log('📡 Carregando produtos da API...', API_CONFIG.BASE_URL);
+    console.log('📡 URL completa:', API_CONFIG.BASE_URL + '/products');
+    
     const productsData = await api.getProducts();
-    console.log('✅ Produtos carregados da API:', productsData.length);
-    console.log('📦 Primeiro produto:', productsData[0]);
+    
+    console.log('✅ Produtos carregados da API:', productsData ? productsData.length : 0);
+    console.log('📦 Dados brutos recebidos:', productsData);
+    
+    // Verificar se recebeu dados válidos
+    if (!productsData || !Array.isArray(productsData)) {
+      console.error('❌ Dados inválidos recebidos da API:', productsData);
+      return [];
+    }
+    
+    if (productsData.length === 0) {
+      console.warn('⚠️ API retornou array vazio - nenhum produto cadastrado');
+      return [];
+    }
+    
+    console.log('📦 Primeiro produto RAW:', productsData[0]);
     
     // Normalizar dados: converter campos do PostgreSQL para formato esperado
-    const normalized = productsData.map(p => ({
-      id: String(p.id), // Garantir que ID é string
-      name: p.name,
-      category: p.category,
-      price: parseFloat(p.price),
-      unit: p.unit,
-      minOrder: p.min_order || 1, // PostgreSQL usa min_order
-      stock: p.stock,
-      image: p.image_url || 'https://via.placeholder.com/400', // PostgreSQL usa image_url
-      description: p.description || '',
-      isActive: p.is_active !== false
-    }));
+    const normalized = productsData.map(p => {
+      const normalizedProduct = {
+        id: String(p.id), // Garantir que ID é string
+        name: p.name,
+        category: p.category,
+        price: parseFloat(p.price),
+        unit: p.unit,
+        minOrder: p.min_order || 1, // PostgreSQL usa min_order
+        stock: p.stock,
+        image: p.image_url || 'https://via.placeholder.com/400', // PostgreSQL usa image_url
+        description: p.description || '',
+        isActive: p.is_active !== false
+      };
+      
+      console.log(`✓ Normalizado: ${normalizedProduct.name} - imagem: ${normalizedProduct.image}`);
+      return normalizedProduct;
+    });
     
-    console.log('✅ Produtos normalizados:', normalized.length);
+    console.log('✅ Total de produtos normalizados:', normalized.length);
+    console.log('📦 Primeiro produto NORMALIZADO:', normalized[0]);
+    
     return normalized;
   } catch (error) {
-    console.error('❌ Erro ao carregar produtos da API:', error);
-    console.error('URL tentada:', API_CONFIG.BASE_URL + '/products');
+    console.error('❌ ERRO ao carregar produtos da API:', error);
+    console.error('❌ Tipo do erro:', error.name);
+    console.error('❌ Mensagem:', error.message);
+    console.error('❌ Stack:', error.stack);
+    console.error('❌ URL tentada:', API_CONFIG.BASE_URL + '/products');
     
-    // Fallback: tentar localStorage (compatibilidade temporária)
-    const adminProducts = localStorage.getItem('adminProducts');
-    if (adminProducts) {
-      console.log('⚠️ Usando produtos do localStorage (fallback)');
-      return JSON.parse(adminProducts);
-    }
+    // Mostrar mensagem de erro na tela
+    showErrorMessage('Erro ao carregar produtos. Verifique sua conexão e tente novamente.');
+    
     return [];
+  }
+}
+
+// Mostrar mensagem de erro
+function showErrorMessage(message) {
+  const container = document.getElementById('productsGrid');
+  if (container) {
+    container.innerHTML = `
+      <div class="empty-products-state" style="grid-column: 1/-1;">
+        <span class="empty-products-icon" style="font-size: 48px;">⚠️</span>
+        <h3 style="color: #da3633;">Erro ao Carregar Produtos</h3>
+        <p>${message}</p>
+        <button onclick="location.reload()" class="btn-primary" style="margin-top: 16px;">
+          🔄 Tentar Novamente
+        </button>
+      </div>
+    `;
   }
 }
 
@@ -64,14 +104,35 @@ let searchQuery = '';
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
-  // Carregar produtos da API
-  products = await loadProductsFromAPI();
+  console.log('🚀 Iniciando aplicação Da Horta...');
+  console.log('🌐 Ambiente:', window.location.hostname);
+  console.log('🔗 API URL:', API_CONFIG.BASE_URL);
   
+  // Mostrar loading
+  const container = document.getElementById('productsGrid');
+  if (container) {
+    container.innerHTML = `
+      <div class="empty-products-state" style="grid-column: 1/-1;">
+        <span class="empty-products-icon" style="font-size: 48px;">⏳</span>
+        <h3>Carregando produtos...</h3>
+        <p>Aguarde enquanto buscamos os produtos disponíveis.</p>
+      </div>
+    `;
+  }
+  
+  // Carregar produtos da API
+  console.log('📡 Iniciando carregamento de produtos...');
+  products = await loadProductsFromAPI();
+  console.log('✅ Carregamento concluído. Total:', products.length);
+  
+  // Carregar componentes
   loadCategories();
   loadProducts();
   loadCartFromStorage();
   updateCartUI();
   setupCEPMask();
+  
+  console.log('✅ Aplicação inicializada com sucesso!');
 });
 
 // Carregar categorias

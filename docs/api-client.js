@@ -24,7 +24,7 @@ class ApiClient {
     }
 
     /**
-     * Fazer requisição HTTP
+     * Fazer requisição HTTP com timeout
      */
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
@@ -37,7 +37,18 @@ class ApiClient {
         };
 
         try {
+            console.log(`📡 API Request: ${options.method || 'GET'} ${url}`);
+            
+            // Criar timeout para a requisição (30 segundos para Render cold start)
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT || 30000);
+            
+            config.signal = controller.signal;
+            
             const response = await fetch(url, config);
+            clearTimeout(timeout);
+            
+            console.log(`✅ API Response: ${response.status} ${response.statusText}`);
             
             // Se status 204 (No Content), retornar null
             if (response.status === 204) {
@@ -47,11 +58,16 @@ class ApiClient {
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.detail || 'Erro na requisição');
+                console.error(`❌ API Error ${response.status}:`, data);
+                throw new Error(data.detail || `Erro ${response.status}: ${response.statusText}`);
             }
             
             return data;
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.error('❌ API Timeout: Requisição excedeu o tempo limite');
+                throw new Error('Timeout: O servidor demorou muito para responder. Pode estar em cold start (aguarde 30s e tente novamente).');
+            }
             console.error('❌ API Error:', error);
             throw error;
         }
