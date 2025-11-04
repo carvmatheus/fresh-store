@@ -16,8 +16,10 @@ function checkAdminAuth() {
   
   if (!token || !user) {
     console.warn('⚠️ Token ou usuário não encontrado');
-    alert('⚠️ Você precisa estar logado como administrador para acessar esta página!\n\nRedirecionando para login...');
-    window.location.href = 'login.html';
+    console.warn('⚠️ Redirecionando para login...');
+    
+    // Redirecionar imediatamente sem alert
+    window.location.replace('login.html');
     return false;
   }
   
@@ -27,8 +29,10 @@ function checkAdminAuth() {
     
     if (userData.role !== 'admin') {
       console.warn('⚠️ Usuário não é admin');
-      alert('⚠️ Acesso negado! Esta página é apenas para administradores.');
-      window.location.href = 'index.html';
+      console.warn('⚠️ Redirecionando para home...');
+      
+      // Redirecionar imediatamente sem alert
+      window.location.replace('index.html');
       return false;
     }
     
@@ -38,7 +42,9 @@ function checkAdminAuth() {
     console.error('❌ Erro ao parsear usuário:', error);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('currentUser');
-    window.location.href = 'login.html';
+    
+    console.warn('⚠️ Redirecionando para login...');
+    window.location.replace('login.html');
     return false;
   }
 }
@@ -61,8 +67,8 @@ async function validateToken() {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('currentUser');
     
-    alert('⚠️ Sua sessão expirou. Por favor, faça login novamente.');
-    window.location.href = 'login.html';
+    console.warn('⚠️ Sessão expirada. Redirecionando para login...');
+    window.location.replace('login.html');
     return false;
   }
 }
