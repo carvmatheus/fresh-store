@@ -38,6 +38,11 @@ body {
     width: 100%;
     background: linear-gradient(135deg, #8bc34a 0%, #689f38 100%);
     overflow: hidden;
+    transition: opacity 0.2s ease;
+}
+
+.banner-header:hover {
+    opacity: 0.9;
 }
 
 .banner-image {
@@ -47,6 +52,11 @@ body {
     max-height: 250px;
     object-fit: cover;
     object-position: center;
+    transition: transform 0.2s ease;
+}
+
+.banner-header:hover .banner-image {
+    transform: scale(1.02);
 }
 
 /* Navigation Header */
@@ -564,12 +574,32 @@ body {
     border-radius: 0.75rem;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s ease;
+    position: relative;
 }
 
 .product-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary);
+}
+
+.product-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid transparent;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.product-card:hover::before {
+    border-color: var(--primary);
+    opacity: 0.3;
 }
 
 .product-image {

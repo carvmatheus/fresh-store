@@ -203,7 +203,7 @@ function loadProducts() {
   }
   
   container.innerHTML = filtered.map(product => `
-    <div class="product-card">
+    <div class="product-card" onclick="addToCart('${product.id}')" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
       <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
       <div class="product-content">
         <div class="product-header">
@@ -225,7 +225,7 @@ function loadProducts() {
             <span class="price-value">${product.price.toFixed(2)}</span>
             <span class="price-unit">/${product.unit}</span>
           </div>
-          <button class="btn-add-cart" onclick="addToCart('${product.id}')">
+          <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product.id}')">
             🛒 <span>Adicionar</span>
           </button>
         </div>
@@ -239,7 +239,7 @@ function renderProducts(productsList = null) {
   if (productsList) {
     const container = document.getElementById('productsGrid');
     container.innerHTML = productsList.map(product => `
-      <div class="product-card">
+      <div class="product-card" onclick="addToCart('${product.id}')" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
         <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
         <div class="product-content">
           <div class="product-header">
@@ -251,7 +251,7 @@ function renderProducts(productsList = null) {
             <div class="product-price">
               <span>R$ ${product.price.toFixed(2)}/${product.unit}</span>
             </div>
-            <button class="btn-add-cart" onclick="addToCart('${product.id}')">
+            <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product.id}')">
               🛒 Adicionar
             </button>
           </div>
