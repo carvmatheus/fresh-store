@@ -6,6 +6,7 @@ let deliveryEstimate = null;
 document.addEventListener('DOMContentLoaded', () => {
   loadCartFromStorage();
   renderCart();
+  autoOpenCheckoutIfNeeded();
   setupMasks();
 });
 
@@ -42,6 +43,26 @@ function renderCart() {
   
   renderCartItems();
   updateSummary();
+}
+
+function autoOpenCheckoutIfNeeded() {
+  const url = new URL(window.location.href);
+  const shouldOpen = url.hash === '#checkout' || url.searchParams.get('checkout') === '1';
+
+  if (shouldOpen) {
+    if (cart.length === 0) {
+      const emptyPage = document.getElementById('emptyCartPage');
+      const cartContent = document.getElementById('cartPageContent');
+      if (emptyPage && cartContent) {
+        emptyPage.style.display = 'flex';
+        cartContent.style.display = 'none';
+      }
+      alert('Adicione produtos ao carrinho antes de ir para o checkout.');
+      return;
+    }
+
+    proceedToCheckout();
+  }
 }
 
 // Renderizar itens do carrinho
