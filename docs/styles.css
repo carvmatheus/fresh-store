@@ -57,7 +57,7 @@ body {
 
 .banner-image {
     width: 100%;
-    height: clamp(220px, 32vw, 420px);
+    height: clamp(150px, 18vw, 320px);
     display: block;
     object-fit: cover;
     object-position: center;
@@ -2464,7 +2464,7 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
     .banner-image {
-        height: 280px;
+        height: 180px;
     }
     
     .hero {
@@ -2600,7 +2600,7 @@ body {
 
 @media (max-width: 480px) {
     .banner-image {
-        height: 220px;
+        height: 120px;
     }
 
     .cart-actions {
