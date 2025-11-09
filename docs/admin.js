@@ -210,7 +210,7 @@ function loadProductsTable() {
   if (products.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="empty-row">
+        <td colspan="6" class="empty-row">
           Nenhum produto encontrado
         </td>
       </tr>
@@ -223,30 +223,39 @@ function loadProductsTable() {
     const imageUrl = product.image_url || 'https://via.placeholder.com/50?text=Img';
     const minOrder = product.min_order || 1;
     const productId = String(product.id);
+    const price = parseFloat(product.price).toFixed(2);
+    const unitLabel = product.unit ? `Unidade: ${product.unit}` : '';
     
     return `
     <tr>
-      <td>${productId}</td>
-      <td>
-        <img 
-          src="${imageUrl}" 
-          alt="${product.name}" 
-          class="product-thumb"
-          onerror="this.src='https://via.placeholder.com/50?text=Img'">
+      <td data-label="Produto">
+        <div class="product-cell">
+          <img 
+            src="${imageUrl}" 
+            alt="${product.name}" 
+            class="product-thumb"
+            onerror="this.src='https://via.placeholder.com/50?text=Img'">
+          <div class="product-info">
+            <strong>${product.name}</strong>
+            ${unitLabel ? `<span class="product-meta">${unitLabel}</span>` : ''}
+          </div>
+        </div>
       </td>
-      <td><strong>${product.name}</strong></td>
-      <td><span class="category-badge">${getCategoryLabel(product.category)}</span></td>
-      <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
-      <td>${product.unit}</td>
-      <td>${minOrder}</td>
-      <td>${product.stock}</td>
-      <td class="actions-cell">
-        <button class="btn-icon btn-edit" onclick='editProduct("${productId}")' title="Editar">
-          ✏️
-        </button>
-        <button class="btn-icon btn-delete" onclick='deleteProduct("${productId}")' title="Excluir">
-          🗑️
-        </button>
+      <td data-label="Categoria">
+        <span class="category-badge">${getCategoryLabel(product.category)}</span>
+      </td>
+      <td data-label="Preço">R$ ${price}</td>
+      <td data-label="Pedido Mínimo">${minOrder}</td>
+      <td data-label="Estoque">${product.stock}</td>
+      <td data-label="Ações">
+        <div class="actions-cell">
+          <button class="btn-icon btn-edit" onclick='editProduct("${productId}")' title="Editar">
+            ✏️
+          </button>
+          <button class="btn-icon btn-delete" onclick='deleteProduct("${productId}")' title="Excluir">
+            🗑️
+          </button>
+        </div>
       </td>
     </tr>
   `;
