@@ -243,20 +243,23 @@ function loadProductsTable() {
         </div>
         <div class="product-card-body">
           <h3>${product.name}</h3>
-          ${description ? `<p class="product-card-description">${description}</p>` : '<p class="product-card-description muted">Sem descrição cadastrada</p>'}
-          <div class="product-card-stats">
-            <div class="stat-card">
+          ${description ? `<p class="product-card-description">${description}</p>` : ''}
+          <div class="product-card-grid">
+            <div class="stat-pair">
+              <span class="stat-label">Estoque</span>
+              <span class="stat-value">${product.stock}</span>
+            </div>
+            <div class="stat-pair">
               <span class="stat-label">Unidade</span>
               <span class="stat-value">${unit}</span>
             </div>
-            <div class="stat-card">
+            <div class="stat-pair">
               <span class="stat-label">Pedido mín.</span>
               <span class="stat-value">${minOrder}</span>
             </div>
-            <div class="stat-card stat-price">
-              <span class="stat-label">Preço</span>
-              <span class="price-value">R$ ${price}</span>
-              <span class="stat-sublabel">por ${unit}</span>
+            <div class="stat-pair stat-price">
+              <span class="stat-label">Preço unitário</span>
+              <span class="stat-value price">R$ ${price}</span>
             </div>
           </div>
         </div>
