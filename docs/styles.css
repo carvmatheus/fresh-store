@@ -2250,12 +2250,11 @@ body {
     background: white;
     border-radius: 1rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    overflow-x: auto;
+    overflow: hidden;
 }
 
 .admin-table {
     width: 100%;
-    min-width: 720px;
     border-collapse: collapse;
 }
 
@@ -2345,6 +2344,79 @@ body {
     text-align: center;
     padding: 3rem !important;
     color: var(--gray-600);
+}
+
+@media (max-width: 900px) {
+    .admin-table-container {
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-table {
+        border: 0;
+    }
+
+    .admin-table thead {
+        display: none;
+    }
+
+    .admin-table tbody tr {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--gray-100);
+    }
+
+    .admin-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 0;
+        border: none;
+    }
+
+    .admin-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--gray-600);
+        margin-right: 1rem;
+    }
+
+    .admin-table td:last-child {
+        padding-bottom: 0;
+    }
+
+    .actions-cell {
+        justify-content: flex-end;
+    }
+
+    .product-cell {
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-table tbody tr {
+        padding: 0.85rem;
+    }
+
+    .admin-table td {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .admin-table td::before {
+        margin-right: 0;
+        margin-bottom: 0.3rem;
+    }
+
+    .actions-cell {
+        justify-content: flex-start;
+    }
 }
 
 /* Modal Large */
