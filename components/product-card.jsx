@@ -5,25 +5,75 @@ import { ShoppingCart, Package, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useState } from "react"
+import { useState, useRef } from "react"
 
 export default function ProductCard({ product, onAddToCart }) {
   const [isAdded, setIsAdded] = useState(false)
+  const imageRef = useRef(null)
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e) => {
+    // Trigger animation
+    animateFlyToCart(imageRef.current)
+    
     onAddToCart(product)
     setIsAdded(true)
     
-    // Remove o feedback visual após 1.5 segundos
+    // Remove visual feedback after 1.5 seconds
     setTimeout(() => {
       setIsAdded(false)
     }, 1500)
   }
 
+  const animateFlyToCart = (sourceElement) => {
+    if (!sourceElement) return
+
+    const cartIcon = document.getElementById('cart-icon')
+    if (!cartIcon) return
+
+    // Clone the image element
+    const flyingImage = sourceElement.cloneNode(true)
+    const rect = sourceElement.getBoundingClientRect()
+    const cartRect = cartIcon.getBoundingClientRect()
+
+    // Initial styles
+    flyingImage.style.position = 'fixed'
+    flyingImage.style.left = `${rect.left}px`
+    flyingImage.style.top = `${rect.top}px`
+    flyingImage.style.width = `${rect.width}px`
+    flyingImage.style.height = `${rect.height}px`
+    flyingImage.style.borderRadius = '50%' // Make it circular
+    flyingImage.style.zIndex = '9999'
+    flyingImage.style.transition = 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)' // Smooth curve
+    flyingImage.style.opacity = '0.8'
+    flyingImage.style.pointerEvents = 'none' // Don't block interactions
+    
+    // Remove next/image specific styles that might conflict
+    flyingImage.style.maxWidth = 'none'
+    flyingImage.style.maxHeight = 'none'
+
+    document.body.appendChild(flyingImage)
+
+    // Trigger animation in next frame
+    requestAnimationFrame(() => {
+      flyingImage.style.left = `${cartRect.left + cartRect.width / 4}px`
+      flyingImage.style.top = `${cartRect.top + cartRect.height / 4}px`
+      flyingImage.style.width = '20px'
+      flyingImage.style.height = '20px'
+      flyingImage.style.opacity = '0'
+    })
+
+    // Clean up
+    setTimeout(() => {
+      if (flyingImage.parentNode) {
+        flyingImage.parentNode.removeChild(flyingImage)
+      }
+    }, 800)
+  }
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <CardHeader className="p-0">
-        <div className="relative aspect-square overflow-hidden bg-muted">
+        <div className="relative aspect-square overflow-hidden bg-muted" ref={imageRef}>
           <Image
             src={product.image || "/placeholder.svg"}
             alt={product.name}

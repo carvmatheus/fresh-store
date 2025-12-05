@@ -18,7 +18,7 @@ export default function Header({ cartItemsCount, cart, onUpdateQuantity, onRemov
 
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10 bg-transparent">
+            <Button variant="outline" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10 bg-transparent" id="cart-icon">
               <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
               {cartItemsCount > 0 && (
                 <Badge
