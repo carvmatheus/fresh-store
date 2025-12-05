@@ -1,12 +1,25 @@
 "use client"
 
 import Image from "next/image"
-import { ShoppingCart, Package } from "lucide-react"
+import { ShoppingCart, Package, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useState } from "react"
 
 export default function ProductCard({ product, onAddToCart }) {
+  const [isAdded, setIsAdded] = useState(false)
+
+  const handleAddToCart = () => {
+    onAddToCart(product)
+    setIsAdded(true)
+    
+    // Remove o feedback visual após 1.5 segundos
+    setTimeout(() => {
+      setIsAdded(false)
+    }, 1500)
+  }
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <CardHeader className="p-0">
@@ -51,9 +64,22 @@ export default function ProductCard({ product, onAddToCart }) {
           <p className="text-xs text-muted-foreground">por {product.unit}</p>
         </div>
 
-        <Button onClick={() => onAddToCart(product)} size="sm" className="min-h-[44px] gap-2">
-          <ShoppingCart className="h-4 w-4" />
-          <span className="hidden sm:inline">Adicionar</span>
+        <Button 
+          onClick={handleAddToCart} 
+          size="sm" 
+          className={`min-h-[44px] gap-2 transition-all duration-200 ${isAdded ? "bg-green-600 hover:bg-green-700" : ""}`}
+        >
+          {isAdded ? (
+            <>
+              <Check className="h-4 w-4" />
+              <span className="hidden sm:inline">Adicionado!</span>
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="h-4 w-4" />
+              <span className="hidden sm:inline">Adicionar</span>
+            </>
+          )}
         </Button>
       </CardFooter>
     </Card>
