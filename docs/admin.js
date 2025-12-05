@@ -53,6 +53,39 @@
 let products = [];
 let currentEditId = null;
 let allProducts = [];
+let orders = [];
+let ordersLoaded = false;
+let currentOrdersFilter = '';
+
+const ORDER_STATUS_OPTIONS = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'confirmado', label: 'Confirmado' },
+  { value: 'em_preparacao', label: 'Em preparação' },
+  { value: 'em_transporte', label: 'Em transporte' },
+  { value: 'concluido', label: 'Concluído' },
+  { value: 'cancelado', label: 'Cancelado' },
+  { value: 'reembolsado', label: 'Reembolsado' },
+];
+
+const ORDER_STATUS_LABELS = {
+  pendente: 'Pendente',
+  confirmado: 'Confirmado',
+  em_preparacao: 'Em preparação',
+  em_transporte: 'Em transporte',
+  concluido: 'Concluído',
+  cancelado: 'Cancelado',
+  reembolsado: 'Reembolsado',
+};
+
+const ORDER_STATUS_CLASSES = {
+  pendente: 'status-badge pending',
+  confirmado: 'status-badge confirmed',
+  em_preparacao: 'status-badge preparing',
+  em_transporte: 'status-badge shipping',
+  concluido: 'status-badge delivered',
+  cancelado: 'status-badge cancelled',
+  reembolsado: 'status-badge refunded',
+};
 
 // Verificar autenticação admin
 function checkAdminAuth() {
@@ -166,12 +199,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!isTokenValid) {
     return; // Já foi redirecionado para login
   }
+
+  initAdminTabs();
+  setupOrderSectionEvents();
   
   // Carregar produtos
   await executeWithAuthRetry(async () => {
     await loadProducts();
     loadProductsTable();
   }, 'Carregar produtos');
+
+  await executeWithAuthRetry(async () => {
+    await loadOrders();
+  }, 'Carregar pedidos');
   
   // Form submit handler
   document.getElementById('productForm').addEventListener('submit', async (e) => {
@@ -489,5 +529,345 @@ function getCategoryLabel(category) {
     'temperos': 'Temperos'
   };
   return labels[category] || category;
+}
+
+// ---------- Pedidos ----------
+
+function initAdminTabs() {
+  const tabButtons = document.querySelectorAll('.admin-tab');
+  const sections = {
+    products: document.getElementById('productsSection'),
+    orders: document.getElementById('ordersSection'),
+  };
+
+  if (!tabButtons.length) return;
+
+  tabButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      const target = button.dataset.tab;
+
+      tabButtons.forEach((btn) => btn.classList.toggle('active', btn === button));
+      Object.keys(sections).forEach((key) => {
+        const section = sections[key];
+        if (section) {
+          section.classList.toggle('hidden', key !== target);
+        }
+      });
+
+      if (target === 'orders' && !ordersLoaded) {
+        await executeWithAuthRetry(async () => {
+          await loadOrders(currentOrdersFilter);
+        }, 'Carregar pedidos');
+      }
+    });
+  });
+
+  // Garantir que seção de produtos esteja visível inicialmente
+  const defaultSection = sections.products;
+  if (defaultSection) {
+    defaultSection.classList.remove('hidden');
+  }
+}
+
+function setupOrderSectionEvents() {
+  const filterSelect = document.getElementById('orderStatusFilter');
+  const refreshBtn = document.getElementById('refreshOrdersBtn');
+  const ordersList = document.getElementById('ordersList');
+
+  if (filterSelect) {
+    filterSelect.addEventListener('change', async (event) => {
+      currentOrdersFilter = event.target.value;
+      await executeWithAuthRetry(async () => {
+        await loadOrders(currentOrdersFilter);
+      }, 'Filtrar pedidos');
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      await executeWithAuthRetry(async () => {
+        await loadOrders(currentOrdersFilter);
+      }, 'Atualizar pedidos');
+    });
+  }
+
+  if (ordersList) {
+    ordersList.addEventListener('click', handleOrderAction);
+  }
+}
+
+async function loadOrders(status = '') {
+  try {
+    const fetched = await api.getAllOrders(status || null);
+    orders = Array.isArray(fetched) ? fetched : [];
+    ordersLoaded = true;
+    renderOrders();
+  } catch (error) {
+    ordersLoaded = false;
+    orders = [];
+    renderOrders();
+    throw error;
+  }
+}
+
+function renderOrders() {
+  const container = document.getElementById('ordersList');
+  if (!container) return;
+
+  if (!orders.length) {
+    container.innerHTML = `
+      <div class="orders-empty">
+        Nenhum pedido encontrado${currentOrdersFilter ? ' para o status selecionado' : ''}.
+      </div>
+    `;
+    renderOrdersSummary([]);
+    return;
+  }
+
+  const html = orders.map(renderOrderCard).join('');
+  container.innerHTML = html;
+
+  renderOrdersSummary(orders);
+}
+
+function renderOrdersSummary(list) {
+  const summaryEl = document.getElementById('ordersSummary');
+  if (!summaryEl) return;
+
+  if (!list.length) {
+    summaryEl.innerHTML = '';
+    return;
+  }
+
+  const total = list.length;
+  const pendentes = list.filter(order => order.status === 'pendente').length;
+  const preparados = list.filter(order => order.status === 'em_preparacao').length;
+  const emTransporte = list.filter(order => order.status === 'em_transporte').length;
+  const concluido = list.filter(order => order.status === 'concluido').length;
+
+  summaryEl.innerHTML = `
+    <span>Total: <strong>${total}</strong></span>
+    <span>Pendentes: <strong>${pendentes}</strong></span>
+    <span>Preparação: <strong>${preparados}</strong></span>
+    <span>Em transporte: <strong>${emTransporte}</strong></span>
+    <span>Concluídos: <strong>${concluido}</strong></span>
+  `;
+}
+
+function renderOrderCard(order) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  const createdAt = formatDateTime(order.created_at);
+  const deliveryDate = order.delivery_date ? formatDate(order.delivery_date) : null;
+  const statusLabel = ORDER_STATUS_LABELS[order.status] || order.status;
+  const statusClass = ORDER_STATUS_CLASSES[order.status] || 'status-badge';
+  const totalFormatted = formatCurrency(order.total);
+  const address = order.delivery_address || 'Endereço não informado';
+  const contact = parseOrderNotes(order.notes);
+
+  return `
+    <div class="order-card" data-order-id="${order.id}">
+      <div class="order-card-header">
+        <div class="order-card-info">
+          <h4>${order.order_number}</h4>
+          <p class="order-meta">Criado em ${createdAt}</p>
+          ${deliveryDate ? `<p class="order-meta">Entrega prevista: ${deliveryDate}</p>` : ''}
+        </div>
+        <div class="order-card-status">
+          <span class="${statusClass}">${statusLabel}</span>
+          <span class="order-total">${totalFormatted}</span>
+        </div>
+      </div>
+      <div class="order-card-body">
+        <div class="order-details-grid">
+          <div class="order-block">
+            <h5>Contato</h5>
+            <p><strong>${contact.name || 'Cliente'}</strong></p>
+            ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
+            ${contact.email ? `<p>✉️ ${contact.email}</p>` : ''}
+          </div>
+          <div class="order-block">
+            <h5>Entrega</h5>
+            <p>${address}</p>
+          </div>
+          <div class="order-block">
+            <h5>Resumo</h5>
+            <p><strong>${items.reduce((sum, item) => sum + (item.quantity || 0), 0)}</strong> itens</p>
+            ${deliveryDate ? `<p>Entrega: ${deliveryDate}</p>` : ''}
+          </div>
+          <div class="order-block order-items">
+            <h5>Itens (${items.length})</h5>
+            <ul>
+              ${renderOrderItems(items)}
+            </ul>
+          </div>
+        </div>
+        ${contact.notes ? `
+          <div class="order-block">
+            <h5>Observações</h5>
+            <p>${contact.notes}</p>
+          </div>` : ''}
+      </div>
+      <div class="order-card-footer">
+        <div class="order-status-control">
+          <label for="status-${order.id}">Status</label>
+          <select id="status-${order.id}" class="order-status-select" data-order-id="${order.id}">
+            ${renderStatusOptions(order.status)}
+          </select>
+          <button class="order-btn order-btn-update" data-order-id="${order.id}">
+            🔄 Atualizar
+          </button>
+        </div>
+        <div class="order-card-actions">
+          <button class="order-btn order-btn-cancel" data-order-id="${order.id}">
+            ❌ Cancelar
+          </button>
+          <button class="order-btn order-btn-refund" data-order-id="${order.id}">
+            💸 Reembolsar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStatusOptions(currentStatus) {
+  return ORDER_STATUS_OPTIONS.map(option => `
+    <option value="${option.value}" ${option.value === currentStatus ? 'selected' : ''}>
+      ${option.label}
+    </option>
+  `).join('');
+}
+
+function renderOrderItems(items = []) {
+  if (!items.length) {
+    return '<li class="order-item"><span class="order-item-name">Sem itens cadastrados</span></li>';
+  }
+
+  return items.map(item => `
+    <li class="order-item">
+      <span class="order-item-qty">${item.quantity || 0}x</span>
+      <span class="order-item-name">${item.name}</span>
+      <span class="order-item-price">${formatCurrency(item.price || 0)}</span>
+    </li>
+  `).join('');
+}
+
+async function handleOrderAction(event) {
+  const updateBtn = event.target.closest('.order-btn-update');
+  const cancelBtn = event.target.closest('.order-btn-cancel');
+  const refundBtn = event.target.closest('.order-btn-refund');
+
+  if (!updateBtn && !cancelBtn && !refundBtn) {
+    return;
+  }
+
+  const card = event.target.closest('.order-card');
+  if (!card) return;
+
+  const orderId = card.dataset.orderId;
+  if (!orderId) return;
+
+  if (updateBtn) {
+    const select = card.querySelector('.order-status-select');
+    if (!select || !select.value) {
+      alert('Selecione um status para atualizar.');
+      return;
+    }
+
+    const newStatus = select.value;
+    await executeWithAuthRetry(async () => {
+      await api.updateOrderStatus(orderId, newStatus);
+      alert('✅ Status atualizado com sucesso!');
+      await loadOrders(currentOrdersFilter);
+    }, 'Atualizar status do pedido');
+    return;
+  }
+
+  if (cancelBtn) {
+    if (!confirm('Cancelar este pedido? Esta ação devolve os itens ao estoque.')) {
+      return;
+    }
+    await executeWithAuthRetry(async () => {
+      await api.updateOrderStatus(orderId, 'cancelado');
+      alert('✅ Pedido cancelado e estoque ajustado.');
+      await loadOrders(currentOrdersFilter);
+    }, 'Cancelar pedido');
+    return;
+  }
+
+  if (refundBtn) {
+    if (!confirm('Marcar este pedido como reembolsado? Estoque será devolvido ao sistema.')) {
+      return;
+    }
+    await executeWithAuthRetry(async () => {
+      await api.updateOrderStatus(orderId, 'reembolsado');
+      alert('✅ Pedido marcado como reembolsado.');
+      await loadOrders(currentOrdersFilter);
+    }, 'Reembolsar pedido');
+  }
+}
+
+function formatCurrency(value) {
+  const numberValue = typeof value === 'number' ? value : parseFloat(value || 0);
+  return numberValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
+
+function parseOrderNotes(notes) {
+  if (!notes) {
+    return { name: '', phone: '', email: '', notes: '' };
+  }
+
+  const info = {
+    name: '',
+    phone: '',
+    email: '',
+    notes: ''
+  };
+
+  const lines = notes.split('\n').map(line => line.trim()).filter(Boolean);
+  const observationsIndex = lines.findIndex(line => line.toLowerCase().startsWith('observações'));
+
+  lines.forEach((line, index) => {
+    const lower = line.toLowerCase();
+    if (lower.startsWith('contato:')) {
+      info.name = line.replace(/contato:/i, '').trim();
+    } else if (lower.startsWith('telefone:')) {
+      info.phone = line.replace(/telefone:/i, '').trim();
+    } else if (lower.startsWith('email:')) {
+      info.email = line.replace(/email:/i, '').trim();
+    } else if (observationsIndex >= 0 && index > observationsIndex) {
+      info.notes += `${line}<br>`;
+    }
+  });
+
+  if (info.notes.endsWith('<br>')) {
+    info.notes = info.notes.slice(0, -4);
+  }
+
+  return info;
 }
 

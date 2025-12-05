@@ -71,46 +71,77 @@
             <p class="page-subtitle">Gerencie produtos e estoque</p>
         </div>
 
-        <!-- Actions Bar -->
-        <div class="admin-actions">
-            <button class="btn-primary" onclick="openProductModal()">
-                ➕ Novo Produto
-            </button>
-            <div class="search-box">
-                <input 
-                    type="text" 
-                    id="searchProducts" 
-                    placeholder="Buscar produtos..."
-                    onkeyup="filterProducts()">
-            </div>
-            <select id="filterCategory" onchange="filterProducts()" class="category-filter">
-                <option value="">Todas as Categorias</option>
-                <option value="verduras">Verduras</option>
-                <option value="legumes">Legumes</option>
-                <option value="frutas">Frutas</option>
-                <option value="graos">Grãos</option>
-                <option value="temperos">Temperos</option>
-            </select>
+        <!-- Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="products">Produtos</button>
+            <button class="admin-tab" data-tab="orders">Pedidos</button>
         </div>
 
-        <!-- Products Table -->
-        <div class="admin-table-container">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Produto</th>
-                        <th>Categoria</th>
-                        <th>Preço</th>
-                        <th>Pedido Mínimo</th>
-                        <th>Estoque</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="productsTableBody">
-                    <!-- Produtos serão carregados aqui -->
-                </tbody>
-            </table>
-        </div>
+        <!-- Products Section -->
+        <section class="admin-section" id="productsSection">
+            <div class="admin-actions">
+                <button class="btn-primary" onclick="openProductModal()">
+                    ➕ Novo Produto
+                </button>
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        id="searchProducts" 
+                        placeholder="Buscar produtos..."
+                        onkeyup="filterProducts()">
+                </div>
+                <select id="filterCategory" onchange="filterProducts()" class="category-filter">
+                    <option value="">Todas as Categorias</option>
+                    <option value="verduras">Verduras</option>
+                    <option value="legumes">Legumes</option>
+                    <option value="frutas">Frutas</option>
+                    <option value="graos">Grãos</option>
+                    <option value="temperos">Temperos</option>
+                </select>
+            </div>
+            
+            <div class="admin-table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Categoria</th>
+                            <th>Preço</th>
+                            <th>Pedido Mínimo</th>
+                            <th>Estoque</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <!-- Produtos serão carregados aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Orders Section -->
+        <section class="admin-section hidden" id="ordersSection">
+            <div class="orders-actions">
+                <div class="orders-filters">
+                    <select id="orderStatusFilter" class="orders-filter-select">
+                        <option value="">Todos os status</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="confirmado">Confirmado</option>
+                        <option value="em_preparacao">Em preparação</option>
+                        <option value="em_transporte">Em transporte</option>
+                        <option value="concluido">Concluído</option>
+                        <option value="cancelado">Cancelado</option>
+                        <option value="reembolsado">Reembolsado</option>
+                    </select>
+                    <button class="btn-secondary" id="refreshOrdersBtn">↻ Atualizar pedidos</button>
+                </div>
+                <div id="ordersSummary" class="orders-summary"></div>
+            </div>
+
+            <div class="orders-list" id="ordersList">
+                <!-- Pedidos serão renderizados aqui -->
+            </div>
+        </section>
     </main>
 
     <!-- Product Modal -->

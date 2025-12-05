@@ -1,17 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Header from "@/components/header"
 import CategoryFilter from "@/components/category-filter"
 import ProductGrid from "@/components/product-grid"
 import DeliverySimulator from "@/components/delivery-simulator"
-import { categories, getProducts } from "@/lib/products-data"
+import { categories, fetchProducts } from "@/lib/products-data"
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [cart, setCart] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const products = getProducts(selectedCategory)
+  useEffect(() => {
+    async function loadProducts() {
+      setLoading(true)
+      const data = await fetchProducts(selectedCategory)
+      setProducts(data)
+      setLoading(false)
+    }
+    loadProducts()
+  }, [selectedCategory])
 
   const addToCart = (product) => {
     setCart((prevCart) => {
@@ -72,7 +82,13 @@ export default function Home() {
         />
 
         {/* Products Grid */}
-        <ProductGrid products={products} onAddToCart={addToCart} />
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <ProductGrid products={products} onAddToCart={addToCart} />
+        )}
       </main>
     </div>
   )
