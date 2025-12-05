@@ -30,9 +30,13 @@ export default function ProductCard({ product, onAddToCart }) {
     const cartIcon = document.getElementById('cart-icon')
     if (!cartIcon) return
 
+    // Find the actual image tag inside the source element (div)
+    const sourceImg = sourceElement.querySelector('img')
+    if (!sourceImg) return
+
     // Clone the image element
-    const flyingImage = sourceElement.cloneNode(true)
-    const rect = sourceElement.getBoundingClientRect()
+    const flyingImage = sourceImg.cloneNode(true)
+    const rect = sourceImg.getBoundingClientRect()
     const cartRect = cartIcon.getBoundingClientRect()
 
     // Initial styles
@@ -41,25 +45,28 @@ export default function ProductCard({ product, onAddToCart }) {
     flyingImage.style.top = `${rect.top}px`
     flyingImage.style.width = `${rect.width}px`
     flyingImage.style.height = `${rect.height}px`
-    flyingImage.style.borderRadius = '50%' // Make it circular
+    flyingImage.style.borderRadius = '8px' // Match card border radius
     flyingImage.style.zIndex = '9999'
     flyingImage.style.transition = 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)' // Smooth curve
-    flyingImage.style.opacity = '0.8'
+    flyingImage.style.opacity = '0.9'
     flyingImage.style.pointerEvents = 'none' // Don't block interactions
+    flyingImage.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
     
     // Remove next/image specific styles that might conflict
     flyingImage.style.maxWidth = 'none'
     flyingImage.style.maxHeight = 'none'
+    flyingImage.style.objectFit = 'cover'
 
     document.body.appendChild(flyingImage)
 
     // Trigger animation in next frame
     requestAnimationFrame(() => {
-      flyingImage.style.left = `${cartRect.left + cartRect.width / 4}px`
-      flyingImage.style.top = `${cartRect.top + cartRect.height / 4}px`
+      flyingImage.style.left = `${cartRect.left}px`
+      flyingImage.style.top = `${cartRect.top}px`
       flyingImage.style.width = '20px'
       flyingImage.style.height = '20px'
-      flyingImage.style.opacity = '0'
+      flyingImage.style.opacity = '0.5'
+      flyingImage.style.borderRadius = '50%'
     })
 
     // Clean up
