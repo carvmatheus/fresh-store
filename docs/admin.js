@@ -882,4 +882,3 @@ function parseOrderNotes(notes) {
 
   return info;
 }
-
