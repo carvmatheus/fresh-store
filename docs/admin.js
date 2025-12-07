@@ -268,77 +268,37 @@ function loadProductsTable() {
     const unit = product.unit || '-';
     
     return `
-    <tr class="product-card-row">
-      <td data-label="Produto" class="product-card-primary">
-        <!-- Desktop View: Simple Info -->
-        <div class="product-desktop-info hide-mobile">
-            <img src="${imageUrl}" class="product-desktop-thumb" alt="${product.name}" onerror="this.src='https://via.placeholder.com/60?text=Prod'">
-            <div class="product-desktop-text">
-                <h3>${product.name}</h3>
-                ${description ? `<p>${description}</p>` : ''}
+    <tr class="product-row" data-product-id="${productId}">
+      <td class="product-cell">
+        <div class="product-info-wrapper">
+          <img src="${imageUrl}" class="product-thumb" alt="${product.name}" onerror="this.src='https://via.placeholder.com/60?text=Prod'">
+          <div class="product-text">
+            <h3 class="product-title">${product.name}</h3>
+            <p class="product-desc">${description}</p>
+            <!-- Mobile-only details -->
+            <div class="product-mobile-details">
+              <span class="mobile-detail"><strong>Categoria:</strong> ${getCategoryLabel(product.category)}</span>
+              <span class="mobile-detail"><strong>Estoque:</strong> ${product.stock} ${unit}</span>
+              <span class="mobile-detail"><strong>Pedido mín:</strong> ${minOrder}</span>
+              <span class="mobile-detail"><strong>Preço:</strong> R$ ${price}</span>
             </div>
+          </div>
         </div>
-
-        <!-- Mobile View: Full Card -->
-        <div class="show-mobile">
-            <div class="product-card-hero">
-              <img 
-                src="${imageUrl}" 
-                alt="${product.name}" 
-                class="product-hero-image"
-                onerror="this.src='https://via.placeholder.com/300x180?text=Produto'">
-              <div class="product-hero-badges">
-                <span class="product-hero-badge badge-category">${getCategoryLabel(product.category)}</span>
-                <span class="product-hero-badge badge-stock">${product.stock} em estoque</span>
-              </div>
-            </div>
-            <div class="product-card-body">
-              <h3>${product.name}</h3>
-              ${description ? `<p class="product-card-description">${description}</p>` : ''}
-              <div class="product-card-grid">
-                <div class="stat-pair">
-                  <span class="stat-label">Estoque</span>
-                  <span class="stat-value">${product.stock}</span>
-                </div>
-                <div class="stat-pair">
-                  <span class="stat-label">Unidade</span>
-                  <span class="stat-value">${unit}</span>
-                </div>
-                <div class="stat-pair">
-                  <span class="stat-label">Pedido mín.</span>
-                  <span class="stat-value">${minOrder}</span>
-                </div>
-                <div class="stat-pair stat-price">
-                  <span class="stat-label">Preço unitário</span>
-                  <span class="stat-value price">R$ ${price}</span>
-                </div>
-              </div>
-            </div>
-            <div class="product-card-actions-mobile">
-              <button class="card-btn card-btn-edit" onclick='editProduct("${productId}")'>
-                ✏️ Editar
-              </button>
-              <button class="card-btn card-btn-delete" onclick='deleteProduct("${productId}")'>
-                🗑️ Excluir
-              </button>
-            </div>
+        <!-- Mobile-only actions -->
+        <div class="product-mobile-actions">
+          <button class="mobile-btn mobile-btn-edit" onclick='editProduct("${productId}")'>✏️ Editar</button>
+          <button class="mobile-btn mobile-btn-delete" onclick='deleteProduct("${productId}")'>🗑️ Excluir</button>
         </div>
       </td>
-      <td data-label="Categoria" class="hide-mobile">
+      <td class="category-cell">
         <span class="category-badge">${getCategoryLabel(product.category)}</span>
       </td>
-      <td data-label="Preço" class="hide-mobile">R$ ${price}</td>
-      <td data-label="Pedido Mínimo" class="hide-mobile">${minOrder}</td>
-      <td data-label="Estoque" class="hide-mobile">${product.stock}</td>
-      <td data-label="Ações" class="hide-mobile">
-        <div class="actions-cell">
-          <button class="btn-icon btn-edit" onclick='editProduct("${productId}")' title="Editar">
-            ✏️
-          </button>
-          <button class="btn-icon btn-delete" onclick='deleteProduct("${productId}")' title="Excluir">
-            🗑️
-          </button>
-        </div>
+      <td class="price-cell">R$ ${price}</td>
+      <td class="min-order-cell">${minOrder}</td>
+      <td class="stock-cell">${product.stock}</td>
+      <td class="actions-cell">
+        <button class="btn-icon btn-edit" onclick='editProduct("${productId}")' title="Editar">✏️</button>
+        <button class="btn-icon btn-delete" onclick='deleteProduct("${productId}")' title="Excluir">🗑️</button>
       </td>
     </tr>
   `;
