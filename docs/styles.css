@@ -49,6 +49,10 @@ body {
     display: none !important;
 }
 
+.hide-mobile {
+    display: block !important;
+}
+
 @media (max-width: 768px) {
     .show-mobile {
         display: block !important;
