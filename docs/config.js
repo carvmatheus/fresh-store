@@ -9,7 +9,7 @@ const isProduction = window.location.hostname !== 'localhost' && window.location
 const API_CONFIG = {
     // URL da API
     BASE_URL: isProduction 
-        ? 'https://datastorm.cloud/api'  // Produção (VPS)
+        ? 'https://dahortadistribuidor.com.br/api'  // Produção (VPS)
         : 'http://localhost:8000/api',   // Desenvolvimento local
     
     // Timeout para requisições (30 segundos - Render pode demorar no cold start)
