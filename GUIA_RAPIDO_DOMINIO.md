@@ -1,15 +1,15 @@
-# 🚀 Guia Rápido - Configurar dahortadistribuidor.com.br
+# 🚀 Guia Rápido - Configurar compredahorta.com.br
 
 ## 1️⃣ NA HOSTINGER (5 minutos)
 
-Vá em **DNS** e adicione:
+✅ **DNS JÁ CONFIGURADO!**
 
 ```
-Tipo: A    Nome: @      Valor: 162.214.52.54
-Tipo: A    Nome: www    Valor: 162.214.52.54
+Tipo: A    Nome: @      Valor: 89.116.73.73
+Tipo: A    Nome: www    Valor: 89.116.73.73
 ```
 
-⏱️ **Aguarde 10-30 minutos** para o DNS propagar.
+⏱️ DNS propagado e funcionando!
 
 ---
 
@@ -18,20 +18,20 @@ Tipo: A    Nome: www    Valor: 162.214.52.54
 ```bash
 cd fresh-store
 git add .
-git commit -m "feat: Configurar domínio dahortadistribuidor.com.br"
+git commit -m "feat: Configurar domínio compredahorta.com.br"
 git push
 ```
 
 ---
 
-## 3️⃣ NO VPS - 162.214.52.54 (10 minutos)
+## 3️⃣ NO VPS - 89.116.73.73 (10 minutos)
 
 ```bash
 # Conectar
-ssh usuario@162.214.52.54
+ssh root@89.116.73.73
 
 # Navegar para o projeto
-cd /caminho/fresh-store
+cd /root/fresh-store
 
 # Atualizar
 git pull
@@ -53,7 +53,7 @@ docker compose up -d --build
 
 ## 4️⃣ TESTAR
 
-Abra: https://dahortadistribuidor.com.br
+Abra: https://compredahorta.com.br
 
 ✅ Deve aparecer seu site com cadeado verde (HTTPS)
 
@@ -64,8 +64,8 @@ Abra: https://dahortadistribuidor.com.br
 ### DNS não resolve?
 ```bash
 # Verificar DNS
-dig dahortadistribuidor.com.br
-# Deve mostrar: 162.214.52.54
+dig compredahorta.com.br
+# Deve mostrar: 89.116.73.73
 ```
 
 ### 502 Bad Gateway?
@@ -89,8 +89,8 @@ sudo systemctl restart nginx # Reiniciar
 - API: https://datastorm.cloud/dahorta/api
 
 **DEPOIS:**
-- URL: https://dahortadistribuidor.com.br
-- API: https://dahortadistribuidor.com.br/api
+- URL: https://compredahorta.com.br
+- API: https://compredahorta.com.br/api
 
 ✅ Certificado SSL grátis (Let's Encrypt)
 ✅ Renovação automática

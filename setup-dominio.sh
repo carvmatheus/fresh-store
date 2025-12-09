@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Script de configuração do domínio dahortadistribuidor.com.br
+# Script de configuração do domínio compredahorta.com.br
 # Execute como root ou com sudo
 
 set -e
 
-DOMAIN="dahortadistribuidor.com.br"
+DOMAIN="compredahorta.com.br"
 EMAIL="seu-email@exemplo.com"  # ALTERE PARA SEU EMAIL
 
 echo "🚀 Configurando domínio $DOMAIN..."
