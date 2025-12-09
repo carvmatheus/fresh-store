@@ -10,7 +10,7 @@ const API_CONFIG = {
     // URL da API
     BASE_URL: isProduction 
         ? 'https://compredahorta.com.br/api'  // Produção (VPS)
-        : 'http://localhost:8000/api',   // Desenvolvimento local
+        : 'https://compredahorta.com.br/api',   // Desenvolvimento local
     
     // Timeout para requisições (30 segundos - Render pode demorar no cold start)
     TIMEOUT: 30000,
