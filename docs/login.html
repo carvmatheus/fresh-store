@@ -8,15 +8,15 @@
 </head>
 <body>
     <!-- Banner Header -->
-    <div class="banner-header" onclick="goToHome()" style="cursor: pointer;" title="Clique para voltar à home">
+    <div class="banner-header" onclick="window.location.href='index.html'" style="cursor: pointer;" title="Clique para voltar à home">
         <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
     </div>
 
     <!-- Login Container -->
     <main class="container login-container">
         <div class="login-card">
-            <h1>Bem-vindo!</h1>
-            <p class="login-subtitle">Entre para acessar sua conta</p>
+            <h1>Bem-vindo de volta! 👋</h1>
+            <p class="login-subtitle">Entre com suas credenciais para continuar</p>
 
             <div class="alert alert-error hidden" id="loginError">
                 <span>⚠️</span>
@@ -30,7 +30,7 @@
                         type="text" 
                         id="loginEmail" 
                         name="email" 
-                        placeholder="seu@email.com"
+                        placeholder="seu@email.com ou nome de usuário"
                         required
                         autocomplete="username">
                 </div>
@@ -52,12 +52,12 @@
             </form>
 
             <div class="login-divider">
-                <span>ou</span>
+                <span>ou continue com</span>
             </div>
 
             <div class="demo-accounts">
                 <h3>Contas de Demonstração</h3>
-                <p class="demo-subtitle">Use estas credenciais para testar:</p>
+                <p class="demo-subtitle">Use estas credenciais para testar o sistema</p>
                 
                 <div class="demo-card">
                     <div class="demo-header">
@@ -89,6 +89,10 @@
             </div>
 
             <div class="login-footer">
+                <p class="signup-prompt">
+                    Não tem uma conta? 
+                    <a href="register.html" class="signup-link">Cadastre-se gratuitamente</a>
+                </p>
                 <a href="index.html" class="back-link">← Voltar para o início</a>
             </div>
         </div>
@@ -116,8 +120,6 @@
 
         // Handle form submission
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('✅ DOM carregado');
-            
             const form = document.getElementById('loginForm');
             if (form) {
                 form.addEventListener('submit', async (e) => {
@@ -125,48 +127,22 @@
                     const email = document.getElementById('loginEmail').value.trim();
                     const password = document.getElementById('loginPassword').value;
                     
-                    console.log('🔐 Formulário submetido. Usuário:', email);
-                    
                     if (typeof login === 'function') {
                         await login(email, password);
-                    } else {
-                        console.error('❌ Função login não encontrada!');
-                        alert('Erro ao carregar sistema de login. Recarregue a página.');
                     }
                 });
-            } else {
-                console.error('❌ Formulário de login não encontrado!');
             }
         });
 
         // Login as demo user
         async function loginAs(username, password) {
-            console.log('🔐 Login rápido:', username);
             document.getElementById('loginEmail').value = username;
             document.getElementById('loginPassword').value = password;
             
             if (typeof login === 'function') {
                 await login(username, password);
-            } else {
-                console.error('❌ Função login não encontrada!');
-                alert('Erro ao carregar sistema de login. Recarregue a página.');
-            }
-        }
-        
-        // Ir para home
-        function goToHome() {
-            const currentPath = window.location.pathname;
-            const currentFile = currentPath.split('/').pop();
-            
-            // Se já estiver na index.html, recarregar a página
-            if (currentFile === 'index.html' || currentFile === '' || currentFile === 'docs/') {
-                window.location.href = 'index.html';
-            } else {
-                // Redirecionar para index.html
-                window.location.href = 'index.html';
             }
         }
     </script>
 </body>
 </html>
-

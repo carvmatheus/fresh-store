@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Da Horta Distribuidora</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Banner Header -->
+    <div class="banner-header" onclick="window.location.href='index.html'" style="cursor: pointer;" title="Clique para voltar à home">
+        <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
+    </div>
+
+    <!-- Register Container -->
+    <main class="container login-container">
+        <div class="login-card" style="max-width: 600px;">
+            <h1>Criar Conta 🌱</h1>
+            <p class="login-subtitle">Preencha seus dados para começar</p>
+
+            <div class="alert alert-error hidden" id="registerError">
+                <span>⚠️</span>
+                <p id="registerErrorMsg">Erro ao criar conta</p>
+            </div>
+
+            <form id="registerForm" class="login-form">
+                <div class="form-group">
+                    <label for="registerName">Nome Completo *</label>
+                    <input 
+                        type="text" 
+                        id="registerName" 
+                        name="name" 
+                        placeholder="Seu nome completo"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerUsername">Nome de Usuário *</label>
+                    <input 
+                        type="text" 
+                        id="registerUsername" 
+                        name="username" 
+                        placeholder="Escolha um nome de usuário único"
+                        required
+                        autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerEmail">E-mail *</label>
+                    <input 
+                        type="email" 
+                        id="registerEmail" 
+                        name="email" 
+                        placeholder="seu@email.com"
+                        required
+                        autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPhone">Telefone *</label>
+                    <input 
+                        type="tel" 
+                        id="registerPhone" 
+                        name="phone" 
+                        placeholder="(00) 00000-0000"
+                        required
+                        autocomplete="tel">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPassword">Senha *</label>
+                    <input 
+                        type="password" 
+                        id="registerPassword" 
+                        name="password" 
+                        placeholder="Mínimo 6 caracteres"
+                        required
+                        autocomplete="new-password"
+                        minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPasswordConfirm">Confirmar Senha *</label>
+                    <input 
+                        type="password" 
+                        id="registerPasswordConfirm" 
+                        name="passwordConfirm" 
+                        placeholder="Digite a senha novamente"
+                        required
+                        autocomplete="new-password"
+                        minlength="6">
+                </div>
+
+                <button type="submit" class="btn-primary btn-login">
+                    Criar Minha Conta
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p class="signup-prompt">
+                    Já tem uma conta? 
+                    <a href="login.html" class="signup-link">Faça login</a>
+                </p>
+                <a href="index.html" class="back-link">← Voltar para o início</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- API Scripts -->
+    <script src="config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="auth.js"></script>
+    
+    <!-- Register Script -->
+    <script>
+        console.log('📝 Página de cadastro carregada');
+        
+        // Redirecionar se já estiver logado
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (currentUser) {
+            window.location.replace(currentUser.role === 'admin' ? 'admin.html' : 'cliente.html');
+        }
+
+        // Handle form submission
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('registerForm');
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const name = document.getElementById('registerName').value.trim();
+                    const username = document.getElementById('registerUsername').value.trim();
+                    const email = document.getElementById('registerEmail').value.trim();
+                    const phone = document.getElementById('registerPhone').value.trim();
+                    const password = document.getElementById('registerPassword').value;
+                    const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+                    
+                    // Validar senhas
+                    if (password !== passwordConfirm) {
+                        showError('As senhas não coincidem!');
+                        return;
+                    }
+                    
+                    if (password.length < 6) {
+                        showError('A senha deve ter pelo menos 6 caracteres!');
+                        return;
+                    }
+                    
+                    try {
+                        const userData = {
+                            full_name: name,
+                            username: username,
+                            email: email,
+                            phone: phone,
+                            password: password,
+                            role: 'client'
+                        };
+                        
+                        await api.register(userData);
+                        alert('✅ Conta criada com sucesso!');
+                        window.location.replace('cliente.html');
+                        
+                    } catch (error) {
+                        console.error('❌ Erro ao criar conta:', error);
+                        showError(error.message || 'Erro ao criar conta. Tente novamente.');
+                    }
+                });
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('registerError');
+            const errorMsg = document.getElementById('registerErrorMsg');
+            if (errorDiv && errorMsg) {
+                errorMsg.textContent = message;
+                errorDiv.classList.remove('hidden');
+                setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+            }
+        }
+    </script>
+</body>
+</html>
+

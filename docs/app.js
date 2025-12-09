@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Carregar componentes
   loadCategories();
+  loadPromotedProducts();
   loadProducts();
   loadCartFromStorage();
   updateCartUI();
@@ -134,6 +135,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   console.log('✅ Aplicação inicializada com sucesso!');
 });
+
+// Carregar produtos em destaque
+function loadPromotedProducts() {
+  const container = document.getElementById('promotedGrid');
+  if (!container) return;
+  
+  // Pegar 3 produtos aleatórios ou os primeiros 3
+  const promoted = products.slice(0, 3);
+  
+  if (promoted.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  container.innerHTML = promoted.map(product => createProductCard(product)).join('');
+}
 
 // Carregar categorias
 function loadCategories() {
