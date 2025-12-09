@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Conta - Da Horta Distribuidora</title>
+    <title>Meus Pedidos - Da Horta Distribuidora</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Banner Header -->
-    <div class="banner-header" onclick="goToHome()" style="cursor: pointer;" title="Clique para voltar à home">
+    <div class="banner-header" onclick="window.location.href='index.html'" style="cursor: pointer;" title="Clique para voltar à home">
         <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
     </div>
 
@@ -50,7 +50,7 @@
             <li><a href="index.html">🏠 Início</a></li>
             <li><a href="carrinho.html">🛒 Carrinho</a></li>
             <li><a href="cliente.html" class="active">📦 Meus Pedidos</a></li>
-            <li><a href="login.html">👤 Entrar</a></li>
+            <li><a href="#" onclick="logout()">🚪 Sair</a></li>
         </ul>
     </nav>
 
@@ -67,94 +67,137 @@
     </div>
 
     <!-- Main Content -->
-    <main class="container cliente-page">
+    <main class="container orders-page">
         <div class="page-header">
-            <h1>Minha Conta</h1>
-            <p class="page-subtitle">Gerencie seus pedidos e histórico</p>
-        </div>
-
-        <!-- Cliente Info -->
-        <div class="cliente-info-card">
-            <div class="info-row">
-                <div class="info-item">
-                    <span class="info-label">Nome:</span>
-                    <span class="info-value" id="clienteName">-</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Empresa:</span>
-                    <span class="info-value" id="clienteCompany">-</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">E-mail:</span>
-                    <span class="info-value" id="clienteEmail">-</span>
-                </div>
+            <div class="page-title-section">
+                <h1>📦 Meus Pedidos</h1>
+                <p class="page-subtitle">Acompanhe todos os seus pedidos em tempo real</p>
             </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('pedidos')" id="tabPedidos">
-                Pedidos Ativos
-            </button>
-            <button class="tab-btn" onclick="switchTab('historico')" id="tabHistorico">
-                Histórico
+            <button class="btn-primary" onclick="window.location.href='index.html'">
+                ➕ Fazer Novo Pedido
             </button>
         </div>
 
-        <!-- Pedidos Ativos -->
-        <div class="tab-content active" id="contentPedidos">
-            <div class="orders-list" id="ordersList">
-                <!-- Pedidos serão carregados aqui -->
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-info">
+                    <span class="stat-label">Pendentes</span>
+                    <span class="stat-value" id="statPendentes">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <span class="stat-label">Confirmados</span>
+                    <span class="stat-value" id="statConfirmados">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🚚</div>
+                <div class="stat-info">
+                    <span class="stat-label">Em Entrega</span>
+                    <span class="stat-value" id="statEmEntrega">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <span class="stat-label">Total de Pedidos</span>
+                    <span class="stat-value" id="statTotal">0</span>
+                </div>
             </div>
         </div>
 
-        <!-- Histórico -->
-        <div class="tab-content" id="contentHistorico">
-            <div class="orders-list" id="historyList">
-                <!-- Histórico será carregado aqui -->
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="filterStatus">Filtrar por status:</label>
+                <select id="filterStatus" class="filter-select" onchange="filterOrders()">
+                    <option value="">Todos os Status</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="confirmado">Confirmado</option>
+                    <option value="em_entrega">Em Entrega</option>
+                    <option value="entregue">Entregue</option>
+                    <option value="cancelado">Cancelado</option>
+                </select>
             </div>
+            <div class="filter-group">
+                <label for="sortBy">Ordenar por:</label>
+                <select id="sortBy" class="filter-select" onchange="filterOrders()">
+                    <option value="recent">Mais Recentes</option>
+                    <option value="oldest">Mais Antigos</option>
+                    <option value="value">Maior Valor</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Orders List -->
+        <div class="orders-list" id="ordersList">
+            <!-- Loading State -->
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Carregando seus pedidos...</p>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📦</div>
+            <h2>Nenhum pedido encontrado</h2>
+            <p>Você ainda não realizou nenhum pedido</p>
+            <a href="index.html" class="btn-primary">Começar a Comprar</a>
         </div>
     </main>
 
+    <!-- Order Detail Modal -->
+    <div class="modal" id="orderDetailModal">
+        <div class="modal-content order-detail">
+            <div class="modal-header">
+                <h2>Detalhes do Pedido <span id="modalOrderNumber"></span></h2>
+                <button class="modal-close" onclick="closeOrderDetail()">×</button>
+            </div>
+            <div class="modal-body" id="orderDetailContent">
+                <!-- Conteúdo será preenchido dinamicamente -->
+            </div>
+        </div>
+    </div>
+
     <!-- API Scripts -->
     <script src="config.js"></script>
     <script src="api-client.js"></script>
     <script src="auth.js"></script>
-    <script src="cliente.js"></script>
+    
     <script>
-        // Proteger página - apenas clientes
-        requireAuth('cliente');
-        
-        // Toggle menu
-        function toggleMenu() {
-            const menu = document.getElementById('sideMenu');
-            const overlay = document.getElementById('overlay');
+        // Variáveis globais
+        let allOrders = [];
+        let filteredOrders = [];
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('📦 Página de pedidos carregada');
             
-            if (menu && overlay) {
-                menu.classList.toggle('open');
-                overlay.classList.toggle('show');
+            // Verificar autenticação
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (!currentUser) {
+                alert('Por favor, faça login para ver seus pedidos');
+                window.location.href = 'login.html';
+                return;
             }
-        }
-        
-        // Atualizar badge do carrinho
-        const cart = JSON.parse(localStorage.getItem('freshStoreCart')) || [];
-        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-        document.getElementById('cartBadge').textContent = totalItems;
-    </script>
 
-    <!-- API Scripts -->
-    <script src="config.js"></script>
-    <script src="api-client.js"></script>
-    <script src="auth.js"></script>
-    <script src="cliente.js"></script>
-    <script>
-        // Ir para home
-        function goToHome() {
-            window.location.href = 'index.html';
-        }
+            // Menu Toggle
+            setupMenu();
+            
+            // Atualizar badge do carrinho
+            updateCartBadge();
+            
+            // Carregar pedidos
+            await loadOrders();
+        });
 
-        // Menu Toggle
-        document.addEventListener('DOMContentLoaded', () => {
+        // Setup Menu
+        function setupMenu() {
             const menuToggle = document.getElementById('menuToggle');
             const menuClose = document.getElementById('menuClose');
             const menuOverlay = document.getElementById('menuOverlay');
@@ -164,13 +207,11 @@
             const searchClose = document.getElementById('searchClose');
             const searchInput = document.getElementById('searchInput');
 
-            // Open menu
             menuToggle?.addEventListener('click', () => {
                 sideMenu?.classList.add('active');
                 menuOverlay?.classList.add('active');
             });
 
-            // Close menu
             const closeMenu = () => {
                 sideMenu?.classList.remove('active');
                 menuOverlay?.classList.remove('active');
@@ -178,7 +219,6 @@
             menuClose?.addEventListener('click', closeMenu);
             menuOverlay?.addEventListener('click', closeMenu);
 
-            // Search modal
             searchBtn?.addEventListener('click', () => {
                 searchModal?.classList.add('active');
                 searchInput?.focus();
@@ -194,21 +234,285 @@
                 }
             });
 
-            // Search functionality
             searchInput?.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase();
-                const resultsDiv = document.getElementById('searchResults');
-                
-                if (!query || !resultsDiv) {
-                    if (resultsDiv) resultsDiv.innerHTML = '';
-                    return;
+                if (query) {
+                    window.location.href = `index.html?search=${encodeURIComponent(query)}`;
                 }
-
-                // Redirect to index with search
-                window.location.href = `index.html?search=${encodeURIComponent(query)}`;
             });
-        });
+        }
+
+        // Atualizar badge do carrinho
+        function updateCartBadge() {
+            const cart = JSON.parse(localStorage.getItem('freshStoreCart')) || [];
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const badge = document.getElementById('cartBadge');
+            if (badge) {
+                badge.textContent = totalItems;
+            }
+        }
+
+        // Carregar pedidos
+        async function loadOrders() {
+            const ordersList = document.getElementById('ordersList');
+            const emptyState = document.getElementById('emptyState');
+            
+            try {
+                const response = await api.getMyOrders();
+                allOrders = response || [];
+                filteredOrders = [...allOrders];
+                
+                console.log(`📦 ${allOrders.length} pedidos carregados`);
+                
+                if (allOrders.length === 0) {
+                    ordersList.style.display = 'none';
+                    emptyState.style.display = 'flex';
+                } else {
+                    ordersList.style.display = 'grid';
+                    emptyState.style.display = 'none';
+                    updateStats();
+                    renderOrders();
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar pedidos:', error);
+                ordersList.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">⚠️</div>
+                        <h2>Erro ao carregar pedidos</h2>
+                        <p>${error.message || 'Tente novamente mais tarde'}</p>
+                        <button class="btn-primary" onclick="loadOrders()">Tentar Novamente</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Atualizar estatísticas
+        function updateStats() {
+            const pendentes = allOrders.filter(o => o.status === 'pendente').length;
+            const confirmados = allOrders.filter(o => o.status === 'confirmado').length;
+            const emEntrega = allOrders.filter(o => o.status === 'em_entrega').length;
+            
+            document.getElementById('statPendentes').textContent = pendentes;
+            document.getElementById('statConfirmados').textContent = confirmados;
+            document.getElementById('statEmEntrega').textContent = emEntrega;
+            document.getElementById('statTotal').textContent = allOrders.length;
+        }
+
+        // Renderizar pedidos
+        function renderOrders() {
+            const ordersList = document.getElementById('ordersList');
+            
+            if (filteredOrders.length === 0) {
+                ordersList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <h2>Nenhum pedido encontrado</h2>
+                        <p>Tente ajustar os filtros</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            ordersList.innerHTML = filteredOrders.map(order => createOrderCard(order)).join('');
+        }
+
+        // Criar card de pedido
+        function createOrderCard(order) {
+            const statusConfig = {
+                'pendente': { label: 'Pendente', icon: '⏳', class: 'pending' },
+                'confirmado': { label: 'Confirmado', icon: '✅', class: 'confirmed' },
+                'em_entrega': { label: 'Em Entrega', icon: '🚚', class: 'delivering' },
+                'entregue': { label: 'Entregue', icon: '📦', class: 'delivered' },
+                'cancelado': { label: 'Cancelado', icon: '❌', class: 'cancelled' }
+            };
+            
+            const status = statusConfig[order.status] || statusConfig['pendente'];
+            const total = order.total_amount || 0;
+            const date = new Date(order.created_at).toLocaleDateString('pt-BR');
+            const itemCount = order.items?.length || 0;
+            
+            return `
+                <div class="order-card" onclick="viewOrderDetail('${order.id}')">
+                    <div class="order-card-header">
+                        <div class="order-number">
+                            <strong>Pedido #${order.order_number}</strong>
+                            <span class="order-date">📅 ${date}</span>
+                        </div>
+                        <span class="status-badge ${status.class}">
+                            ${status.icon} ${status.label}
+                        </span>
+                    </div>
+                    
+                    <div class="order-card-body">
+                        <div class="order-info-row">
+                            <span class="order-info-label">Items:</span>
+                            <span class="order-info-value">${itemCount} produtos</span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-label">Entrega:</span>
+                            <span class="order-info-value">${order.shipping_address?.city || '-'}, ${order.shipping_address?.state || '-'}</span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-label">Pagamento:</span>
+                            <span class="order-info-value">${formatPaymentMethod(order.payment_method)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="order-card-footer">
+                        <span class="order-total">Total: ${formatMoney(total)}</span>
+                        <button class="btn-view-details" onclick="event.stopPropagation(); viewOrderDetail('${order.id}')">
+                            Ver Detalhes →
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Filtrar pedidos
+        function filterOrders() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            const sortBy = document.getElementById('sortBy').value;
+            
+            // Filtrar por status
+            filteredOrders = statusFilter 
+                ? allOrders.filter(o => o.status === statusFilter)
+                : [...allOrders];
+            
+            // Ordenar
+            if (sortBy === 'recent') {
+                filteredOrders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            } else if (sortBy === 'oldest') {
+                filteredOrders.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            } else if (sortBy === 'value') {
+                filteredOrders.sort((a, b) => (b.total_amount || 0) - (a.total_amount || 0));
+            }
+            
+            renderOrders();
+        }
+
+        // Ver detalhes do pedido
+        async function viewOrderDetail(orderId) {
+            const modal = document.getElementById('orderDetailModal');
+            const content = document.getElementById('orderDetailContent');
+            const orderNumber = document.getElementById('modalOrderNumber');
+            
+            try {
+                const order = await api.getOrderById(orderId);
+                
+                orderNumber.textContent = `#${order.order_number}`;
+                content.innerHTML = createOrderDetailContent(order);
+                modal.classList.add('active');
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar detalhes:', error);
+                alert('Erro ao carregar detalhes do pedido');
+            }
+        }
+
+        // Criar conteúdo dos detalhes
+        function createOrderDetailContent(order) {
+            const statusConfig = {
+                'pendente': { label: 'Pendente', icon: '⏳', class: 'pending' },
+                'confirmado': { label: 'Confirmado', icon: '✅', class: 'confirmed' },
+                'em_entrega': { label: 'Em Entrega', icon: '🚚', class: 'delivering' },
+                'entregue': { label: 'Entregue', icon: '📦', class: 'delivered' },
+                'cancelado': { label: 'Cancelado', icon: '❌', class: 'cancelled' }
+            };
+            
+            const status = statusConfig[order.status] || statusConfig['pendente'];
+            
+            return `
+                <div class="order-detail-section">
+                    <h3>Status do Pedido</h3>
+                    <span class="status-badge ${status.class} large">
+                        ${status.icon} ${status.label}
+                    </span>
+                    <p class="order-detail-date">Pedido realizado em ${new Date(order.created_at).toLocaleString('pt-BR')}</p>
+                </div>
+
+                <div class="order-detail-section">
+                    <h3>📦 Produtos</h3>
+                    <div class="order-items-list">
+                        ${order.items.map(item => `
+                            <div class="order-item-row">
+                                <div class="order-item-info">
+                                    <strong>${item.product_name}</strong>
+                                    <span class="order-item-quantity">${item.quantity} ${item.unit}</span>
+                                </div>
+                                <span class="order-item-price">${formatMoney(item.unit_price * item.quantity)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="order-detail-section">
+                    <h3>📍 Endereço de Entrega</h3>
+                    <p>
+                        ${order.shipping_address.street}, ${order.shipping_address.number}
+                        ${order.shipping_address.complement ? `, ${order.shipping_address.complement}` : ''}<br>
+                        ${order.shipping_address.neighborhood} - ${order.shipping_address.city}, ${order.shipping_address.state}<br>
+                        CEP: ${order.shipping_address.zip_code}
+                    </p>
+                </div>
+
+                <div class="order-detail-section">
+                    <h3>💰 Resumo Financeiro</h3>
+                    <div class="order-summary">
+                        <div class="summary-line">
+                            <span>Subtotal:</span>
+                            <span>${formatMoney(order.subtotal || 0)}</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Taxa de Entrega:</span>
+                            <span>${formatMoney(order.delivery_fee || 0)}</span>
+                        </div>
+                        <div class="summary-divider"></div>
+                        <div class="summary-line total">
+                            <span><strong>Total:</strong></span>
+                            <span><strong>${formatMoney(order.total_amount || 0)}</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                ${order.observations ? `
+                <div class="order-detail-section">
+                    <h3>📝 Observações</h3>
+                    <p>${order.observations}</p>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        // Fechar modal de detalhes
+        function closeOrderDetail() {
+            const modal = document.getElementById('orderDetailModal');
+            modal.classList.remove('active');
+        }
+
+        // Helpers
+        function formatMoney(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value || 0);
+        }
+
+        function formatPaymentMethod(method) {
+            const methods = {
+                'boleto': 'Boleto',
+                'transferencia': 'Transferência',
+                'cartao': 'Cartão',
+                'prazo': 'A Prazo'
+            };
+            return methods[method] || method;
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('authToken');
+            window.location.href = 'login.html';
+        }
     </script>
 </body>
 </html>
-
