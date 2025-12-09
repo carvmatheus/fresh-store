@@ -13,26 +13,30 @@
     </div>
 
     <!-- Navigation Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="header-left">
-                    <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Menu">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </button>
-                    <button class="login-btn" onclick="goToLogin()" id="loginBtn">
-                        <span class="login-icon">👤</span>
-                        <span class="login-text">Entrar</span>
-                    </button>
-                </div>
+    <header class="main-header">
+        <div class="header-content">
+            <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <div class="header-actions">
+                <button class="search-btn" id="searchBtn" aria-label="Buscar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
                 
-                <div class="header-actions">
-                    <button class="cart-btn" onclick="toggleCart()">
-                        🛒 Carrinho <span class="cart-badge" id="cartBadge">0</span>
-                    </button>
-                </div>
+                <a href="carrinho.html" class="cart-btn" aria-label="Carrinho">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span class="cart-badge" id="cartBadge">0</span>
+                </a>
             </div>
         </div>
     </header>
@@ -40,36 +44,27 @@
     <!-- Side Menu -->
     <nav class="side-menu" id="sideMenu">
         <div class="side-menu-header">
-            <h3>Menu</h3>
-            <button class="close-menu-btn" onclick="toggleMenu()">✕</button>
+            <button class="menu-close" id="menuClose" aria-label="Fechar menu">×</button>
         </div>
-        <div class="side-menu-content">
-            <div class="user-info" id="userInfo">
-                <div class="user-avatar">👤</div>
-                <p class="user-name" id="userName">Visitante</p>
-            </div>
-            <ul class="menu-list">
-                <li><a href="index.html">🏠 Início</a></li>
-                <li><a href="carrinho.html">🛒 Carrinho</a></li>
-                <li class="menu-auth-item active" id="menuClienteLink">
-                    <a href="cliente.html">📦 Meus Pedidos</a>
-                </li>
-                <li class="menu-auth-item" id="menuAdminLink" style="display: none;">
-                    <a href="admin.html">⚙️ Administração</a>
-                </li>
-                <li class="menu-divider"></li>
-                <li id="menuLoginLink">
-                    <a href="login.html">🔐 Entrar</a>
-                </li>
-                <li id="menuLogoutLink">
-                    <a href="#" onclick="logout()">🚪 Sair</a>
-                </li>
-            </ul>
-        </div>
+        <ul class="side-menu-list">
+            <li><a href="index.html">🏠 Início</a></li>
+            <li><a href="carrinho.html">🛒 Carrinho</a></li>
+            <li><a href="cliente.html" class="active">📦 Meus Pedidos</a></li>
+            <li><a href="login.html">👤 Entrar</a></li>
+        </ul>
     </nav>
 
-    <!-- Overlay -->
-    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+    <!-- Menu Overlay -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- Search Modal -->
+    <div class="search-modal" id="searchModal">
+        <div class="search-modal-content">
+            <input type="text" id="searchInput" placeholder="Buscar produtos..." class="search-input">
+            <button class="search-close" id="searchClose">×</button>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+    </div>
 
     <!-- Main Content -->
     <main class="container cliente-page">
@@ -155,17 +150,64 @@
     <script>
         // Ir para home
         function goToHome() {
-            const currentPath = window.location.pathname;
-            const currentFile = currentPath.split('/').pop();
-            
-            // Se já estiver na index.html, recarregar a página
-            if (currentFile === 'index.html' || currentFile === '' || currentFile === 'docs/') {
-                window.location.href = 'index.html';
-            } else {
-                // Redirecionar para index.html
-                window.location.href = 'index.html';
-            }
+            window.location.href = 'index.html';
         }
+
+        // Menu Toggle
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuToggle = document.getElementById('menuToggle');
+            const menuClose = document.getElementById('menuClose');
+            const menuOverlay = document.getElementById('menuOverlay');
+            const sideMenu = document.getElementById('sideMenu');
+            const searchBtn = document.getElementById('searchBtn');
+            const searchModal = document.getElementById('searchModal');
+            const searchClose = document.getElementById('searchClose');
+            const searchInput = document.getElementById('searchInput');
+
+            // Open menu
+            menuToggle?.addEventListener('click', () => {
+                sideMenu?.classList.add('active');
+                menuOverlay?.classList.add('active');
+            });
+
+            // Close menu
+            const closeMenu = () => {
+                sideMenu?.classList.remove('active');
+                menuOverlay?.classList.remove('active');
+            };
+            menuClose?.addEventListener('click', closeMenu);
+            menuOverlay?.addEventListener('click', closeMenu);
+
+            // Search modal
+            searchBtn?.addEventListener('click', () => {
+                searchModal?.classList.add('active');
+                searchInput?.focus();
+            });
+
+            searchClose?.addEventListener('click', () => {
+                searchModal?.classList.remove('active');
+            });
+
+            searchModal?.addEventListener('click', (e) => {
+                if (e.target === searchModal) {
+                    searchModal.classList.remove('active');
+                }
+            });
+
+            // Search functionality
+            searchInput?.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const resultsDiv = document.getElementById('searchResults');
+                
+                if (!query || !resultsDiv) {
+                    if (resultsDiv) resultsDiv.innerHTML = '';
+                    return;
+                }
+
+                // Redirect to index with search
+                window.location.href = `index.html?search=${encodeURIComponent(query)}`;
+            });
+        });
     </script>
 </body>
 </html>
