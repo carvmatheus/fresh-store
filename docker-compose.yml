@@ -63,7 +63,7 @@ services:
     container_name: dahorta-frontend
     restart: unless-stopped
     ports:
-      - "80:3000"
+      - "3000:3000"
     depends_on:
       - backend
     networks:
