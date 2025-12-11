@@ -2586,7 +2586,8 @@ body {
 
 /* Carrinho - itens com promoção */
 .cart-item.has-promo {
-    border-left: 4px solid var(--success);
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid var(--success);
 }
 
 .cart-item-promo-badge {
