@@ -982,16 +982,11 @@ body {
 .product-footer {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding-top: 1rem;
+    align-items: flex-end;
+    padding-top: 0.75rem;
     margin-top: auto;
     border-top: 1px solid var(--gray-200);
     gap: 1rem;
-}
-
-.product-footer.has-promo-footer {
-    align-items: flex-end;
-    padding-top: 0.75rem;
 }
 
 .product-price {
@@ -1000,6 +995,8 @@ body {
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--primary);
+    min-height: 3.5rem;
+    justify-content: flex-end;
 }
 
 .product-unit {

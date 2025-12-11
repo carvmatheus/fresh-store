@@ -284,7 +284,7 @@ function loadProducts() {
             Pedido mínimo: ${product.minOrder} ${product.unit}
           </div>
         ` : ''}
-        <div class="product-footer ${hasPromo ? 'has-promo-footer' : ''}">
+        <div class="product-footer">
           <div class="product-price">
             ${hasPromo ? `<div class="price-original-line">De: <s>${product.price.toFixed(2)}/${product.unit}</s></div>` : ''}
             <div class="price-current ${hasPromo ? 'promo-price' : ''}">
