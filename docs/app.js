@@ -37,6 +37,7 @@ async function loadProductsFromAPI() {
         stock: p.stock,
         image: p.image_url || 'https://via.placeholder.com/400', // PostgreSQL usa image_url
         description: p.description || '',
+        isPromo: p.is_promo === true, // Produto em promoção
         isActive: p.is_active !== false
       };
       
