@@ -619,22 +619,44 @@ function moveCarousel(direction, isAuto = false) {
 window.moveCarousel = moveCarousel;
 
 // Atualizar quantidade
+// Rastrear itens com remoção pendente (segundo clique remove)
+const pendingRemovalSidebar = {};
+
 function updateQuantity(productId, delta) {
   const normalizedId = String(productId);
   const item = cart.find(i => String(i.id) === normalizedId);
   if (!item) return;
   
+  const minOrder = item.minOrder || 1;
   const newQty = item.quantity + delta;
   
-  if (newQty < (item.minOrder || 1)) {
-    alert(`Quantidade mínima: ${item.minOrder || 1}`);
+  // Verificar se está tentando diminuir abaixo do mínimo
+  if (newQty < minOrder) {
+    // Se já foi alertado, remove o item
+    if (pendingRemovalSidebar[normalizedId]) {
+      delete pendingRemovalSidebar[normalizedId];
+      removeFromCart(normalizedId);
+      return;
+    }
+    
+    // Primeiro alerta - marcar como pendente
+    pendingRemovalSidebar[normalizedId] = true;
+    showToast(`Mínimo: ${minOrder} ${item.unit}. Clique − de novo para remover.`, '⚠️');
+    
+    // Limpar o pendingRemoval após 3 segundos
+    setTimeout(() => {
+      delete pendingRemovalSidebar[normalizedId];
+    }, 3000);
     return;
   }
   
   if (newQty > item.stock) {
-    alert('Estoque insuficiente');
+    showToast('Estoque insuficiente', '❌');
     return;
   }
+  
+  // Limpar pending se existir
+  delete pendingRemovalSidebar[normalizedId];
   
   if (newQty === 0) {
     removeFromCart(normalizedId);
@@ -659,12 +681,19 @@ function updateCartUI() {
   const content = document.getElementById('cartContent');
   const footer = document.getElementById('cartFooter');
   const emptyCart = document.getElementById('emptyCart');
+  const sidebarCount = document.getElementById('cartSidebarCount');
   
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalValue = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
+  // Atualizar badge
   if (badge) {
     badge.textContent = totalItems;
+  }
+  
+  // Atualizar contador no sidebar
+  if (sidebarCount) {
+    sidebarCount.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'itens'}`;
   }
   
   // Se não estiver na página principal, sai
@@ -674,10 +703,11 @@ function updateCartUI() {
     if (emptyCart) emptyCart.classList.remove('hidden');
     if (footer) footer.classList.add('hidden');
     content.innerHTML = `
-      <div class="empty-cart">
-        <span class="empty-icon">🛒</span>
-        <p>Seu carrinho está vazio</p>
-        <p class="empty-text">Adicione produtos para começar seu pedido</p>
+      <div class="cart-empty-state">
+        <div class="cart-empty-icon">🛒</div>
+        <h4>Seu carrinho está vazio</h4>
+        <p>Explore nossos produtos e adicione ao carrinho</p>
+        <button class="cart-empty-btn" onclick="toggleCart()">Continuar Comprando</button>
       </div>
     `;
   } else {
@@ -687,25 +717,28 @@ function updateCartUI() {
     content.innerHTML = cart.map(item => `
       <div class="cart-item">
         <img src="${item.image}" alt="${item.name}" class="cart-item-image" onerror="this.src='https://via.placeholder.com/80?text=${encodeURIComponent(item.name)}'">
-        <div class="cart-item-content">
-          <div class="cart-item-header">
-            <h4 class="cart-item-name">${item.name}</h4>
-            <button class="btn-remove" onclick="removeFromCart('${item.id}')">Remover</button>
-          </div>
-          <p class="cart-item-details">R$ ${item.price.toFixed(2)} / ${item.unit}</p>
-          <div class="cart-item-actions">
-            <div class="qty-controls">
-              <button class="qty-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
-              <span>${item.quantity}</span>
-              <button class="qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+        <div class="cart-item-details">
+          <span class="cart-item-name">${item.name}</span>
+          <span class="cart-item-price">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+          <div class="cart-item-controls">
+            <div class="cart-item-quantity">
+              <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', -1)">−</button>
+              <span class="cart-item-qty">${item.quantity}</span>
+              <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
             </div>
-            <span class="cart-item-price">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+            <button class="cart-item-remove" onclick="removeFromCart('${item.id}')" title="Remover">🗑️</button>
           </div>
         </div>
       </div>
     `).join('');
     
+    // Atualizar totais
+    const subtotalElement = document.getElementById('cartSubtotal');
     const totalElement = document.getElementById('cartTotal');
+    
+    if (subtotalElement) {
+      subtotalElement.textContent = `R$ ${totalValue.toFixed(2)}`;
+    }
     if (totalElement) {
       totalElement.textContent = `R$ ${totalValue.toFixed(2)}`;
     }

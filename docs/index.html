@@ -106,28 +106,48 @@
 
     <!-- Cart Sidebar -->
     <aside class="cart-sidebar" id="cartSidebar">
-        <div class="cart-header">
-            <h3>Carrinho de Compras</h3>
-            <button class="close-btn" onclick="toggleCart()">✕</button>
+        <div class="cart-sidebar-header">
+            <div class="cart-sidebar-title">
+                <span class="cart-sidebar-icon">🛒</span>
+                <div>
+                    <h3>Meu Carrinho</h3>
+                    <span class="cart-sidebar-count" id="cartSidebarCount">0 itens</span>
+                </div>
+            </div>
+            <button class="cart-close-btn" onclick="toggleCart()">
+                <span>✕</span>
+            </button>
         </div>
         
-        <div class="cart-content" id="cartContent">
-            <div class="empty-cart" id="emptyCart">
-                <span class="empty-icon">🛒</span>
-                <p>Seu carrinho está vazio</p>
-                <p class="empty-text">Adicione produtos para começar seu pedido</p>
+        <div class="cart-sidebar-content" id="cartContent">
+            <div class="cart-empty-state" id="emptyCart">
+                <div class="cart-empty-icon">🛒</div>
+                <h4>Seu carrinho está vazio</h4>
+                <p>Explore nossos produtos e adicione ao carrinho</p>
+                <button class="cart-empty-btn" onclick="toggleCart()">Continuar Comprando</button>
             </div>
         </div>
 
-        <div class="cart-footer hidden" id="cartFooter">
-            <div class="cart-total">
-                <span>Total</span>
-                <span id="cartTotal">R$ 0,00</span>
+        <div class="cart-sidebar-footer hidden" id="cartFooter">
+            <div class="cart-summary">
+                <div class="cart-summary-row">
+                    <span>Subtotal</span>
+                    <span id="cartSubtotal">R$ 0,00</span>
+                </div>
+                <div class="cart-summary-row cart-summary-total">
+                    <span>Total</span>
+                    <span id="cartTotal">R$ 0,00</span>
+                </div>
             </div>
-            <div class="cart-actions">
-                <a href="carrinho.html" class="btn-cart-outline">Ver Carrinho Completo</a>
-                <a href="carrinho.html#checkout" class="btn-checkout">Finalizar Pedido</a>
+            <div class="cart-sidebar-actions">
+                <a href="carrinho.html" class="cart-btn-secondary">
+                    <span>📋</span> Ver Carrinho
+                </a>
+                <a href="carrinho.html#checkout" class="cart-btn-primary">
+                    <span>💳</span> Finalizar Pedido
+                </a>
             </div>
+            <p class="cart-secure-text">🔒 Pagamento 100% seguro</p>
         </div>
     </aside>
 

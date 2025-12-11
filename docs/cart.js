@@ -90,16 +90,35 @@ function renderCartItems() {
   `).join('');
 }
 
+// Rastrear itens com remoção pendente
+const pendingRemovalCart = {};
+
 // Atualizar quantidade
 function updateQuantity(productId, delta) {
   const normalizedId = String(productId);
   const item = cart.find(i => String(i.id) === normalizedId);
   if (!item) return;
   
+  const minOrder = item.minOrder || 1;
   const newQty = item.quantity + delta;
   
-  if (newQty < (item.minOrder || 1)) {
-    alert(`Quantidade mínima: ${item.minOrder || 1} ${item.unit}`);
+  // Verificar se está tentando diminuir abaixo do mínimo
+  if (newQty < minOrder) {
+    // Se já foi alertado, remove o item
+    if (pendingRemovalCart[normalizedId]) {
+      delete pendingRemovalCart[normalizedId];
+      removeItemDirect(normalizedId);
+      return;
+    }
+    
+    // Primeiro alerta - marcar como pendente
+    pendingRemovalCart[normalizedId] = true;
+    alert(`Quantidade mínima: ${minOrder} ${item.unit}. Clique − novamente para remover.`);
+    
+    // Limpar o pendingRemoval após 3 segundos
+    setTimeout(() => {
+      delete pendingRemovalCart[normalizedId];
+    }, 3000);
     return;
   }
   
@@ -108,19 +127,27 @@ function updateQuantity(productId, delta) {
     return;
   }
   
+  // Limpar pending se existir
+  delete pendingRemovalCart[normalizedId];
+  
   item.quantity = newQty;
   saveCartToStorage();
   renderCart();
 }
 
-// Remover item
+// Remover item (com confirmação)
 function removeItem(productId) {
   if (confirm('Deseja remover este item do carrinho?')) {
-    const normalizedId = String(productId);
-    cart = cart.filter(item => String(item.id) !== normalizedId);
-    saveCartToStorage();
-    renderCart();
+    removeItemDirect(productId);
   }
+}
+
+// Remover item direto (sem confirmação)
+function removeItemDirect(productId) {
+  const normalizedId = String(productId);
+  cart = cart.filter(item => String(item.id) !== normalizedId);
+  saveCartToStorage();
+  renderCart();
 }
 
 // Atualizar resumo
