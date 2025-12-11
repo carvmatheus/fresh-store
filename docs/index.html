@@ -80,68 +80,6 @@
 
     <!-- Main -->
     <main class="container main-content">
-        <!-- Delivery Simulator -->
-        <section class="simulator-card">
-            <div class="simulator-header">
-                <h3>📍 Simulador de Entrega</h3>
-            </div>
-            
-            <div class="simulator-form">
-                <input 
-                    type="text" 
-                    id="cep" 
-                    placeholder="Digite seu CEP (ex: 01234-567)" 
-                    maxlength="9"
-                    class="input-cep"
-                >
-                <button onclick="calculateDelivery()" class="btn-calculate" id="btnCalculate">
-                    Calcular Frete
-                </button>
-            </div>
-
-            <div id="deliveryError" class="delivery-error hidden">
-                <span class="error-icon">⚠️</span>
-                <span id="errorMessage">Por favor, digite um CEP válido</span>
-            </div>
-
-            <div id="deliveryResult" class="delivery-result hidden">
-                <div class="result-grid">
-                    <div class="result-card">
-                        <div class="result-header">
-                            <span class="result-icon">📏</span>
-                            <span class="result-label">Distância</span>
-                        </div>
-                        <span class="result-value" id="distance">-</span>
-                    </div>
-                    <div class="result-card">
-                        <div class="result-header">
-                            <span class="result-icon">⏱️</span>
-                            <span class="result-label">Tempo Estimado</span>
-                        </div>
-                        <span class="result-value" id="time">-</span>
-                    </div>
-                    <div class="result-card result-card-featured">
-                        <div class="result-header">
-                            <span class="result-icon">🚚</span>
-                            <span class="result-label">Taxa de Entrega</span>
-                        </div>
-                        <span class="result-value result-value-featured" id="fee">-</span>
-                    </div>
-                    <div class="result-card">
-                        <div class="result-header">
-                            <span class="result-icon">💰</span>
-                            <span class="result-label">Pedido Mínimo</span>
-                        </div>
-                        <span class="result-value" id="minOrder">-</span>
-                    </div>
-                </div>
-                <div id="freeShipping" class="free-shipping hidden">
-                    <span class="alert-icon">🎉</span>
-                    <span>Entrega grátis para sua região!</span>
-                </div>
-            </div>
-        </section>
-
         <!-- Promoted Products -->
         <section class="promoted-section">
             <div class="promoted-header">

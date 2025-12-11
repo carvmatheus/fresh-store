@@ -342,7 +342,7 @@ function renderProducts(productsList = null) {
   }
 }
 
-// Adicionar ao carrinho com animação fly-to-cart
+// Adicionar ao carrinho com animação fly-to-cart e feedback tátil
 function addToCart(productId, event) {
   console.log('🛒 Tentando adicionar produto:', productId);
   
@@ -359,6 +359,11 @@ function addToCart(productId, event) {
   
   console.log('✅ Produto encontrado:', product.name);
   
+  // Efeito ripple no elemento clicado
+  if (event && event.target) {
+    createRipple(event);
+  }
+  
   // Animação fly-to-cart
   flyToCart(event, product.image);
   
@@ -370,7 +375,7 @@ function addToCart(productId, event) {
   } else {
     const cartItem = {
       ...product,
-      id: normalizedId, // Garantir que é string para consistência
+      id: normalizedId,
       quantity: product.minOrder || 1
     };
     cart.push(cartItem);
@@ -382,16 +387,84 @@ function addToCart(productId, event) {
   
   console.log('🛒 Carrinho atual:', cart.length, 'itens');
   
-  // Feedback visual no badge
+  // Feedback visual completo
+  feedbackAddToCart(product.name);
+}
+
+// Toast notification de sucesso
+function showToast(message, icon = '✓') {
+  // Remover toast anterior se existir
+  const existingToast = document.querySelector('.toast-notification');
+  if (existingToast) existingToast.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
+  document.body.appendChild(toast);
+  
+  // Mostrar com animação
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+  
+  // Remover após 2.5s
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+  }, 2500);
+}
+
+// Feedback completo ao adicionar ao carrinho
+function feedbackAddToCart(productName) {
+  // 1. Toast notification
+  showToast(`${productName} adicionado!`, '🛒');
+  
+  // 2. Shake no botão do carrinho
+  const cartBtn = document.querySelector('.cart-btn');
+  if (cartBtn) {
+    cartBtn.classList.add('cart-shake');
+    setTimeout(() => cartBtn.classList.remove('cart-shake'), 500);
+  }
+  
+  // 3. Pulse no badge
   const badge = document.getElementById('cartBadge');
   if (badge) {
+    badge.classList.add('success-pulse');
     badge.style.transform = 'scale(1.5)';
     badge.style.background = '#ef4444';
     setTimeout(() => {
       badge.style.transform = 'scale(1)';
       badge.style.background = '';
-    }, 300);
+      badge.classList.remove('success-pulse');
+    }, 400);
   }
+  
+  // 4. Vibração (se suportado)
+  if (navigator.vibrate) {
+    navigator.vibrate([50, 30, 50]);
+  }
+}
+
+// Efeito ripple nos cliques
+function createRipple(event) {
+  const button = event.currentTarget || event.target.closest('button, .promo-card, .product-card');
+  if (!button) return;
+  
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  
+  const rect = button.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (event.clientX - rect.left - size/2) + 'px';
+  ripple.style.top = (event.clientY - rect.top - size/2) + 'px';
+  
+  button.style.position = 'relative';
+  button.style.overflow = 'hidden';
+  button.appendChild(ripple);
+  
+  setTimeout(() => ripple.remove(), 600);
 }
 
 // Animação fly-to-cart
@@ -466,41 +539,74 @@ let carouselPaused = false;
 
 function initCarousel() {
   const carousel = document.getElementById('promotedCarousel');
-  if (!carousel) return;
+  if (!carousel) {
+    console.log('⚠️ Carrossel não encontrado');
+    return;
+  }
+  
+  console.log('🎠 Carrossel inicializado');
   
   // Auto-scroll a cada 4 segundos
   carouselInterval = setInterval(() => {
     if (!carouselPaused) {
-      moveCarousel(1);
+      moveCarousel(1, true); // true = automático (volta ao início quando chega no final)
     }
   }, 4000);
   
   // Pausar quando mouse estiver sobre o carrossel
-  carousel.addEventListener('mouseenter', () => carouselPaused = true);
-  carousel.addEventListener('mouseleave', () => carouselPaused = false);
+  carousel.addEventListener('mouseenter', () => {
+    carouselPaused = true;
+    console.log('⏸️ Carrossel pausado');
+  });
+  carousel.addEventListener('mouseleave', () => {
+    carouselPaused = false;
+    console.log('▶️ Carrossel retomado');
+  });
   
   // Pausar quando tocar (mobile)
-  carousel.addEventListener('touchstart', () => carouselPaused = true);
+  carousel.addEventListener('touchstart', () => carouselPaused = true, { passive: true });
   carousel.addEventListener('touchend', () => {
     setTimeout(() => carouselPaused = false, 2000);
-  });
+  }, { passive: true });
 }
 
-function moveCarousel(direction) {
+// Função global para controlar o carrossel (chamada pelos botões HTML)
+function moveCarousel(direction, isAuto = false) {
   const carousel = document.getElementById('promotedCarousel');
-  if (!carousel) return;
+  if (!carousel) {
+    return;
+  }
   
-  const scrollAmount = 330; // largura do card + gap
+  // Pegar largura de um card (incluindo gap)
+  const cards = carousel.querySelectorAll('.promo-card');
+  if (cards.length === 0) {
+    return;
+  }
+  
+  const cardWidth = cards[0].offsetWidth + 24; // largura + gap
   const currentScroll = carousel.scrollLeft;
   const maxScroll = carousel.scrollWidth - carousel.clientWidth;
   
-  let newScroll = currentScroll + (scrollAmount * direction);
+  let newScroll;
   
-  // Loop infinito
-  if (newScroll > maxScroll) {
-    newScroll = 0;
-  } else if (newScroll < 0) {
-    newScroll = maxScroll;
+  if (direction > 0) {
+    // Avançar para direita
+    newScroll = currentScroll + cardWidth;
+    if (newScroll >= maxScroll) {
+      if (isAuto) {
+        // Auto: voltar ao início
+        newScroll = 0;
+      } else {
+        // Manual: para no final
+        newScroll = maxScroll;
+      }
+    }
+  } else {
+    // Voltar para esquerda
+    newScroll = currentScroll - cardWidth;
+    if (newScroll < 0) {
+      newScroll = 0; // Para no início
+    }
   }
   
   carousel.scrollTo({
@@ -508,6 +614,9 @@ function moveCarousel(direction) {
     behavior: 'smooth'
   });
 }
+
+// Expor globalmente
+window.moveCarousel = moveCarousel;
 
 // Atualizar quantidade
 function updateQuantity(productId, delta) {

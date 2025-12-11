@@ -431,7 +431,8 @@ body {
 }
 
 .promoted-carousel {
-    overflow-x: auto;
+    overflow-x: scroll;
+    overflow-y: hidden;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
@@ -441,6 +442,8 @@ body {
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.04) 50%, rgba(255, 255, 255, 0) 100%);
     border-radius: 1.5rem;
     border: 2px solid rgba(34, 197, 94, 0.15);
+    max-width: 100%;
+    position: relative;
 }
 
 .promoted-carousel::-webkit-scrollbar {
@@ -459,9 +462,9 @@ body {
 
 .promoted-grid {
     display: flex;
+    flex-wrap: nowrap;
     gap: 1.5rem;
     padding: 0.5rem 1.5rem;
-    width: max-content;
 }
 
 /* ========== PROMO CARDS ========== */
@@ -473,9 +476,9 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid rgba(34, 197, 94, 0.3);
     position: relative;
+    width: 300px;
     min-width: 300px;
-    max-width: 320px;
-    flex-shrink: 0;
+    flex: 0 0 300px;
 }
 
 .promo-card:hover {
@@ -488,7 +491,7 @@ body {
     position: absolute;
     top: 12px;
     left: 12px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    background: linear-gradient(135deg, #EC1841, #c41235);
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
@@ -496,7 +499,7 @@ body {
     font-weight: 700;
     text-transform: uppercase;
     z-index: 10;
-    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    box-shadow: 0 4px 15px rgba(236, 24, 65, 0.4);
     animation: pulse-badge 2s infinite;
 }
 
@@ -510,7 +513,7 @@ body {
     height: 0;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid var(--primary-dark);
+    border-top: 8px solid #c41235;
 }
 
 @keyframes pulse-badge {
@@ -603,7 +606,8 @@ body {
 
 .promo-unit {
     font-size: 0.9rem;
-    color: var(--gray-600);
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .promo-btn {
@@ -627,6 +631,87 @@ body {
 .promo-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
+.promo-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* ========== FEEDBACK TÁTIL - TOAST NOTIFICATION ========== */
+.toast-notification {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 10px 40px rgba(34, 197, 94, 0.4);
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.toast-notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.toast-notification .toast-icon {
+    font-size: 1.5rem;
+    animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* ========== RIPPLE EFFECT ========== */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    pointer-events: none;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* ========== SHAKE ANIMATION (para o carrinho) ========== */
+@keyframes cart-shake {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    20% { transform: translateX(-3px) rotate(-5deg); }
+    40% { transform: translateX(3px) rotate(5deg); }
+    60% { transform: translateX(-3px) rotate(-5deg); }
+    80% { transform: translateX(3px) rotate(5deg); }
+}
+
+.cart-shake {
+    animation: cart-shake 0.5s ease-in-out;
+}
+
+/* ========== SUCCESS PULSE ========== */
+@keyframes success-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    70% { box-shadow: 0 0 0 20px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.success-pulse {
+    animation: success-pulse 0.8s ease-out;
 }
 
 /* ========== MAIN CONTENT ========== */
@@ -2049,7 +2134,7 @@ body {
 
 .btn-register {
         width: 100%;
-    padding: 1rem;
+        padding: 1rem;
         font-size: 1.125rem;
     margin-top: 1rem;
 }
@@ -2085,7 +2170,7 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
-    padding: 1rem;
+        padding: 1rem;
     background: var(--gray-50);
     border-radius: 0.5rem;
     border-left: 4px solid var(--primary);
@@ -2104,7 +2189,7 @@ body {
 
 .payment-info-item p {
     color: var(--gray-600);
-    font-size: 0.875rem;
+        font-size: 0.875rem;
     margin: 0;
     line-height: 1.4;
 }
