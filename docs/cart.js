@@ -2,6 +2,11 @@
 let cart = [];
 let deliveryEstimate = null;
 
+// Obter preço efetivo (promocional ou normal)
+function getEffectivePrice(item) {
+  return (item.isPromo && item.promoPrice) ? item.promoPrice : item.price;
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
   loadCartFromStorage();
@@ -69,12 +74,21 @@ function autoOpenCheckoutIfNeeded() {
 function renderCartItems() {
   const container = document.getElementById('cartItemsList');
   
-  container.innerHTML = cart.map(item => `
-    <div class="cart-item-card">
+  container.innerHTML = cart.map(item => {
+    const effectivePrice = getEffectivePrice(item);
+    const hasPromo = item.isPromo && item.promoPrice;
+    const discountPercent = hasPromo ? Math.round((1 - item.promoPrice / item.price) * 100) : 0;
+    
+    return `
+    <div class="cart-item-card ${hasPromo ? 'has-promo' : ''}">
+      ${hasPromo ? `<div class="cart-promo-badge">-${discountPercent}%</div>` : ''}
       <img src="${item.image}" alt="${item.name}" class="cart-item-img">
       <div class="cart-item-info">
-        <h3>${item.name}</h3>
-        <p class="cart-item-price">R$ ${item.price.toFixed(2)} / ${item.unit}</p>
+        <h3>${item.name} ${hasPromo ? '<span class="promo-tag">🔥 Promo</span>' : ''}</h3>
+        <p class="cart-item-price">
+          ${hasPromo ? `<s class="original-price">R$ ${item.price.toFixed(2)}</s> ` : ''}
+          <span class="${hasPromo ? 'promo-price' : ''}">R$ ${effectivePrice.toFixed(2)}</span> / ${item.unit}
+        </p>
         <p class="cart-item-category">${item.category}</p>
       </div>
       <div class="cart-item-controls">
@@ -83,11 +97,14 @@ function renderCartItems() {
           <span class="qty-display">${item.quantity}</span>
           <button class="qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
         </div>
-        <p class="item-total">R$ ${(item.price * item.quantity).toFixed(2)}</p>
+        <p class="item-total ${hasPromo ? 'promo-total' : ''}">
+          ${hasPromo ? `<s class="original-total">R$ ${(item.price * item.quantity).toFixed(2)}</s><br>` : ''}
+          R$ ${(effectivePrice * item.quantity).toFixed(2)}
+        </p>
         <button class="btn-remove" onclick="removeItem('${item.id}')">Remover</button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 // Rastrear itens com remoção pendente
@@ -152,10 +169,23 @@ function removeItemDirect(productId) {
 
 // Atualizar resumo
 function updateSummary() {
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce((sum, item) => sum + (getEffectivePrice(item) * item.quantity), 0);
+  const originalTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalSavings = originalTotal - subtotal;
   
   document.getElementById('summarySubtotal').textContent = `R$ ${subtotal.toFixed(2)}`;
   document.getElementById('summaryTotal').textContent = `R$ ${subtotal.toFixed(2)}`;
+  
+  // Mostrar economia se houver promoções
+  const savingsEl = document.getElementById('summarySavings');
+  if (savingsEl) {
+    if (totalSavings > 0) {
+      savingsEl.textContent = `Você economiza: R$ ${totalSavings.toFixed(2)}`;
+      savingsEl.style.display = 'block';
+    } else {
+      savingsEl.style.display = 'none';
+    }
+  }
 }
 
 // Ir para checkout
@@ -182,22 +212,46 @@ function backToCart() {
 // Renderizar itens no checkout
 function renderCheckoutItems() {
   const container = document.getElementById('finalCartItems');
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce((sum, item) => sum + (getEffectivePrice(item) * item.quantity), 0);
+  const originalTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalSavings = originalTotal - subtotal;
   
-  container.innerHTML = cart.map(item => `
-    <div class="summary-item">
-      <span>${item.name} (${item.quantity}x ${item.unit})</span>
-      <span>R$ ${(item.price * item.quantity).toFixed(2)}</span>
+  container.innerHTML = cart.map(item => {
+    const effectivePrice = getEffectivePrice(item);
+    const hasPromo = item.isPromo && item.promoPrice;
+    
+    return `
+    <div class="summary-item ${hasPromo ? 'has-promo' : ''}">
+      <span>
+        ${item.name} (${item.quantity}x ${item.unit})
+        ${hasPromo ? '<span class="checkout-promo-tag">🔥</span>' : ''}
+      </span>
+      <span class="${hasPromo ? 'promo-price' : ''}">
+        ${hasPromo ? `<s class="original-price">R$ ${(item.price * item.quantity).toFixed(2)}</s> ` : ''}
+        R$ ${(effectivePrice * item.quantity).toFixed(2)}
+      </span>
     </div>
-  `).join('');
+  `}).join('');
   
   document.getElementById('finalSubtotal').textContent = `R$ ${subtotal.toFixed(2)}`;
+  
+  // Mostrar economia se houver
+  const savingsRow = document.getElementById('finalSavings');
+  if (savingsRow) {
+    if (totalSavings > 0) {
+      savingsRow.innerHTML = `<span>🎉 Você economiza:</span><span class="savings-value">- R$ ${totalSavings.toFixed(2)}</span>`;
+      savingsRow.style.display = 'flex';
+    } else {
+      savingsRow.style.display = 'none';
+    }
+  }
+  
   updateFinalTotal();
 }
 
 // Atualizar total final
 function updateFinalTotal() {
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce((sum, item) => sum + (getEffectivePrice(item) * item.quantity), 0);
   const deliveryFee = deliveryEstimate ? deliveryEstimate.deliveryFee : 0;
   const total = subtotal + deliveryFee;
   
@@ -281,7 +335,7 @@ function calculateDelivery() {
     minOrderValue = 250;
   }
   
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce((sum, item) => sum + (getEffectivePrice(item) * item.quantity), 0);
   
   if (subtotal < minOrderValue) {
     alert(`Valor mínimo do pedido para esta região: R$ ${minOrderValue.toFixed(2)}`);
@@ -315,19 +369,24 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
     return;
   }
   
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce((sum, item) => sum + (getEffectivePrice(item) * item.quantity), 0);
   const total = subtotal + deliveryEstimate.deliveryFee;
   
   // Preparar dados do pedido para API
   const orderData = {
-    items: cart.map(item => ({
-      product_id: String(item.id),
-      name: item.name,
-      quantity: item.quantity,
-      unit: item.unit,
-      price: item.price,
-      image: item.image
-    })),
+    items: cart.map(item => {
+      const effectivePrice = getEffectivePrice(item);
+      return {
+        product_id: String(item.id),
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        price: effectivePrice, // Usar preço promocional se disponível
+        original_price: item.price, // Preço original para referência
+        is_promo: item.isPromo || false,
+        image: item.image
+      };
+    }),
     shipping_address: {
       street: document.getElementById('street').value,
       number: document.getElementById('number').value,
@@ -365,8 +424,10 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
 // Mostrar modal de sucesso
 function showSuccessModal(orderNumber, deliveryDate) {
   const deliveryDateFormatted = new Date(deliveryDate).toLocaleDateString('pt-BR');
+  const finalTotal = cart.reduce((sum, item) => sum + (getEffectivePrice(item) * item.quantity), 0) + deliveryEstimate.deliveryFee;
+  
   document.getElementById('orderNumber').textContent = orderNumber;
-  document.getElementById('orderTotal').textContent = `R$ ${(cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + deliveryEstimate.deliveryFee).toFixed(2)}`;
+  document.getElementById('orderTotal').textContent = `R$ ${finalTotal.toFixed(2)}`;
   document.getElementById('orderDelivery').textContent = `Previsão: ${deliveryDateFormatted}`;
   document.getElementById('successModal').classList.add('show');
 }
