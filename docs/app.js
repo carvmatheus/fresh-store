@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Carregar componentes
   loadCategories();
   loadPromotedProducts();
+  initCarousel(); // Inicializar carrossel de promoções
   loadProducts();
   loadCartFromStorage();
   updateCartUI();
@@ -162,7 +163,7 @@ function loadPromotedProducts() {
     const originalPrice = (product.price * 1.3).toFixed(2);
     
     return `
-    <div class="promo-card" onclick="addToCart('${product.id}')" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
+    <div class="promo-card" onclick="addToCart('${product.id}', event)" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
       <div class="promo-badge-tag">🔥 OFERTA</div>
       <img src="${product.image}" alt="${product.name}" class="promo-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
       <div class="promo-content">
@@ -179,7 +180,7 @@ function loadPromotedProducts() {
             <span class="promo-unit">/${product.unit}</span>
           </div>
         </div>
-        <button class="promo-btn" onclick="event.stopPropagation(); addToCart('${product.id}')">
+        <button class="promo-btn" onclick="event.stopPropagation(); addToCart('${product.id}', event)">
           🛒 Adicionar
         </button>
       </div>
@@ -277,7 +278,7 @@ function loadProducts() {
             <span class="price-value">${product.price.toFixed(2)}</span>
             <span class="price-unit">/${product.unit}</span>
           </div>
-          <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product.id}')">
+          <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product.id}', event)">
             🛒 <span>Adicionar</span>
           </button>
         </div>
@@ -294,7 +295,7 @@ function loadProducts() {
         if (e.target.closest('.btn-add-cart')) {
           return;
         }
-        addToCart(productId);
+        addToCart(productId, e);
       });
     }
   });
@@ -341,8 +342,8 @@ function renderProducts(productsList = null) {
   }
 }
 
-// Adicionar ao carrinho
-function addToCart(productId) {
+// Adicionar ao carrinho com animação fly-to-cart
+function addToCart(productId, event) {
   console.log('🛒 Tentando adicionar produto:', productId);
   
   // Normalizar productId para string
@@ -357,6 +358,9 @@ function addToCart(productId) {
   }
   
   console.log('✅ Produto encontrado:', product.name);
+  
+  // Animação fly-to-cart
+  flyToCart(event, product.image);
   
   const existingItem = cart.find(item => String(item.id) === normalizedId);
   
@@ -378,12 +382,131 @@ function addToCart(productId) {
   
   console.log('🛒 Carrinho atual:', cart.length, 'itens');
   
-  // Feedback visual
+  // Feedback visual no badge
   const badge = document.getElementById('cartBadge');
   if (badge) {
-    badge.style.transform = 'scale(1.3)';
-    setTimeout(() => badge.style.transform = 'scale(1)', 200);
+    badge.style.transform = 'scale(1.5)';
+    badge.style.background = '#ef4444';
+    setTimeout(() => {
+      badge.style.transform = 'scale(1)';
+      badge.style.background = '';
+    }, 300);
   }
+}
+
+// Animação fly-to-cart
+function flyToCart(event, imageUrl) {
+  const cartBtn = document.querySelector('.cart-btn');
+  if (!cartBtn) return;
+  
+  // Pegar posição do clique ou do elemento
+  let startX, startY;
+  if (event && event.clientX) {
+    startX = event.clientX;
+    startY = event.clientY;
+  } else if (event && event.target) {
+    const rect = event.target.getBoundingClientRect();
+    startX = rect.left + rect.width / 2;
+    startY = rect.top + rect.height / 2;
+  } else {
+    return; // Não conseguiu pegar posição
+  }
+  
+  // Posição do carrinho
+  const cartRect = cartBtn.getBoundingClientRect();
+  const endX = cartRect.left + cartRect.width / 2;
+  const endY = cartRect.top + cartRect.height / 2;
+  
+  // Criar elemento que vai voar
+  const flyingItem = document.createElement('div');
+  flyingItem.className = 'flying-item';
+  flyingItem.innerHTML = imageUrl 
+    ? `<img src="${imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : '🛒';
+  
+  flyingItem.style.cssText = `
+    position: fixed;
+    left: ${startX}px;
+    top: ${startY}px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 9999;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transform: translate(-50%, -50%) scale(1);
+    transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    overflow: hidden;
+  `;
+  
+  document.body.appendChild(flyingItem);
+  
+  // Animar para o carrinho
+  requestAnimationFrame(() => {
+    flyingItem.style.left = `${endX}px`;
+    flyingItem.style.top = `${endY}px`;
+    flyingItem.style.transform = 'translate(-50%, -50%) scale(0.2)';
+    flyingItem.style.opacity = '0.5';
+  });
+  
+  // Remover após animação
+  setTimeout(() => {
+    flyingItem.remove();
+  }, 600);
+}
+
+// ========== CARROSSEL DE PROMOÇÕES ==========
+let carouselInterval = null;
+let carouselPaused = false;
+
+function initCarousel() {
+  const carousel = document.getElementById('promotedCarousel');
+  if (!carousel) return;
+  
+  // Auto-scroll a cada 4 segundos
+  carouselInterval = setInterval(() => {
+    if (!carouselPaused) {
+      moveCarousel(1);
+    }
+  }, 4000);
+  
+  // Pausar quando mouse estiver sobre o carrossel
+  carousel.addEventListener('mouseenter', () => carouselPaused = true);
+  carousel.addEventListener('mouseleave', () => carouselPaused = false);
+  
+  // Pausar quando tocar (mobile)
+  carousel.addEventListener('touchstart', () => carouselPaused = true);
+  carousel.addEventListener('touchend', () => {
+    setTimeout(() => carouselPaused = false, 2000);
+  });
+}
+
+function moveCarousel(direction) {
+  const carousel = document.getElementById('promotedCarousel');
+  if (!carousel) return;
+  
+  const scrollAmount = 330; // largura do card + gap
+  const currentScroll = carousel.scrollLeft;
+  const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+  
+  let newScroll = currentScroll + (scrollAmount * direction);
+  
+  // Loop infinito
+  if (newScroll > maxScroll) {
+    newScroll = 0;
+  } else if (newScroll < 0) {
+    newScroll = maxScroll;
+  }
+  
+  carousel.scrollTo({
+    left: newScroll,
+    behavior: 'smooth'
+  });
 }
 
 // Atualizar quantidade

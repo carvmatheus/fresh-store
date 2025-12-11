@@ -393,8 +393,9 @@ body {
 .promoted-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: space-between;
     margin-bottom: 1.5rem;
+    padding: 0 1rem;
 }
 
 .promoted-header h2 {
@@ -404,25 +405,63 @@ body {
     margin: 0;
 }
 
-.promoted-badge {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+.carousel-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.carousel-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    background: white;
+    color: var(--primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel-btn:hover {
+    background: var(--primary);
     color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
-    font-size: 0.813rem;
-    font-weight: 700;
-    text-transform: uppercase;
+}
+
+.promoted-carousel {
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--gray-200);
+    padding: 1rem 0 1.5rem;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.04) 50%, rgba(255, 255, 255, 0) 100%);
+    border-radius: 1.5rem;
+    border: 2px solid rgba(34, 197, 94, 0.15);
+}
+
+.promoted-carousel::-webkit-scrollbar {
+    height: 8px;
+}
+
+.promoted-carousel::-webkit-scrollbar-track {
+    background: var(--gray-200);
+    border-radius: 4px;
+}
+
+.promoted-carousel::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
 }
 
 .promoted-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    display: flex;
     gap: 1.5rem;
-    margin-bottom: 3rem;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 50%, rgba(255, 255, 255, 0) 100%);
-    border-radius: 1.5rem;
-    border: 2px solid rgba(34, 197, 94, 0.2);
+    padding: 0.5rem 1.5rem;
+    width: max-content;
 }
 
 /* ========== PROMO CARDS ========== */
@@ -434,6 +473,9 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid rgba(34, 197, 94, 0.3);
     position: relative;
+    min-width: 300px;
+    max-width: 320px;
+    flex-shrink: 0;
 }
 
 .promo-card:hover {
@@ -446,16 +488,29 @@ body {
     position: absolute;
     top: 12px;
     left: 12px;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
-    padding: 0.4rem 0.8rem;
-    border-radius: 2rem;
-    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
     animation: pulse-badge 2s infinite;
+}
+
+.promo-badge-tag::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid var(--primary-dark);
 }
 
 @keyframes pulse-badge {
@@ -519,12 +574,13 @@ body {
 .promo-original-price {
     display: block;
     font-size: 0.85rem;
-    color: var(--gray-500);
+    color: var(--gray-600);
     margin-bottom: 0.25rem;
 }
 
 .promo-original-price s {
-    color: #ef4444;
+    color: var(--gray-500);
+    text-decoration: line-through;
 }
 
 .promo-current-price {

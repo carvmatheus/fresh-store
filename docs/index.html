@@ -146,9 +146,14 @@
         <section class="promoted-section">
             <div class="promoted-header">
                 <h2>🔥 Produtos em Destaque</h2>
-                <span class="promoted-badge">Promoção</span>
+                <div class="carousel-controls">
+                    <button class="carousel-btn carousel-prev" onclick="moveCarousel(-1)">❮</button>
+                    <button class="carousel-btn carousel-next" onclick="moveCarousel(1)">❯</button>
+                </div>
             </div>
-            <div class="promoted-grid" id="promotedGrid"></div>
+            <div class="promoted-carousel" id="promotedCarousel">
+                <div class="promoted-grid" id="promotedGrid"></div>
+            </div>
         </section>
 
         <!-- Categories -->
