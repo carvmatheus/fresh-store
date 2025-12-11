@@ -742,8 +742,7 @@ function updateCartUI() {
       <div class="cart-item ${hasPromo ? 'has-promo' : ''}">
         <img src="${item.image}" alt="${item.name}" class="cart-item-image" onerror="this.src='https://via.placeholder.com/80?text=${encodeURIComponent(item.name)}'">
         <div class="cart-item-details">
-          <span class="cart-item-name">${item.name}</span>
-          ${hasPromo ? `<span class="cart-item-promo-badge">🔥 Promo</span>` : ''}
+          <span class="cart-item-name">${item.name}${hasPromo ? `<span class="cart-item-promo-badge">🔥 Promo</span>` : ''}</span>
           <div class="cart-item-prices">
             ${hasPromo ? `<span class="cart-price-original">R$ ${(item.price * item.quantity).toFixed(2)}</span>` : ''}
             <span class="cart-price-current ${hasPromo ? 'promo' : ''}">R$ ${(effectivePrice * item.quantity).toFixed(2)}</span>

@@ -2586,35 +2586,31 @@ body {
 
 /* Carrinho - itens com promoção */
 .cart-item.has-promo {
-    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-    border: 2px solid var(--success);
-    border-left-width: 4px;
+    border-left: 4px solid var(--success);
 }
 
 .cart-item-promo-badge {
-    display: block;
+    display: inline-block;
     background: var(--success);
     color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.625rem;
     font-weight: 600;
-    width: fit-content;
-    margin: 4px 0;
+    margin-left: 6px;
+    vertical-align: middle;
 }
 
 /* Preços no carrinho lateral */
 .cart-item-prices {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin: 4px 0;
+    margin-top: 2px;
 }
 
 .cart-price-original {
-    font-size: 0.813rem;
+    font-size: 0.75rem;
     color: var(--gray-400);
     text-decoration: line-through;
+    display: block;
 }
 
 .cart-price-current {
@@ -2625,7 +2621,6 @@ body {
 
 .cart-price-current.promo {
     color: var(--success);
-    font-size: 1.125rem;
     font-weight: 600;
     margin-left: 4px;
     vertical-align: middle;
