@@ -977,12 +977,15 @@ body {
 .product-footer {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding-top: 1rem;
+    align-items: flex-end;
+    padding-top: 0.75rem;
     border-top: 1px solid var(--gray-100);
+    gap: 1rem;
 }
 
 .product-price {
+    display: flex;
+    flex-direction: column;
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--primary);
@@ -2536,18 +2539,13 @@ body {
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
 }
 
-/* Preço com promoção - Layout vertical */
-.product-price.promo-active {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-}
-
 /* Linha "De: X.XX/un" riscado */
 .product-price .price-original-line {
-    font-size: 0.875rem;
-    color: var(--gray-500);
+    font-size: 0.75rem;
+    color: var(--gray-400);
     font-weight: 400;
+    min-height: 1rem;
+    margin-bottom: 2px;
 }
 
 .product-price .price-original-line s {
@@ -2566,20 +2564,13 @@ body {
     color: var(--success);
 }
 
-.product-price .price-current.promo-price .price-por {
-    color: var(--success);
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-right: 4px;
-}
-
 .product-price .price-current.promo-price .price-label {
     color: var(--success);
 }
 
 .product-price .price-current.promo-price .price-value {
     color: var(--success);
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 700;
 }
 
