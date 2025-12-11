@@ -156,20 +156,35 @@ function loadPromotedProducts() {
   const section = container.closest('.promoted-section');
   if (section) section.style.display = 'block';
   
-  // Renderizar produtos em destaque (mesmo HTML dos produtos normais)
-  container.innerHTML = promoted.map(product => `
-    <div class="product-card" onclick="addToCart('${product.id}')" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
-      <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
-      <div class="product-info">
-        <h3 class="product-name">${product.name}</h3>
-        <p class="product-description">${product.description}</p>
-        <p class="product-price">R$ ${product.price.toFixed(2)} / ${product.unit}</p>
-        <button class="product-btn" onclick="event.stopPropagation(); addToCart('${product.id}')">
-          Adicionar ao Carrinho
+  // Renderizar produtos em destaque com visual especial de promoção
+  container.innerHTML = promoted.map(product => {
+    // Calcular preço "original" fictício (30% maior) para mostrar desconto
+    const originalPrice = (product.price * 1.3).toFixed(2);
+    
+    return `
+    <div class="promo-card" onclick="addToCart('${product.id}')" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
+      <div class="promo-badge-tag">🔥 OFERTA</div>
+      <img src="${product.image}" alt="${product.name}" class="promo-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
+      <div class="promo-content">
+        <div class="promo-header">
+          <h3 class="promo-name">${product.name}</h3>
+          <span class="promo-category">${getCategoryName(product.category)}</span>
+        </div>
+        <p class="promo-description">${product.description}</p>
+        <div class="promo-pricing">
+          <span class="promo-original-price">De: <s>R$ ${originalPrice}/${product.unit}</s></span>
+          <div class="promo-current-price">
+            <span class="promo-label">Por:</span>
+            <span class="promo-value">R$ ${product.price.toFixed(2)}</span>
+            <span class="promo-unit">/${product.unit}</span>
+          </div>
+        </div>
+        <button class="promo-btn" onclick="event.stopPropagation(); addToCart('${product.id}')">
+          🛒 Adicionar
         </button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 // Carregar categorias
