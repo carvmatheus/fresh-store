@@ -149,7 +149,20 @@ function loadPromotedProducts() {
     return;
   }
   
-  container.innerHTML = promoted.map(product => createProductCard(product)).join('');
+  // Renderizar produtos em destaque (mesmo HTML dos produtos normais)
+  container.innerHTML = promoted.map(product => `
+    <div class="product-card" onclick="addToCart('${product.id}')" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
+      <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
+      <div class="product-info">
+        <h3 class="product-name">${product.name}</h3>
+        <p class="product-description">${product.description}</p>
+        <p class="product-price">R$ ${product.price.toFixed(2)} / ${product.unit}</p>
+        <button class="product-btn" onclick="event.stopPropagation(); addToCart('${product.id}')">
+          Adicionar ao Carrinho
+        </button>
+      </div>
+    </div>
+  `).join('');
 }
 
 // Carregar categorias
