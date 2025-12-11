@@ -995,8 +995,6 @@ body {
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--primary);
-    min-height: 3.5rem;
-    justify-content: flex-end;
 }
 
 .product-unit {
@@ -2552,7 +2550,7 @@ body {
     font-size: 0.75rem;
     color: var(--gray-400);
     font-weight: 400;
-    min-height: 1rem;
+    height: 1.1rem;
     margin-bottom: 2px;
 }
 

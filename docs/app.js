@@ -286,7 +286,7 @@ function loadProducts() {
         ` : ''}
         <div class="product-footer">
           <div class="product-price">
-            ${hasPromo ? `<div class="price-original-line">De: <s>${product.price.toFixed(2)}/${product.unit}</s></div>` : ''}
+            <div class="price-original-line">${hasPromo ? `De: <s>${product.price.toFixed(2)}/${product.unit}</s>` : ''}</div>
             <div class="price-current ${hasPromo ? 'promo-price' : ''}">
               <span class="price-label">R$</span>
               <span class="price-value">${displayPrice.toFixed(2)}</span>
