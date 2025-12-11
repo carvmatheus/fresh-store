@@ -32,6 +32,7 @@ async function loadProductsFromAPI() {
         name: p.name,
         category: p.category,
         price: parseFloat(p.price),
+        promoPrice: p.promo_price ? parseFloat(p.promo_price) : null, // Preço promocional
         unit: p.unit,
         minOrder: p.min_order || 1, // PostgreSQL usa min_order
         stock: p.stock,
@@ -41,7 +42,7 @@ async function loadProductsFromAPI() {
         isActive: p.is_active !== false
       };
       
-      console.log(`✓ Normalizado: ${normalizedProduct.name} - imagem: ${normalizedProduct.image}`);
+      console.log(`✓ Normalizado: ${normalizedProduct.name} - imagem: ${normalizedProduct.image}${normalizedProduct.isPromo ? ` - PROMO: R$${normalizedProduct.promoPrice}` : ''}`);
       return normalizedProduct;
     });
     
@@ -159,12 +160,16 @@ function loadPromotedProducts() {
   
   // Renderizar produtos em destaque com visual especial de promoção
   container.innerHTML = promoted.map(product => {
-    // Calcular preço "original" fictício (30% maior) para mostrar desconto
-    const originalPrice = (product.price * 1.3).toFixed(2);
+    // Usar preço promocional real ou calcular desconto fictício
+    const originalPrice = product.price.toFixed(2);
+    const promoPrice = product.promoPrice ? product.promoPrice.toFixed(2) : (product.price * 0.9).toFixed(2);
+    const discountPercent = product.promoPrice 
+      ? Math.round((1 - product.promoPrice / product.price) * 100) 
+      : 10;
     
     return `
     <div class="promo-card" onclick="addToCart('${product.id}', event)" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
-      <div class="promo-badge-tag">🔥 OFERTA</div>
+      <div class="promo-badge-tag">🔥 -${discountPercent}%</div>
       <img src="${product.image}" alt="${product.name}" class="promo-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
       <div class="promo-content">
         <div class="promo-header">
@@ -176,7 +181,7 @@ function loadPromotedProducts() {
           <span class="promo-original-price">De: <s>R$ ${originalPrice}/${product.unit}</s></span>
           <div class="promo-current-price">
             <span class="promo-label">Por:</span>
-            <span class="promo-value">R$ ${product.price.toFixed(2)}</span>
+            <span class="promo-value">R$ ${promoPrice}</span>
             <span class="promo-unit">/${product.unit}</span>
           </div>
         </div>
@@ -255,8 +260,15 @@ function loadProducts() {
     return;
   }
   
-  container.innerHTML = filtered.map(product => `
-    <div class="product-card" data-product-id="${product.id}" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
+  container.innerHTML = filtered.map(product => {
+    // Verificar se tem preço promocional
+    const hasPromo = product.isPromo && product.promoPrice;
+    const displayPrice = hasPromo ? product.promoPrice : product.price;
+    const discountPercent = hasPromo ? Math.round((1 - product.promoPrice / product.price) * 100) : 0;
+    
+    return `
+    <div class="product-card ${hasPromo ? 'has-promo' : ''}" data-product-id="${product.id}" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
+      ${hasPromo ? `<div class="product-promo-badge">-${discountPercent}%</div>` : ''}
       <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
       <div class="product-content">
         <div class="product-header">
@@ -273,9 +285,10 @@ function loadProducts() {
           </div>
         ` : ''}
         <div class="product-footer">
-          <div class="product-price">
+          <div class="product-price ${hasPromo ? 'promo-active' : ''}">
+            ${hasPromo ? `<span class="price-original"><s>R$ ${product.price.toFixed(2)}</s></span>` : ''}
             <span class="price-label">R$</span>
-            <span class="price-value">${product.price.toFixed(2)}</span>
+            <span class="price-value">${displayPrice.toFixed(2)}</span>
             <span class="price-unit">/${product.unit}</span>
           </div>
           <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product.id}', event)">
@@ -284,7 +297,7 @@ function loadProducts() {
         </div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
   
   // Adicionar event listeners aos cards após renderizar
   container.querySelectorAll('.product-card').forEach(card => {
@@ -675,6 +688,11 @@ function removeFromCart(productId) {
   updateCartUI();
 }
 
+// Obter preço efetivo (promocional ou normal)
+function getEffectivePrice(item) {
+  return (item.isPromo && item.promoPrice) ? item.promoPrice : item.price;
+}
+
 // Atualizar UI do carrinho
 function updateCartUI() {
   const badge = document.getElementById('cartBadge');
@@ -684,7 +702,7 @@ function updateCartUI() {
   const sidebarCount = document.getElementById('cartSidebarCount');
   
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const totalValue = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalValue = cart.reduce((sum, item) => sum + (getEffectivePrice(item) * item.quantity), 0);
   
   // Atualizar badge
   if (badge) {
@@ -714,12 +732,20 @@ function updateCartUI() {
     if (emptyCart) emptyCart.classList.add('hidden');
     if (footer) footer.classList.remove('hidden');
     
-    content.innerHTML = cart.map(item => `
-      <div class="cart-item">
+    content.innerHTML = cart.map(item => {
+      const effectivePrice = getEffectivePrice(item);
+      const hasPromo = item.isPromo && item.promoPrice;
+      
+      return `
+      <div class="cart-item ${hasPromo ? 'has-promo' : ''}">
         <img src="${item.image}" alt="${item.name}" class="cart-item-image" onerror="this.src='https://via.placeholder.com/80?text=${encodeURIComponent(item.name)}'">
         <div class="cart-item-details">
           <span class="cart-item-name">${item.name}</span>
-          <span class="cart-item-price">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+          ${hasPromo ? `<span class="cart-item-promo-badge">🔥 Promo</span>` : ''}
+          <span class="cart-item-price ${hasPromo ? 'promo-price' : ''}">
+            ${hasPromo ? `<s class="original-price">R$ ${(item.price * item.quantity).toFixed(2)}</s> ` : ''}
+            R$ ${(effectivePrice * item.quantity).toFixed(2)}
+          </span>
           <div class="cart-item-controls">
             <div class="cart-item-quantity">
               <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', -1)">−</button>
@@ -730,7 +756,7 @@ function updateCartUI() {
           </div>
         </div>
       </div>
-    `).join('');
+    `}).join('');
     
     // Atualizar totais
     const subtotalElement = document.getElementById('cartSubtotal');
