@@ -2525,41 +2525,65 @@ body {
 .product-promo-badge {
     position: absolute;
     top: 12px;
-    right: 12px;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    left: 12px;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
     color: white;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.875rem;
     font-weight: 700;
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-    animation: pulse-badge 2s infinite;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
 }
 
-@keyframes pulse-badge {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-/* Preço com promoção */
+/* Preço com promoção - Layout vertical */
 .product-price.promo-active {
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
+    gap: 4px;
 }
 
-.product-price .price-original {
-    font-size: 0.75rem;
+/* Linha "De: X.XX/un" riscado */
+.product-price .price-original-line {
+    font-size: 0.875rem;
     color: var(--gray-500);
     font-weight: 400;
 }
 
-.product-price .price-original s {
+.product-price .price-original-line s {
     color: var(--gray-400);
+    text-decoration: line-through;
 }
 
-.product-price.promo-active .price-value {
+/* Preço atual (normal ou promo) */
+.product-price .price-current {
+    display: flex;
+    align-items: baseline;
+}
+
+/* Preço promocional em destaque verde */
+.product-price .price-current.promo-price {
+    color: var(--success);
+}
+
+.product-price .price-current.promo-price .price-por {
+    color: var(--success);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-right: 4px;
+}
+
+.product-price .price-current.promo-price .price-label {
+    color: var(--success);
+}
+
+.product-price .price-current.promo-price .price-value {
+    color: var(--success);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.product-price .price-current.promo-price .price-unit {
     color: var(--success);
 }
 
