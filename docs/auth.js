@@ -58,7 +58,7 @@ async function login(usernameOrEmail, password) {
     console.log('   - Usuário:', JSON.parse(savedUser).username);
     
     // Redirecionar baseado no role
-    const redirectUrl = result.user.role === 'admin' ? 'admin.html' : 'cliente.html';
+    const redirectUrl = result.user.role === 'admin' ? 'admin-dashboard.html' : 'cliente.html';
     console.log('🔀 Redirecionando para:', redirectUrl);
     
     // Usar setTimeout para garantir que o redirecionamento aconteça
@@ -77,6 +77,10 @@ async function login(usernameOrEmail, password) {
       showLoginError('Erro de conexão com o servidor. Verifique sua internet ou aguarde o servidor iniciar (cold start ~30s).');
     } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
       showLoginError('Usuário ou senha incorretos');
+    } else if (error.message.includes('aprovação') || error.message.includes('pending')) {
+      showLoginError('⏳ Seu cadastro está aguardando aprovação. Você será notificado por e-mail.');
+    } else if (error.message.includes('suspenso') || error.message.includes('suspended')) {
+      showLoginError('🚫 Sua conta foi suspensa. Entre em contato com o suporte.');
     } else {
       showLoginError('Erro ao fazer login: ' + error.message);
     }
@@ -208,7 +212,7 @@ function goToLogin() {
   const user = getCurrentUser();
   if (user) {
     if (user.role === 'admin') {
-      window.location.href = 'admin.html';
+      window.location.href = 'admin-dashboard.html';
     } else {
       window.location.href = 'cliente.html';
     }
