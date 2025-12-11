@@ -169,7 +169,7 @@ function loadPromotedProducts() {
     
     return `
     <div class="promo-card" onclick="addToCart('${product.id}', event)" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
-      <div class="promo-badge-tag">🔥 -${discountPercent}%</div>
+      <div class="promo-badge-tag">🔥 Oferta</div>
       <img src="${product.image}" alt="${product.name}" class="promo-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
       <div class="promo-content">
         <div class="promo-header">
@@ -268,7 +268,7 @@ function loadProducts() {
     
     return `
     <div class="product-card ${hasPromo ? 'has-promo' : ''}" data-product-id="${product.id}" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
-      ${hasPromo ? `<div class="product-promo-badge">🔥 -${discountPercent}%</div>` : ''}
+      ${hasPromo ? `<div class="product-promo-badge">🔥 Oferta</div>` : ''}
       <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
       <div class="product-content">
         <div class="product-header">
@@ -285,10 +285,9 @@ function loadProducts() {
           </div>
         ` : ''}
         <div class="product-footer">
-          <div class="product-price ${hasPromo ? 'promo-active' : ''}">
-            ${hasPromo ? `<div class="price-original-line">De: <s>R$ ${product.price.toFixed(2)}/${product.unit}</s></div>` : ''}
+          <div class="product-price">
+            <div class="price-original-line">${hasPromo ? `De: <s>${product.price.toFixed(2)}/${product.unit}</s>` : '&nbsp;'}</div>
             <div class="price-current ${hasPromo ? 'promo-price' : ''}">
-              ${hasPromo ? `<span class="price-por">Por:</span>` : ''}
               <span class="price-label">R$</span>
               <span class="price-value">${displayPrice.toFixed(2)}</span>
               <span class="price-unit">/${product.unit}</span>
