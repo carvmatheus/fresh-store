@@ -744,10 +744,10 @@ function updateCartUI() {
         <div class="cart-item-details">
           <span class="cart-item-name">${item.name}</span>
           ${hasPromo ? `<span class="cart-item-promo-badge">🔥 Promo</span>` : ''}
-          <span class="cart-item-price ${hasPromo ? 'promo-price' : ''}">
-            ${hasPromo ? `<s class="original-price">R$ ${(item.price * item.quantity).toFixed(2)}</s> ` : ''}
-            R$ ${(effectivePrice * item.quantity).toFixed(2)}
-          </span>
+          <div class="cart-item-prices">
+            ${hasPromo ? `<span class="cart-price-original">R$ ${(item.price * item.quantity).toFixed(2)}</span>` : ''}
+            <span class="cart-price-current ${hasPromo ? 'promo' : ''}">R$ ${(effectivePrice * item.quantity).toFixed(2)}</span>
+          </div>
           <div class="cart-item-controls">
             <div class="cart-item-quantity">
               <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', -1)">−</button>
