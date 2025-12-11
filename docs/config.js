@@ -13,7 +13,7 @@ const API_CONFIG = {
         : 'https://compredahorta.com.br/api',   // Desenvolvimento local
     
     // Timeout para requisições (30 segundos - Render pode demorar no cold start)
-    TIMEOUT: 30000,eu
+    TIMEOUT: 30000,
     
     // Configuração de retry
     MAX_RETRIES: 3,
