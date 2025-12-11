@@ -2513,6 +2513,176 @@ body {
     }
 }
 
+/* ========== PROMO STYLES ========== */
+
+/* Badge de promoção no card de produto */
+.product-card.has-promo {
+    position: relative;
+    border: 2px solid var(--success);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+}
+
+.product-promo-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Preço com promoção */
+.product-price.promo-active {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.product-price .price-original {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    font-weight: 400;
+}
+
+.product-price .price-original s {
+    color: var(--gray-400);
+}
+
+.product-price.promo-active .price-value {
+    color: var(--success);
+}
+
+/* Carrinho - itens com promoção */
+.cart-item.has-promo {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-left: 3px solid var(--success);
+}
+
+.cart-item-promo-badge {
+    display: inline-block;
+    background: var(--success);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.625rem;
+    font-weight: 600;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.cart-item-price.promo-price {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.cart-item-price .original-price {
+    color: var(--gray-400);
+    font-size: 0.75rem;
+    font-weight: 400;
+}
+
+/* Carrinho page - cards com promoção */
+.cart-item-card.has-promo {
+    position: relative;
+    background: linear-gradient(135deg, #f0fdf4, #ffffff);
+    border: 1px solid var(--success);
+}
+
+.cart-promo-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.688rem;
+    font-weight: 700;
+    z-index: 5;
+}
+
+.cart-item-info .promo-tag {
+    display: inline-block;
+    background: var(--success);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.625rem;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.cart-item-price .original-price,
+.item-total .original-total {
+    color: var(--gray-400);
+    font-size: 0.813rem;
+    display: block;
+}
+
+.cart-item-price .promo-price,
+.item-total.promo-total {
+    color: var(--success);
+    font-weight: 600;
+}
+
+/* Checkout - itens com promoção */
+.summary-item.has-promo {
+    background: #f0fdf4;
+    padding: 8px;
+    border-radius: 6px;
+    margin: 4px 0;
+}
+
+.checkout-promo-tag {
+    font-size: 0.875rem;
+    margin-left: 4px;
+}
+
+.summary-item .promo-price {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.summary-item .original-price {
+    color: var(--gray-400);
+    font-size: 0.813rem;
+}
+
+/* Economia */
+#summarySavings,
+#finalSavings {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #166534;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 8px;
+    display: none;
+}
+
+#finalSavings {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.savings-value {
+    color: #15803d;
+    font-weight: 700;
+}
+
 /* ========== UTILITIES ========== */
 .text-center {
     text-align: center;
