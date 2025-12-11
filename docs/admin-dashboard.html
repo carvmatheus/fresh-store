@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Da Horta Distribuidora</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="admin-dashboard-body">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span class="logo-icon">🥬</span>
+                <span class="logo-text">Da Horta</span>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <span></span>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#products" class="nav-link" data-section="products">
+                        <span class="nav-icon">📦</span>
+                        <span class="nav-text">Produtos</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#campaigns" class="nav-link" data-section="campaigns">
+                        <span class="nav-icon">🎯</span>
+                        <span class="nav-text">Campanhas</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#orders" class="nav-link" data-section="orders">
+                        <span class="nav-icon">🛒</span>
+                        <span class="nav-text">Pedidos</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#users" class="nav-link" data-section="users">
+                        <span class="nav-icon">👥</span>
+                        <span class="nav-text">Clientes</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#approvals" class="nav-link" data-section="approvals">
+                        <span class="nav-icon">✅</span>
+                        <span class="nav-text">Aprovações</span>
+                        <span class="nav-badge" id="pendingBadge">0</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="index.html" class="nav-link">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Voltar à Loja</span>
+            </a>
+            <button class="logout-btn" onclick="logout()">
+                <span class="nav-icon">🚪</span>
+                <span class="nav-text">Sair</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="header-left">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <div class="header-search">
+                    <input type="text" placeholder="Buscar..." id="globalSearch">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <div class="user-info">
+                    <span class="user-name" id="adminName">Admin</span>
+                    <div class="user-avatar">👤</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div class="admin-content">
+            <!-- Dashboard Section -->
+            <section class="content-section active" id="sectionDashboard">
+                <div class="dashboard-grid">
+                    <!-- KPI Cards -->
+                    <div class="kpi-row">
+                        <div class="kpi-card kpi-primary">
+                            <div class="kpi-icon">👥</div>
+                            <div class="kpi-content">
+                                <span class="kpi-value" id="totalUsers">0</span>
+                                <span class="kpi-label">Clientes Ativos</span>
+                            </div>
+                            <div class="kpi-trend up">
+                                <span class="trend-icon">↑</span>
+                                <span class="trend-value" id="newUsersWeek">0 esta semana</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card kpi-success">
+                            <div class="kpi-icon">📦</div>
+                            <div class="kpi-content">
+                                <span class="kpi-value" id="totalOrders">0</span>
+                                <span class="kpi-label">Pedidos Totais</span>
+                            </div>
+                            <div class="kpi-trend">
+                                <span class="trend-value" id="pendingOrders">0 pendentes</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card kpi-warning">
+                            <div class="kpi-icon">⏳</div>
+                            <div class="kpi-content">
+                                <span class="kpi-value" id="pendingApprovals">0</span>
+                                <span class="kpi-label">Aprovações Pendentes</span>
+                            </div>
+                            <div class="kpi-trend">
+                                <a href="#approvals" class="trend-link" onclick="showSection('approvals')">Ver todos →</a>
+                            </div>
+                        </div>
+                        <div class="kpi-card kpi-info">
+                            <div class="kpi-icon">🎯</div>
+                            <div class="kpi-content">
+                                <span class="kpi-value" id="activeCampaigns">0</span>
+                                <span class="kpi-label">Campanhas Ativas</span>
+                            </div>
+                            <div class="kpi-trend">
+                                <a href="#campaigns" class="trend-link" onclick="showSection('campaigns')">Gerenciar →</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="charts-row">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>Clientes por Categoria</h3>
+                            </div>
+                            <div class="chart-body">
+                                <div class="category-bars" id="categoryChart"></div>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>Top Clientes</h3>
+                            </div>
+                            <div class="chart-body">
+                                <div class="top-customers-list" id="topCustomers"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="activity-row">
+                        <div class="activity-card">
+                            <div class="card-header">
+                                <h3>📋 Últimos Pedidos</h3>
+                                <a href="#orders" onclick="showSection('orders')" class="view-all">Ver todos</a>
+                            </div>
+                            <div class="activity-list" id="recentOrders"></div>
+                        </div>
+                        <div class="activity-card">
+                            <div class="card-header">
+                                <h3>👤 Novos Cadastros</h3>
+                                <a href="#approvals" onclick="showSection('approvals')" class="view-all">Ver todos</a>
+                            </div>
+                            <div class="activity-list" id="recentUsers"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Section -->
+            <section class="content-section" id="sectionProducts">
+                <div class="section-header">
+                    <div class="section-actions">
+                        <button class="btn-primary" onclick="openProductModal()">
+                            ➕ Novo Produto
+                        </button>
+                        <select id="productCategoryFilter" class="filter-select" onchange="filterProducts()">
+                            <option value="">Todas Categorias</option>
+                            <option value="verduras">Verduras</option>
+                            <option value="legumes">Legumes</option>
+                            <option value="frutas">Frutas</option>
+                            <option value="graos">Grãos</option>
+                            <option value="temperos">Temperos</option>
+                        </select>
+                        <div class="search-box">
+                            <input type="text" id="productSearch" placeholder="Buscar produtos..." onkeyup="filterProducts()">
+                        </div>
+                    </div>
+                </div>
+                <div class="products-grid" id="productsGrid"></div>
+            </section>
+
+            <!-- Campaigns Section -->
+            <section class="content-section" id="sectionCampaigns">
+                <div class="section-header">
+                    <div class="section-actions">
+                        <button class="btn-primary" onclick="openCampaignModal()">
+                            ➕ Nova Campanha
+                        </button>
+                        <label class="toggle-filter">
+                            <input type="checkbox" id="activeOnlyFilter" onchange="filterCampaigns()">
+                            <span>Apenas ativas</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="campaigns-list" id="campaignsList"></div>
+            </section>
+
+            <!-- Orders Section -->
+            <section class="content-section" id="sectionOrders">
+                <div class="section-header">
+                    <div class="section-actions">
+                        <select id="orderStatusFilter" class="filter-select" onchange="filterOrders()">
+                            <option value="">Todos os Status</option>
+                            <option value="pendente">Pendente</option>
+                            <option value="confirmado">Confirmado</option>
+                            <option value="em_preparacao">Em Preparação</option>
+                            <option value="em_transporte">Em Transporte</option>
+                            <option value="concluido">Concluído</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                        <button class="btn-secondary" onclick="refreshOrders()">
+                            🔄 Atualizar
+                        </button>
+                    </div>
+                    <div class="orders-summary" id="ordersSummary"></div>
+                </div>
+                <div class="orders-list" id="ordersListContainer"></div>
+            </section>
+
+            <!-- Users Section -->
+            <section class="content-section" id="sectionUsers">
+                <div class="section-header">
+                    <div class="section-actions">
+                        <select id="userStatusFilter" class="filter-select" onchange="filterUsers()">
+                            <option value="">Todos</option>
+                            <option value="approved">Ativos</option>
+                            <option value="suspended">Suspensos</option>
+                        </select>
+                        <select id="userBusinessFilter" class="filter-select" onchange="filterUsers()">
+                            <option value="">Todos os Tipos</option>
+                            <option value="hotel">Hotel</option>
+                            <option value="mercado">Mercado</option>
+                            <option value="restaurante">Restaurante</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                        <div class="search-box">
+                            <input type="text" id="userSearch" placeholder="Buscar clientes..." onkeyup="filterUsers()">
+                        </div>
+                    </div>
+                </div>
+                <div class="users-table-container">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Empresa/CNPJ</th>
+                                <th>Tipo</th>
+                                <th>Último Acesso</th>
+                                <th>Última Compra</th>
+                                <th>Total Gasto</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Approvals Section -->
+            <section class="content-section" id="sectionApprovals">
+                <div class="section-header">
+                    <h2>Cadastros Pendentes de Aprovação</h2>
+                </div>
+                <div class="approvals-grid" id="approvalsGrid"></div>
+                
+                <div class="section-divider"></div>
+                
+                <div class="section-header">
+                    <h2>Usuários Suspensos</h2>
+                </div>
+                <div class="suspended-grid" id="suspendedGrid"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Product Modal -->
+    <div class="modal" id="productModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="productModalTitle">Novo Produto</h2>
+                <button class="modal-close" onclick="closeProductModal()">×</button>
+            </div>
+            <form id="productForm" class="modal-body">
+                <input type="hidden" id="productId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productName">Nome do Produto *</label>
+                        <input type="text" id="productName" required placeholder="Ex: Alface Crespa">
+                    </div>
+                    <div class="form-group">
+                        <label for="productCategory">Categoria *</label>
+                        <select id="productCategory" required>
+                            <option value="">Selecione...</option>
+                            <option value="verduras">Verduras</option>
+                            <option value="legumes">Legumes</option>
+                            <option value="frutas">Frutas</option>
+                            <option value="graos">Grãos</option>
+                            <option value="temperos">Temperos</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productPrice">Preço (R$) *</label>
+                        <input type="number" id="productPrice" step="0.01" min="0" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="productUnit">Unidade *</label>
+                        <select id="productUnit" required>
+                            <option value="kg">kg</option>
+                            <option value="un">un</option>
+                            <option value="maço">maço</option>
+                            <option value="caixa">caixa</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productMinOrder">Pedido Mínimo</label>
+                        <input type="number" id="productMinOrder" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="productStock">Estoque *</label>
+                        <input type="number" id="productStock" min="0" required placeholder="0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productPromoPrice">Preço Promocional (R$)</label>
+                        <input type="number" id="productPromoPrice" step="0.01" min="0" placeholder="Deixe vazio se não for promo">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="productIsPromo">
+                            <span>Produto em Promoção</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Imagem do Produto</label>
+                    <div class="image-upload-area">
+                        <input type="file" id="productImageFile" accept="image/*" onchange="handleProductImage(this)">
+                        <input type="hidden" id="productImageUrl">
+                        <div class="image-preview" id="productImagePreview" onclick="document.getElementById('productImageFile').click()">
+                            <div class="preview-placeholder">
+                                <span class="preview-icon">🖼️</span>
+                                <p>Clique para selecionar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="productDescription">Descrição</label>
+                    <textarea id="productDescription" rows="3" placeholder="Descrição do produto..."></textarea>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeProductModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Campaign Modal -->
+    <div class="modal" id="campaignModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="campaignModalTitle">Nova Campanha</h2>
+                <button class="modal-close" onclick="closeCampaignModal()">×</button>
+            </div>
+            <form id="campaignForm" class="modal-body">
+                <input type="hidden" id="campaignId">
+                
+                <div class="form-group">
+                    <label for="campaignName">Nome da Campanha *</label>
+                    <input type="text" id="campaignName" required placeholder="Ex: Black Friday 2024">
+                </div>
+                
+                <div class="form-group">
+                    <label for="campaignDescription">Descrição</label>
+                    <textarea id="campaignDescription" rows="2" placeholder="Descrição da campanha..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="campaignDiscountType">Tipo de Desconto *</label>
+                        <select id="campaignDiscountType" required onchange="updateDiscountLabel()">
+                            <option value="percentage">Porcentagem (%)</option>
+                            <option value="fixed">Valor Fixo (R$)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignDiscountValue" id="discountValueLabel">Valor do Desconto (%)</label>
+                        <input type="number" id="campaignDiscountValue" step="0.01" min="0" required placeholder="10">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="campaignStartDate">Data Início *</label>
+                        <input type="datetime-local" id="campaignStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignEndDate">Data Fim *</label>
+                        <input type="datetime-local" id="campaignEndDate" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="campaignCategory">Categoria (deixe vazio para todas)</label>
+                    <select id="campaignCategory">
+                        <option value="">Todas as Categorias</option>
+                        <option value="verduras">Verduras</option>
+                        <option value="legumes">Legumes</option>
+                        <option value="frutas">Frutas</option>
+                        <option value="graos">Grãos</option>
+                        <option value="temperos">Temperos</option>
+                    </select>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeCampaignModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Campanha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Detail Modal -->
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Detalhes do Cliente</h2>
+                <button class="modal-close" onclick="closeUserModal()">×</button>
+            </div>
+            <div class="modal-body" id="userModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="api-client.js"></script>
+    <script src="auth.js"></script>
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>
+

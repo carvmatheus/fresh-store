@@ -435,14 +435,9 @@
                 
                 console.log('✅ Cadastro realizado:', response);
                 
-                // Salvar usuário e redirecionar
-                if (response.access_token) {
-                    localStorage.setItem('authToken', response.access_token);
-                    localStorage.setItem('currentUser', JSON.stringify(response.user));
-                }
-                
-                alert('✅ Conta criada com sucesso! Bem-vindo!');
-                window.location.replace('index.html');
+                // Conta criada mas pendente de aprovação
+                alert('✅ Cadastro realizado com sucesso!\n\n⏳ Seu cadastro está pendente de aprovação.\nVocê receberá um e-mail quando for aprovado.\n\nAguarde a aprovação para fazer login.');
+                window.location.replace('login.html');
                 
             } catch (error) {
                 console.error('❌ Erro ao criar conta:', error);
