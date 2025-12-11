@@ -8,15 +8,15 @@
 </head>
 <body>
     <!-- Banner Header -->
-    <div class="banner-header" onclick="window.location.href='index.html'" style="cursor: pointer;" title="Clique para voltar à home">
+    <div class="banner-header">
         <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
     </div>
 
     <!-- Login Container -->
     <main class="container login-container">
         <div class="login-card">
-            <h1>Bem-vindo de volta! 👋</h1>
-            <p class="login-subtitle">Entre com suas credenciais para continuar</p>
+            <h1>Bem-vindo! 👋</h1>
+            <p class="login-subtitle">Entre com suas credenciais para acessar o catálogo</p>
 
             <div class="alert alert-error hidden" id="loginError">
                 <span>⚠️</span>
@@ -52,14 +52,24 @@
             </form>
 
             <div class="login-divider">
-                <span>ou continue com</span>
+                <span>ou</span>
+            </div>
+
+            <!-- Link para Cadastro -->
+            <div class="register-cta">
+                <h3>Ainda não tem conta?</h3>
+                <p>Cadastre sua empresa e tenha acesso ao nosso catálogo completo de produtos frescos!</p>
+                <a href="register.html" class="btn-register-cta">
+                    📝 Criar Conta Agora
+                </a>
+            </div>
+
+            <div class="login-divider">
+                <span>contas de teste</span>
             </div>
 
             <div class="demo-accounts">
-                <h3>Contas de Demonstração</h3>
-                <p class="demo-subtitle">Use estas credenciais para testar o sistema</p>
-                
-                <div class="demo-card">
+                <div class="demo-card" onclick="loginAs('cliente', 'cliente123')">
                     <div class="demo-header">
                         <span class="demo-icon">👤</span>
                         <h4>Cliente</h4>
@@ -68,12 +78,12 @@
                         <strong>Usuário:</strong> cliente<br>
                         <strong>Senha:</strong> cliente123
                     </p>
-                    <button type="button" class="btn-demo" onclick="loginAs('cliente', 'cliente123')">
+                    <button type="button" class="btn-demo">
                         Entrar como Cliente
                     </button>
                 </div>
 
-                <div class="demo-card">
+                <div class="demo-card" onclick="loginAs('admin', 'admin123')">
                     <div class="demo-header">
                         <span class="demo-icon">⚙️</span>
                         <h4>Administrador</h4>
@@ -82,18 +92,10 @@
                         <strong>Usuário:</strong> admin<br>
                         <strong>Senha:</strong> admin123
                     </p>
-                    <button type="button" class="btn-demo" onclick="loginAs('admin', 'admin123')">
+                    <button type="button" class="btn-demo">
                         Entrar como Admin
                     </button>
                 </div>
-            </div>
-
-            <div class="login-footer">
-                <p class="signup-prompt">
-                    Não tem uma conta? 
-                    <a href="register.html" class="signup-link">Cadastre-se gratuitamente</a>
-                </p>
-                <a href="index.html" class="back-link">← Voltar para o início</a>
             </div>
         </div>
     </main>
@@ -114,33 +116,62 @@
             if (currentUser.role === 'admin') {
                 window.location.replace('admin.html');
             } else {
-                window.location.replace('cliente.html');
+                window.location.replace('index.html');
             }
         }
 
         // Handle form submission
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('loginForm');
-            if (form) {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const email = document.getElementById('loginEmail').value.trim();
-                    const password = document.getElementById('loginPassword').value;
-                    
-                    if (typeof login === 'function') {
-                        await login(email, password);
-                    }
-                });
-            }
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            await doLogin(email, password);
         });
 
         // Login as demo user
         async function loginAs(username, password) {
             document.getElementById('loginEmail').value = username;
             document.getElementById('loginPassword').value = password;
-            
-            if (typeof login === 'function') {
-                await login(username, password);
+            await doLogin(username, password);
+        }
+
+        // Do login
+        async function doLogin(username, password) {
+            try {
+                console.log('🔐 Tentando login:', username);
+                
+                const response = await api.login(username, password);
+                
+                console.log('✅ Login bem-sucedido:', response);
+                
+                // Salvar token e usuário
+                if (response.access_token) {
+                    localStorage.setItem('authToken', response.access_token);
+                }
+                if (response.user) {
+                    localStorage.setItem('currentUser', JSON.stringify(response.user));
+                    
+                    // Redirecionar baseado no role
+                    if (response.user.role === 'admin') {
+                        window.location.replace('admin.html');
+                    } else {
+                        window.location.replace('index.html');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Erro no login:', error);
+                showError(error.message || 'Usuário ou senha incorretos');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('loginError');
+            const errorMsg = document.getElementById('loginErrorMsg');
+            if (errorDiv && errorMsg) {
+                errorMsg.textContent = message;
+                errorDiv.classList.remove('hidden');
+                setTimeout(() => errorDiv.classList.add('hidden'), 5000);
             }
         }
     </script>

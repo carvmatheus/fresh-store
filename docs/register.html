@@ -8,100 +8,171 @@
 </head>
 <body>
     <!-- Banner Header -->
-    <div class="banner-header" onclick="window.location.href='index.html'" style="cursor: pointer;" title="Clique para voltar à home">
+    <div class="banner-header" onclick="window.location.href='login.html'" style="cursor: pointer;" title="Voltar para login">
         <img src="images/Header_da_horta.png" alt="Da Horta Distribuidora" class="banner-image">
     </div>
 
     <!-- Register Container -->
-    <main class="container login-container">
-        <div class="login-card" style="max-width: 600px;">
-            <h1>Criar Conta 🌱</h1>
-            <p class="login-subtitle">Preencha seus dados para começar</p>
+    <main class="container register-page">
+        <div class="register-card">
+            <div class="register-header">
+                <h1>🌱 Criar Conta</h1>
+                <p>Preencha seus dados para começar a comprar</p>
+            </div>
 
             <div class="alert alert-error hidden" id="registerError">
                 <span>⚠️</span>
                 <p id="registerErrorMsg">Erro ao criar conta</p>
             </div>
 
-            <form id="registerForm" class="login-form">
-                <div class="form-group">
-                    <label for="registerName">Nome Completo *</label>
-                    <input 
-                        type="text" 
-                        id="registerName" 
-                        name="name" 
-                        placeholder="Seu nome completo"
-                        required>
+            <form id="registerForm" class="register-form">
+                <!-- Dados de Acesso -->
+                <div class="form-section">
+                    <h2>🔐 Dados de Acesso</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username">Nome de Usuário *</label>
+                            <input type="text" id="username" name="username" placeholder="Escolha um nome de usuário" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">E-mail *</label>
+                            <input type="email" id="email" name="email" placeholder="seu@email.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password">Senha *</label>
+                            <input type="password" id="password" name="password" placeholder="Mínimo 6 caracteres" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="passwordConfirm">Confirmar Senha *</label>
+                            <input type="password" id="passwordConfirm" name="passwordConfirm" placeholder="Digite novamente" required minlength="6">
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="registerUsername">Nome de Usuário *</label>
-                    <input 
-                        type="text" 
-                        id="registerUsername" 
-                        name="username" 
-                        placeholder="Escolha um nome de usuário único"
-                        required
-                        autocomplete="username">
+                <!-- Dados da Empresa -->
+                <div class="form-section">
+                    <h2>🏢 Dados da Empresa</h2>
+                    
+                    <div class="form-group">
+                        <label for="businessType">Tipo de Estabelecimento *</label>
+                        <select id="businessType" name="businessType" required>
+                            <option value="">Selecione...</option>
+                            <option value="restaurante">Restaurante</option>
+                            <option value="hotel">Hotel</option>
+                            <option value="mercado">Mercado</option>
+                            <option value="padaria">Padaria</option>
+                            <option value="lanchonete">Lanchonete</option>
+                            <option value="bar">Bar</option>
+                            <option value="cafeteria">Cafeteria</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cnpj">CNPJ *</label>
+                            <input type="text" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required maxlength="18">
+                        </div>
+                        <div class="form-group">
+                            <label for="ie">Inscrição Estadual</label>
+                            <input type="text" id="ie" name="ie" placeholder="000.000.000.000">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="razaoSocial">Razão Social *</label>
+                        <input type="text" id="razaoSocial" name="razaoSocial" placeholder="Nome jurídico da empresa" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nomeFantasia">Nome Fantasia *</label>
+                        <input type="text" id="nomeFantasia" name="nomeFantasia" placeholder="Nome comercial" required>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="registerEmail">E-mail *</label>
-                    <input 
-                        type="email" 
-                        id="registerEmail" 
-                        name="email" 
-                        placeholder="seu@email.com"
-                        required
-                        autocomplete="email">
+                <!-- Contato -->
+                <div class="form-section">
+                    <h2>📞 Contato</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contactName">Nome do Responsável *</label>
+                            <input type="text" id="contactName" name="contactName" placeholder="Nome completo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactPhone">Telefone/WhatsApp *</label>
+                            <input type="tel" id="contactPhone" name="contactPhone" placeholder="(11) 99999-9999" required>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="registerPhone">Telefone *</label>
-                    <input 
-                        type="tel" 
-                        id="registerPhone" 
-                        name="phone" 
-                        placeholder="(00) 00000-0000"
-                        required
-                        autocomplete="tel">
+                <!-- Endereço de Entrega -->
+                <div class="form-section">
+                    <h2>📍 Endereço de Entrega</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cep">CEP *</label>
+                            <input type="text" id="cep" name="cep" placeholder="00000-000" required maxlength="9">
+                        </div>
+                        <div class="form-group cep-btn-container">
+                            <button type="button" class="btn-secondary" onclick="searchCEP()">
+                                🔍 Buscar CEP
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="street">Endereço *</label>
+                        <input type="text" id="street" name="street" placeholder="Rua, Avenida..." required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group form-group-small">
+                            <label for="number">Número *</label>
+                            <input type="text" id="number" name="number" placeholder="Nº" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="complement">Complemento</label>
+                            <input type="text" id="complement" name="complement" placeholder="Sala, Andar...">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="neighborhood">Bairro *</label>
+                            <input type="text" id="neighborhood" name="neighborhood" placeholder="Bairro" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="city">Cidade *</label>
+                            <input type="text" id="city" name="city" placeholder="Cidade" required>
+                        </div>
+                        <div class="form-group form-group-small">
+                            <label for="state">UF *</label>
+                            <input type="text" id="state" name="state" placeholder="SP" required maxlength="2">
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="registerPassword">Senha *</label>
-                    <input 
-                        type="password" 
-                        id="registerPassword" 
-                        name="password" 
-                        placeholder="Mínimo 6 caracteres"
-                        required
-                        autocomplete="new-password"
-                        minlength="6">
+                <!-- Termos -->
+                <div class="form-section terms-section">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="acceptTerms" required>
+                        <span>Aceito os <a href="#" onclick="alert('Termos de uso em breve')">termos de uso</a> e <a href="#" onclick="alert('Política de privacidade em breve')">política de privacidade</a></span>
+                    </label>
                 </div>
 
-                <div class="form-group">
-                    <label for="registerPasswordConfirm">Confirmar Senha *</label>
-                    <input 
-                        type="password" 
-                        id="registerPasswordConfirm" 
-                        name="passwordConfirm" 
-                        placeholder="Digite a senha novamente"
-                        required
-                        autocomplete="new-password"
-                        minlength="6">
-                </div>
-
-                <button type="submit" class="btn-primary btn-login">
+                <button type="submit" class="btn-primary btn-register">
                     Criar Minha Conta
                 </button>
             </form>
 
-            <div class="login-footer">
-                <p class="signup-prompt">
-                    Já tem uma conta? 
-                    <a href="login.html" class="signup-link">Faça login</a>
-                </p>
-                <a href="index.html" class="back-link">← Voltar para o início</a>
+            <div class="register-footer">
+                <p>Já tem uma conta? <a href="login.html" class="login-link">Faça login</a></p>
             </div>
         </div>
     </main>
@@ -109,62 +180,155 @@
     <!-- API Scripts -->
     <script src="config.js"></script>
     <script src="api-client.js"></script>
-    <script src="auth.js"></script>
     
-    <!-- Register Script -->
     <script>
         console.log('📝 Página de cadastro carregada');
         
         // Redirecionar se já estiver logado
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         if (currentUser) {
-            window.location.replace(currentUser.role === 'admin' ? 'admin.html' : 'cliente.html');
+            window.location.replace('index.html');
+        }
+
+        // Máscara de CNPJ
+        document.getElementById('cnpj').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 14) value = value.slice(0, 14);
+            
+            if (value.length > 12) {
+                value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+            } else if (value.length > 8) {
+                value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d+)$/, '$1.$2.$3/$4');
+            } else if (value.length > 5) {
+                value = value.replace(/^(\d{2})(\d{3})(\d+)$/, '$1.$2.$3');
+            } else if (value.length > 2) {
+                value = value.replace(/^(\d{2})(\d+)$/, '$1.$2');
+            }
+            e.target.value = value;
+        });
+
+        // Máscara de CEP
+        document.getElementById('cep').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 8) value = value.slice(0, 8);
+            if (value.length > 5) {
+                value = value.replace(/^(\d{5})(\d+)$/, '$1-$2');
+            }
+            e.target.value = value;
+        });
+
+        // Máscara de telefone
+        document.getElementById('contactPhone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+            
+            if (value.length > 10) {
+                value = value.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+            } else if (value.length > 6) {
+                value = value.replace(/^(\d{2})(\d{4})(\d+)$/, '($1) $2-$3');
+            } else if (value.length > 2) {
+                value = value.replace(/^(\d{2})(\d+)$/, '($1) $2');
+            }
+            e.target.value = value;
+        });
+
+        // Buscar CEP
+        async function searchCEP() {
+            const cep = document.getElementById('cep').value.replace(/\D/g, '');
+            
+            if (cep.length !== 8) {
+                alert('Digite um CEP válido com 8 dígitos');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await response.json();
+                
+                if (data.erro) {
+                    alert('CEP não encontrado');
+                    return;
+                }
+
+                document.getElementById('street').value = data.logradouro || '';
+                document.getElementById('neighborhood').value = data.bairro || '';
+                document.getElementById('city').value = data.localidade || '';
+                document.getElementById('state').value = data.uf || '';
+                
+                document.getElementById('number').focus();
+            } catch (error) {
+                console.error('Erro ao buscar CEP:', error);
+                alert('Erro ao buscar CEP. Tente novamente.');
+            }
         }
 
         // Handle form submission
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('registerForm');
-            if (form) {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    
-                    const name = document.getElementById('registerName').value.trim();
-                    const username = document.getElementById('registerUsername').value.trim();
-                    const email = document.getElementById('registerEmail').value.trim();
-                    const phone = document.getElementById('registerPhone').value.trim();
-                    const password = document.getElementById('registerPassword').value;
-                    const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
-                    
-                    // Validar senhas
-                    if (password !== passwordConfirm) {
-                        showError('As senhas não coincidem!');
-                        return;
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('passwordConfirm').value;
+            
+            // Validar senhas
+            if (password !== passwordConfirm) {
+                showError('As senhas não coincidem!');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('A senha deve ter pelo menos 6 caracteres!');
+                return;
+            }
+
+            // Verificar termos
+            if (!document.getElementById('acceptTerms').checked) {
+                showError('Você precisa aceitar os termos de uso');
+                return;
+            }
+            
+            try {
+                const userData = {
+                    username: document.getElementById('username').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    password: password,
+                    name: document.getElementById('contactName').value.trim(),
+                    company: document.getElementById('nomeFantasia').value.trim(),
+                    role: 'cliente',
+                    // Dados extras para armazenar
+                    business_type: document.getElementById('businessType').value,
+                    cnpj: document.getElementById('cnpj').value,
+                    ie: document.getElementById('ie').value,
+                    razao_social: document.getElementById('razaoSocial').value,
+                    phone: document.getElementById('contactPhone').value,
+                    address: {
+                        cep: document.getElementById('cep').value,
+                        street: document.getElementById('street').value,
+                        number: document.getElementById('number').value,
+                        complement: document.getElementById('complement').value,
+                        neighborhood: document.getElementById('neighborhood').value,
+                        city: document.getElementById('city').value,
+                        state: document.getElementById('state').value
                     }
-                    
-                    if (password.length < 6) {
-                        showError('A senha deve ter pelo menos 6 caracteres!');
-                        return;
-                    }
-                    
-                    try {
-                        const userData = {
-                            full_name: name,
-                            username: username,
-                            email: email,
-                            phone: phone,
-                            password: password,
-                            role: 'client'
-                        };
-                        
-                        await api.register(userData);
-                        alert('✅ Conta criada com sucesso!');
-                        window.location.replace('cliente.html');
-                        
-                    } catch (error) {
-                        console.error('❌ Erro ao criar conta:', error);
-                        showError(error.message || 'Erro ao criar conta. Tente novamente.');
-                    }
-                });
+                };
+                
+                console.log('📤 Enviando dados de cadastro:', userData);
+                
+                const response = await api.register(userData);
+                
+                console.log('✅ Cadastro realizado:', response);
+                
+                // Salvar usuário e redirecionar
+                if (response.access_token) {
+                    localStorage.setItem('authToken', response.access_token);
+                    localStorage.setItem('currentUser', JSON.stringify(response.user));
+                }
+                
+                alert('✅ Conta criada com sucesso! Bem-vindo!');
+                window.location.replace('index.html');
+                
+            } catch (error) {
+                console.error('❌ Erro ao criar conta:', error);
+                showError(error.message || 'Erro ao criar conta. Tente novamente.');
             }
         });
 
@@ -174,10 +338,10 @@
             if (errorDiv && errorMsg) {
                 errorMsg.textContent = message;
                 errorDiv.classList.remove('hidden');
+                errorDiv.scrollIntoView({ behavior: 'smooth' });
                 setTimeout(() => errorDiv.classList.add('hidden'), 5000);
             }
         }
     </script>
 </body>
 </html>
-

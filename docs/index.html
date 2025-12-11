@@ -196,6 +196,16 @@
     <script src="api-client.js"></script>
     <script src="auth.js"></script>
     <script src="app.js"></script>
+    
+    <!-- Verificar autenticação -->
+    <script>
+        // Verificar se usuário está logado
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (!currentUser) {
+            // Redirecionar para login se não estiver logado
+            window.location.replace('login.html');
+        }
+    </script>
 </body>
 </html>
 
