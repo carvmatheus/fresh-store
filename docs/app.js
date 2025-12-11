@@ -137,18 +137,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('✅ Aplicação inicializada com sucesso!');
 });
 
-// Carregar produtos em destaque
+// Carregar produtos em destaque (apenas os marcados como promoção)
 function loadPromotedProducts() {
   const container = document.getElementById('promotedGrid');
   if (!container) return;
   
-  // Pegar 3 produtos aleatórios ou os primeiros 3
-  const promoted = products.slice(0, 3);
+  // Filtrar apenas produtos marcados como promoção
+  const promoted = products.filter(p => p.isPromo === true);
   
+  // Se não houver produtos em promoção, esconder a seção
   if (promoted.length === 0) {
-    container.innerHTML = '';
+    const section = container.closest('.promoted-section');
+    if (section) section.style.display = 'none';
     return;
   }
+  
+  // Mostrar a seção caso tenha produtos
+  const section = container.closest('.promoted-section');
+  if (section) section.style.display = 'block';
   
   // Renderizar produtos em destaque (mesmo HTML dos produtos normais)
   container.innerHTML = promoted.map(product => `
