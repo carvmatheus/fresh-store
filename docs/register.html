@@ -158,6 +158,74 @@
                     </div>
                 </div>
 
+                <!-- Forma de Pagamento Preferida -->
+                <div class="form-section">
+                    <h2>💳 Forma de Pagamento Preferida</h2>
+                    
+                    <div class="form-group">
+                        <label for="paymentType">Tipo de Faturamento *</label>
+                        <select id="paymentType" name="paymentType" required onchange="toggleJustificativa()">
+                            <option value="">Selecione...</option>
+                            <option value="pix">PIX</option>
+                            <option value="cartao_credito">Cartão de Crédito</option>
+                            <option value="boleto_7dias">Boleto com 7 dias</option>
+                            <option value="boleto_10dias">Boleto com 10 dias</option>
+                            <option value="faturamento">Faturamento (A Prazo)</option>
+                        </select>
+                    </div>
+
+                    <!-- Justificativa para Faturamento -->
+                    <div class="form-group hidden" id="justificativaGroup">
+                        <label for="justificativaFaturamento">Justificativa para Faturamento *</label>
+                        <textarea 
+                            id="justificativaFaturamento" 
+                            name="justificativaFaturamento" 
+                            rows="4" 
+                            placeholder="Por favor, explique o motivo da solicitação de faturamento a prazo. Ex: Volume de compras mensal estimado, histórico comercial, referências..."></textarea>
+                        <p class="form-hint">
+                            ⚠️ O faturamento está sujeito a análise de crédito. Nossa equipe entrará em contato para validar as informações.
+                        </p>
+                    </div>
+
+                    <div class="payment-info">
+                        <div class="payment-info-item" id="paymentInfoPix" style="display: none;">
+                            <span class="payment-info-icon">⚡</span>
+                            <div>
+                                <strong>PIX</strong>
+                                <p>Pagamento instantâneo. Receba a confirmação na hora!</p>
+                            </div>
+                        </div>
+                        <div class="payment-info-item" id="paymentInfoCartao" style="display: none;">
+                            <span class="payment-info-icon">💳</span>
+                            <div>
+                                <strong>Cartão de Crédito</strong>
+                                <p>Parcele em até 3x sem juros. Aprovação imediata.</p>
+                            </div>
+                        </div>
+                        <div class="payment-info-item" id="paymentInfoBoleto7" style="display: none;">
+                            <span class="payment-info-icon">📄</span>
+                            <div>
+                                <strong>Boleto 7 dias</strong>
+                                <p>Vencimento em 7 dias após a emissão do pedido.</p>
+                            </div>
+                        </div>
+                        <div class="payment-info-item" id="paymentInfoBoleto10" style="display: none;">
+                            <span class="payment-info-icon">📄</span>
+                            <div>
+                                <strong>Boleto 10 dias</strong>
+                                <p>Vencimento em 10 dias após a emissão do pedido.</p>
+                            </div>
+                        </div>
+                        <div class="payment-info-item" id="paymentInfoFaturamento" style="display: none;">
+                            <span class="payment-info-icon">📊</span>
+                            <div>
+                                <strong>Faturamento (A Prazo)</strong>
+                                <p>Pagamento faturado conforme acordo comercial. Sujeito a análise de crédito.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Termos -->
                 <div class="form-section terms-section">
                     <label class="checkbox-label">
@@ -216,6 +284,41 @@
             }
             e.target.value = value;
         });
+
+        // Toggle Justificativa para Faturamento
+        function toggleJustificativa() {
+            const paymentType = document.getElementById('paymentType').value;
+            const justificativaGroup = document.getElementById('justificativaGroup');
+            const justificativaInput = document.getElementById('justificativaFaturamento');
+            
+            // Esconder todos os info items
+            document.querySelectorAll('.payment-info-item').forEach(item => {
+                item.style.display = 'none';
+            });
+            
+            // Mostrar info do tipo selecionado
+            if (paymentType === 'pix') {
+                document.getElementById('paymentInfoPix').style.display = 'flex';
+            } else if (paymentType === 'cartao_credito') {
+                document.getElementById('paymentInfoCartao').style.display = 'flex';
+            } else if (paymentType === 'boleto_7dias') {
+                document.getElementById('paymentInfoBoleto7').style.display = 'flex';
+            } else if (paymentType === 'boleto_10dias') {
+                document.getElementById('paymentInfoBoleto10').style.display = 'flex';
+            } else if (paymentType === 'faturamento') {
+                document.getElementById('paymentInfoFaturamento').style.display = 'flex';
+            }
+            
+            // Mostrar/esconder justificativa
+            if (paymentType === 'faturamento') {
+                justificativaGroup.classList.remove('hidden');
+                justificativaInput.required = true;
+            } else {
+                justificativaGroup.classList.add('hidden');
+                justificativaInput.required = false;
+                justificativaInput.value = '';
+            }
+        }
 
         // Máscara de telefone
         document.getElementById('contactPhone').addEventListener('input', function(e) {
@@ -285,6 +388,16 @@
                 showError('Você precisa aceitar os termos de uso');
                 return;
             }
+
+            // Verificar justificativa se faturamento
+            const paymentType = document.getElementById('paymentType').value;
+            if (paymentType === 'faturamento') {
+                const justificativa = document.getElementById('justificativaFaturamento').value.trim();
+                if (!justificativa || justificativa.length < 20) {
+                    showError('Por favor, forneça uma justificativa detalhada para o faturamento (mínimo 20 caracteres)');
+                    return;
+                }
+            }
             
             try {
                 const userData = {
@@ -308,6 +421,11 @@
                         neighborhood: document.getElementById('neighborhood').value,
                         city: document.getElementById('city').value,
                         state: document.getElementById('state').value
+                    },
+                    // Dados de Pagamento
+                    payment_preference: {
+                        type: document.getElementById('paymentType').value,
+                        justificativa: document.getElementById('justificativaFaturamento').value.trim() || null
                     }
                 };
                 

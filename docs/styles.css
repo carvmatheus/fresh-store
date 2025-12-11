@@ -1868,6 +1868,58 @@ body {
     text-decoration: underline;
 }
 
+/* Payment Info Items */
+.payment-info {
+    margin-top: 1rem;
+}
+
+.payment-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.5rem;
+    border-left: 4px solid var(--primary);
+}
+
+.payment-info-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.payment-info-item strong {
+    display: block;
+    color: var(--gray-900);
+    margin-bottom: 0.25rem;
+}
+
+.payment-info-item p {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Form Hint */
+.form-hint {
+    font-size: 0.813rem;
+    color: var(--warning);
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background: #fffbeb;
+    border-radius: 0.375rem;
+    border: 1px solid #fef3c7;
+    line-height: 1.5;
+}
+
+/* Textarea styling */
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+}
+
 @media (max-width: 768px) {
     .register-page {
         padding: 1rem;

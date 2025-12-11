@@ -63,40 +63,6 @@
                     📝 Criar Conta Agora
                 </a>
             </div>
-
-            <div class="login-divider">
-                <span>contas de teste</span>
-            </div>
-
-            <div class="demo-accounts">
-                <div class="demo-card" onclick="loginAs('cliente', 'cliente123')">
-                    <div class="demo-header">
-                        <span class="demo-icon">👤</span>
-                        <h4>Cliente</h4>
-                    </div>
-                    <p class="demo-credentials">
-                        <strong>Usuário:</strong> cliente<br>
-                        <strong>Senha:</strong> cliente123
-                    </p>
-                    <button type="button" class="btn-demo">
-                        Entrar como Cliente
-                    </button>
-                </div>
-
-                <div class="demo-card" onclick="loginAs('admin', 'admin123')">
-                    <div class="demo-header">
-                        <span class="demo-icon">⚙️</span>
-                        <h4>Administrador</h4>
-                    </div>
-                    <p class="demo-credentials">
-                        <strong>Usuário:</strong> admin<br>
-                        <strong>Senha:</strong> admin123
-                    </p>
-                    <button type="button" class="btn-demo">
-                        Entrar como Admin
-                    </button>
-                </div>
-            </div>
         </div>
     </main>
 
@@ -128,13 +94,6 @@
             
             await doLogin(email, password);
         });
-
-        // Login as demo user
-        async function loginAs(username, password) {
-            document.getElementById('loginEmail').value = username;
-            document.getElementById('loginPassword').value = password;
-            await doLogin(username, password);
-        }
 
         // Do login
         async function doLogin(username, password) {
