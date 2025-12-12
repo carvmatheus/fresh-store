@@ -82,6 +82,9 @@ class ApiClient {
                 if (response.status === 401 || response.status === 403) {
                     throw new Error('Não autorizado. Faça login novamente.');
                 }
+                if (response.status === 413) {
+                    throw new Error('Arquivo muito grande. Tente uma imagem menor (máximo 2MB).');
+                }
                 if (response.status >= 500) {
                     throw new Error('Erro interno do servidor. Tente novamente mais tarde.');
                 }
