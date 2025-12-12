@@ -57,9 +57,22 @@ async function login(usernameOrEmail, password) {
     console.log('   - Token:', savedToken.substring(0, 20) + '...');
     console.log('   - Usuário:', JSON.parse(savedUser).username);
     
-    // Redirecionar baseado no role
-    const redirectUrl = result.user.role === 'admin' ? 'admin-dashboard.html' : 'cliente.html';
+    // Redirecionar baseado no role e status de aprovação
+    let redirectUrl = 'index.html';
+    
+    if (result.user.role === 'admin' || result.user.role === 'consultor') {
+      // Admins e consultores vão para o dashboard
+      redirectUrl = 'admin-dashboard.html';
+    } else if (result.user.approval_status === 'approved') {
+      // Clientes aprovados vão para a página de pedidos
+      redirectUrl = 'cliente.html';
+    } else {
+      // Clientes pendentes ou suspensos vão para index (verão mensagem apropriada)
+      redirectUrl = 'index.html';
+    }
+    
     console.log('🔀 Redirecionando para:', redirectUrl);
+    console.log('📋 Status de aprovação:', result.user.approval_status);
     
     // Usar setTimeout para garantir que o redirecionamento aconteça
     setTimeout(() => {
@@ -78,8 +91,10 @@ async function login(usernameOrEmail, password) {
     } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
       showLoginError('Usuário ou senha incorretos');
     } else if (error.message.includes('aprovação') || error.message.includes('pending')) {
-      showLoginError('⏳ Seu cadastro está aguardando aprovação. Você será notificado por e-mail.');
+      // Nota: Agora permitimos login de pendentes, não deve chegar aqui
+      showLoginError('⏳ Seu cadastro está aguardando aprovação.');
     } else if (error.message.includes('suspenso') || error.message.includes('suspended')) {
+      // Nota: Agora permitimos login de suspensos, não deve chegar aqui
       showLoginError('🚫 Sua conta foi suspensa. Entre em contato com o suporte.');
     } else {
       showLoginError('Erro ao fazer login: ' + error.message);
@@ -116,6 +131,30 @@ function getCurrentUser() {
 function hasRole(role) {
   const user = getCurrentUser();
   return user && user.role === role;
+}
+
+// Verificar se usuário está aprovado
+function isUserApproved() {
+  const user = getCurrentUser();
+  if (!user) return false;
+  // Admins e consultores são sempre considerados aprovados
+  if (user.role === 'admin' || user.role === 'consultor') return true;
+  // Clientes precisam ter approval_status === 'approved'
+  return user.approval_status === 'approved';
+}
+
+// Verificar se usuário está pendente
+function isUserPending() {
+  const user = getCurrentUser();
+  if (!user) return false;
+  return user.approval_status === 'pending';
+}
+
+// Verificar se usuário está suspenso
+function isUserSuspended() {
+  const user = getCurrentUser();
+  if (!user) return false;
+  return user.approval_status === 'suspended';
 }
 
 // Proteger página (redireciona se não estiver logado)

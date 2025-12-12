@@ -80,28 +80,79 @@
 
     <!-- Main -->
     <main class="container main-content">
-        <!-- Promoted Products -->
-        <section class="promoted-section">
-            <div class="promoted-header">
-                <h2>🔥 Produtos em Destaque</h2>
-                <div class="carousel-controls">
-                    <button class="carousel-btn carousel-prev" onclick="moveCarousel(-1)">❮</button>
-                    <button class="carousel-btn carousel-next" onclick="moveCarousel(1)">❯</button>
+        <!-- Pending Approval Message (hidden by default) -->
+        <section class="pending-approval-section hidden" id="pendingApprovalSection">
+            <div class="pending-approval-card">
+                <div class="pending-approval-icon">⏳</div>
+                <h2>Cadastro Pendente de Aprovação</h2>
+                <p>Olá! Seu cadastro foi recebido e está sendo analisado pela nossa equipe.</p>
+                <div class="pending-approval-info">
+                    <div class="pending-info-item">
+                        <span class="pending-info-icon">📋</span>
+                        <div>
+                            <strong>Status</strong>
+                            <p>Aguardando aprovação</p>
+                        </div>
+                    </div>
+                    <div class="pending-info-item">
+                        <span class="pending-info-icon">⏰</span>
+                        <div>
+                            <strong>Prazo</strong>
+                            <p>Geralmente em até 24h úteis</p>
+                        </div>
+                    </div>
+                    <div class="pending-info-item">
+                        <span class="pending-info-icon">📧</span>
+                        <div>
+                            <strong>Notificação</strong>
+                            <p>Você será notificado por e-mail</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="promoted-carousel" id="promotedCarousel">
-                <div class="promoted-grid" id="promotedGrid"></div>
+                <p class="pending-approval-contact">Dúvidas? Entre em contato: <a href="mailto:contato@dahorta.com.br">contato@dahorta.com.br</a></p>
+                <button class="btn-secondary" onclick="logout()">🚪 Sair</button>
             </div>
         </section>
 
-        <!-- Categories -->
-        <section class="categories-section">
-            <h3>Categorias</h3>
-            <div class="categories" id="categories"></div>
+        <!-- Suspended Account Message (hidden by default) -->
+        <section class="suspended-account-section hidden" id="suspendedAccountSection">
+            <div class="suspended-account-card">
+                <div class="suspended-account-icon">🚫</div>
+                <h2>Conta Suspensa</h2>
+                <p>Sua conta foi temporariamente suspensa.</p>
+                <div class="suspended-account-info">
+                    <p>Entre em contato com nossa equipe para mais informações:</p>
+                    <a href="mailto:contato@dahorta.com.br" class="btn-primary">📧 Falar com Suporte</a>
+                </div>
+                <button class="btn-secondary" onclick="logout()">🚪 Sair</button>
+            </div>
         </section>
 
-        <!-- Products -->
-        <div class="products-grid" id="productsGrid"></div>
+        <!-- Catalog Content (for approved users) -->
+        <div id="catalogContent">
+            <!-- Promoted Products -->
+            <section class="promoted-section">
+                <div class="promoted-header">
+                    <h2>🔥 Produtos em Destaque</h2>
+                    <div class="carousel-controls">
+                        <button class="carousel-btn carousel-prev" onclick="moveCarousel(-1)">❮</button>
+                        <button class="carousel-btn carousel-next" onclick="moveCarousel(1)">❯</button>
+                    </div>
+                </div>
+                <div class="promoted-carousel" id="promotedCarousel">
+                    <div class="promoted-grid" id="promotedGrid"></div>
+                </div>
+            </section>
+
+            <!-- Categories -->
+            <section class="categories-section">
+                <h3>Categorias</h3>
+                <div class="categories" id="categories"></div>
+            </section>
+
+            <!-- Products -->
+            <div class="products-grid" id="productsGrid"></div>
+        </div>
     </main>
 
     <!-- Cart Sidebar -->
@@ -160,13 +211,44 @@
     <script src="auth.js"></script>
     <script src="app.js"></script>
     
-    <!-- Verificar autenticação -->
+    <!-- Verificar autenticação e aprovação -->
     <script>
         // Verificar se usuário está logado
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         if (!currentUser) {
             // Redirecionar para login se não estiver logado
             window.location.replace('login.html');
+        } else {
+            // Verificar status de aprovação
+            const approvalStatus = currentUser.approval_status;
+            const userRole = currentUser.role;
+            
+            // Admins e consultores sempre têm acesso
+            if (userRole === 'admin' || userRole === 'consultor') {
+                // Acesso completo - não faz nada, catálogo será exibido
+                console.log('👑 Acesso admin/consultor autorizado');
+            } else if (approvalStatus === 'pending') {
+                // Usuário pendente - mostrar mensagem de aguardando aprovação
+                console.log('⏳ Usuário pendente de aprovação');
+                document.getElementById('catalogContent').classList.add('hidden');
+                document.getElementById('pendingApprovalSection').classList.remove('hidden');
+                
+                // Esconder carrinho e header actions para pendentes
+                document.querySelector('.header-actions').style.display = 'none';
+                document.querySelector('.cart-sidebar').style.display = 'none';
+            } else if (approvalStatus === 'suspended') {
+                // Usuário suspenso
+                console.log('🚫 Usuário suspenso');
+                document.getElementById('catalogContent').classList.add('hidden');
+                document.getElementById('suspendedAccountSection').classList.remove('hidden');
+                
+                // Esconder carrinho e header actions
+                document.querySelector('.header-actions').style.display = 'none';
+                document.querySelector('.cart-sidebar').style.display = 'none';
+            } else {
+                // Usuário aprovado - acesso normal
+                console.log('✅ Usuário aprovado - acesso ao catálogo');
+            }
         }
     </script>
 </body>

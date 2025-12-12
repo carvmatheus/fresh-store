@@ -2729,6 +2729,135 @@ body {
     font-weight: 700;
 }
 
+/* ========== PENDING APPROVAL / SUSPENDED SECTIONS ========== */
+.pending-approval-section,
+.suspended-account-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.pending-approval-card,
+.suspended-account-card {
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    border-radius: 24px;
+    padding: 3rem;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.pending-approval-icon,
+.suspended-account-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.pending-approval-card h2,
+.suspended-account-card h2 {
+    color: #1e293b;
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.pending-approval-card > p,
+.suspended-account-card > p {
+    color: #64748b;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.pending-approval-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.pending-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: #f1f5f9;
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.pending-info-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.pending-info-item strong {
+    display: block;
+    color: #334155;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.pending-info-item p {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.pending-approval-contact {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
+}
+
+.pending-approval-contact a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.pending-approval-contact a:hover {
+    text-decoration: underline;
+}
+
+.suspended-account-info {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.suspended-account-info p {
+    color: #991b1b;
+    margin-bottom: 1rem;
+}
+
+.suspended-account-info .btn-primary {
+    background: #dc2626;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.suspended-account-info .btn-primary:hover {
+    background: #b91c1c;
+}
+
 /* ========== UTILITIES ========== */
 .text-center {
     text-align: center;

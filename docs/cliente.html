@@ -199,6 +199,14 @@
                 window.location.href = 'login.html';
                 return;
             }
+            
+            // Verificar status de aprovação - bloquear pendentes e suspensos
+            if (currentUser.role !== 'admin' && currentUser.role !== 'consultor') {
+                if (currentUser.approval_status === 'pending' || currentUser.approval_status === 'suspended') {
+                    window.location.replace('index.html');
+                    return;
+                }
+            }
 
             // Atualizar UI do usuário
             updateUserUI(currentUser);
