@@ -180,7 +180,7 @@ function renderCategoryChart(data) {
     
     const categories = Object.entries(data);
     if (categories.length === 0) {
-        container.innerHTML = '<div class="empty-state-inline">Nenhum dado disponível</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 32px; color: #64748b;">Nenhum dado disponível</div>';
         return;
     }
     
@@ -208,7 +208,7 @@ function renderTopCustomers(customers) {
     if (!container) return;
     
     if (customers.length === 0) {
-        container.innerHTML = '<div class="empty-state-inline">Nenhum cliente com compras ainda</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 32px; color: #64748b;">Nenhum cliente com compras ainda</div>';
         return;
     }
     
@@ -233,7 +233,7 @@ function renderRecentOrders(recentOrders) {
     if (!container) return;
     
     if (recentOrders.length === 0) {
-        container.innerHTML = '<div class="empty-state-inline">Nenhum pedido recente</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 32px; color: #64748b;">Nenhum pedido recente</div>';
         return;
     }
     
@@ -263,7 +263,7 @@ function renderRecentUsers(recentUsers) {
     if (!container) return;
     
     if (recentUsers.length === 0) {
-        container.innerHTML = '<div class="empty-state-inline">Nenhum cadastro recente</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 32px; color: #64748b;">Nenhum cadastro recente</div>';
         return;
     }
     
@@ -295,9 +295,9 @@ function renderProducts() {
     
     if (products.length === 0) {
         container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-state" style="grid-column: 1 / -1; background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
                 <span class="empty-state-icon">📦</span>
-                <p class="empty-state-text">Nenhum produto cadastrado</p>
+                <p class="empty-state-text" style="color: #94a3b8;">Nenhum produto cadastrado</p>
                 <button class="btn-primary" onclick="openProductModal()">➕ Novo Produto</button>
             </div>`;
         return;
@@ -347,9 +347,9 @@ function filterProducts() {
     // Re-render with filtered
     if (filtered.length === 0) {
         container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-state" style="grid-column: 1 / -1; background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
                 <span class="empty-state-icon">🔍</span>
-                <p class="empty-state-text">Nenhum produto encontrado</p>
+                <p class="empty-state-text" style="color: #94a3b8;">Nenhum produto encontrado</p>
             </div>`;
         return;
     }
@@ -401,9 +401,9 @@ function renderCampaigns() {
     
     if (campaigns.length === 0) {
         container.innerHTML = `
-            <div class="empty-state">
+            <div class="empty-state" style="background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
                 <span class="empty-state-icon">🎯</span>
-                <p class="empty-state-text">Nenhuma campanha cadastrada</p>
+                <p class="empty-state-text" style="color: #94a3b8;">Nenhuma campanha cadastrada</p>
                 <button class="btn-primary" onclick="openCampaignModal()">➕ Criar Campanha</button>
             </div>`;
         return;
@@ -540,9 +540,9 @@ function renderOrders() {
     
     if (orders.length === 0) {
         container.innerHTML = `
-            <div class="empty-state">
+            <div class="empty-state" style="background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
                 <span class="empty-state-icon">📋</span>
-                <p class="empty-state-text">Nenhum pedido encontrado</p>
+                <p class="empty-state-text" style="color: #94a3b8;">Nenhum pedido encontrado</p>
             </div>`;
         return;
     }
@@ -742,9 +742,9 @@ function renderPendingApprovals(pending) {
     
     if (pending.length === 0) {
         container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-state" style="grid-column: 1 / -1; background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
                 <span class="empty-state-icon">✅</span>
-                <p class="empty-state-text">Nenhuma aprovação pendente</p>
+                <p class="empty-state-text" style="color: #94a3b8;">Nenhuma aprovação pendente</p>
             </div>`;
         return;
     }
@@ -778,9 +778,9 @@ function renderSuspendedUsers(suspended) {
     
     if (suspended.length === 0) {
         container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-state" style="grid-column: 1 / -1; background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
                 <span class="empty-state-icon">👥</span>
-                <p class="empty-state-text">Nenhum usuário suspenso</p>
+                <p class="empty-state-text" style="color: #94a3b8;">Nenhum usuário suspenso</p>
             </div>`;
         return;
     }
