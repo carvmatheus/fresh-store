@@ -180,7 +180,7 @@ function renderCategoryChart(data) {
     
     const categories = Object.entries(data);
     if (categories.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Nenhum dado disponível</p></div>';
+        container.innerHTML = '<div class="empty-state-inline">Nenhum dado disponível</div>';
         return;
     }
     
@@ -208,7 +208,7 @@ function renderTopCustomers(customers) {
     if (!container) return;
     
     if (customers.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Nenhum cliente com compras</p></div>';
+        container.innerHTML = '<div class="empty-state-inline">Nenhum cliente com compras ainda</div>';
         return;
     }
     
@@ -233,7 +233,7 @@ function renderRecentOrders(recentOrders) {
     if (!container) return;
     
     if (recentOrders.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Nenhum pedido recente</p></div>';
+        container.innerHTML = '<div class="empty-state-inline">Nenhum pedido recente</div>';
         return;
     }
     
@@ -263,7 +263,7 @@ function renderRecentUsers(recentUsers) {
     if (!container) return;
     
     if (recentUsers.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Nenhum cadastro recente</p></div>';
+        container.innerHTML = '<div class="empty-state-inline">Nenhum cadastro recente</div>';
         return;
     }
     
@@ -294,7 +294,12 @@ function renderProducts() {
     if (!container) return;
     
     if (products.length === 0) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📦</span><p class="empty-state-text">Nenhum produto cadastrado</p></div>';
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <span class="empty-state-icon">📦</span>
+                <p class="empty-state-text">Nenhum produto cadastrado</p>
+                <button class="btn-primary" onclick="openProductModal()">➕ Novo Produto</button>
+            </div>`;
         return;
     }
     
@@ -341,7 +346,11 @@ function filterProducts() {
     
     // Re-render with filtered
     if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Nenhum produto encontrado</p></div>';
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <span class="empty-state-icon">🔍</span>
+                <p class="empty-state-text">Nenhum produto encontrado</p>
+            </div>`;
         return;
     }
     
@@ -391,7 +400,12 @@ function renderCampaigns() {
     if (!container) return;
     
     if (campaigns.length === 0) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🎯</span><p class="empty-state-text">Nenhuma campanha cadastrada</p><button class="btn-primary" onclick="openCampaignModal()">➕ Criar Campanha</button></div>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-icon">🎯</span>
+                <p class="empty-state-text">Nenhuma campanha cadastrada</p>
+                <button class="btn-primary" onclick="openCampaignModal()">➕ Criar Campanha</button>
+            </div>`;
         return;
     }
     
@@ -525,7 +539,11 @@ function renderOrders() {
     }
     
     if (orders.length === 0) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📋</span><p class="empty-state-text">Nenhum pedido encontrado</p></div>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-icon">📋</span>
+                <p class="empty-state-text">Nenhum pedido encontrado</p>
+            </div>`;
         return;
     }
     
@@ -604,7 +622,7 @@ function renderUsers() {
     if (!tbody) return;
     
     if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum cliente encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 48px; color: var(--text-muted);">Nenhum cliente encontrado</td></tr>';
         return;
     }
     
@@ -723,7 +741,11 @@ function renderPendingApprovals(pending) {
     if (!container) return;
     
     if (pending.length === 0) {
-        container.innerHTML = '<div class="empty-state"><span class="empty-state-icon">✅</span><p class="empty-state-text">Nenhuma aprovação pendente</p></div>';
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <span class="empty-state-icon">✅</span>
+                <p class="empty-state-text">Nenhuma aprovação pendente</p>
+            </div>`;
         return;
     }
     
@@ -755,7 +777,11 @@ function renderSuspendedUsers(suspended) {
     if (!container) return;
     
     if (suspended.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Nenhum usuário suspenso</p></div>';
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <span class="empty-state-icon">👥</span>
+                <p class="empty-state-text">Nenhum usuário suspenso</p>
+            </div>`;
         return;
     }
     
