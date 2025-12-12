@@ -561,12 +561,12 @@ function initCarousel() {
   
   console.log('🎠 Carrossel inicializado');
   
-  // Auto-scroll a cada 4 segundos
+  // Auto-scroll a cada 3 segundos
   carouselInterval = setInterval(() => {
     if (!carouselPaused) {
       moveCarousel(1, true); // true = automático (volta ao início quando chega no final)
     }
-  }, 4000);
+  }, 3000);
   
   // Pausar quando mouse estiver sobre o carrossel
   carousel.addEventListener('mouseenter', () => {
@@ -585,10 +585,13 @@ function initCarousel() {
   }, { passive: true });
 }
 
+// Controle de animação do carrossel
+let isCarouselAnimating = false;
+
 // Função global para controlar o carrossel (chamada pelos botões HTML)
 function moveCarousel(direction, isAuto = false) {
   const carousel = document.getElementById('promotedCarousel');
-  if (!carousel) {
+  if (!carousel || isCarouselAnimating) {
     return;
   }
   
@@ -599,6 +602,7 @@ function moveCarousel(direction, isAuto = false) {
   }
   
   const cardWidth = cards[0].offsetWidth + 24; // largura + gap
+  const moveAmount = cardWidth * 3; // Avançar 3 cards por vez
   const currentScroll = carousel.scrollLeft;
   const maxScroll = carousel.scrollWidth - carousel.clientWidth;
   
@@ -606,28 +610,57 @@ function moveCarousel(direction, isAuto = false) {
   
   if (direction > 0) {
     // Avançar para direita
-    newScroll = currentScroll + cardWidth;
-    if (newScroll >= maxScroll) {
-      if (isAuto) {
-        // Auto: voltar ao início
+    newScroll = currentScroll + moveAmount;
+    
+    // Se o próximo scroll ultrapassa o máximo, vai direto pro final
+    if (newScroll > maxScroll) {
+      // Se já está no final ou quase, volta ao início
+      if (currentScroll >= maxScroll - 10) {
         newScroll = 0;
       } else {
-        // Manual: para no final
+        // Vai até o final para mostrar o último elemento
         newScroll = maxScroll;
       }
     }
   } else {
     // Voltar para esquerda
-    newScroll = currentScroll - cardWidth;
+    newScroll = currentScroll - moveAmount;
     if (newScroll < 0) {
       newScroll = 0; // Para no início
     }
   }
   
-  carousel.scrollTo({
-    left: newScroll,
-    behavior: 'smooth'
-  });
+  // Animação suave customizada (1.2 segundos - bem lenta)
+  smoothScrollTo(carousel, newScroll, 1200);
+}
+
+// Animação de scroll suave customizada
+function smoothScrollTo(element, targetPosition, duration) {
+  isCarouselAnimating = true;
+  const startPosition = element.scrollLeft;
+  const distance = targetPosition - startPosition;
+  let startTime = null;
+  
+  function animation(currentTime) {
+    if (startTime === null) startTime = currentTime;
+    const timeElapsed = currentTime - startTime;
+    const progress = Math.min(timeElapsed / duration, 1);
+    
+    // Easing function (ease-in-out cubic) - mais suave
+    const easeInOut = progress < 0.5
+      ? 4 * progress * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+    
+    element.scrollLeft = startPosition + (distance * easeInOut);
+    
+    if (timeElapsed < duration) {
+      requestAnimationFrame(animation);
+    } else {
+      isCarouselAnimating = false;
+    }
+  }
+  
+  requestAnimationFrame(animation);
 }
 
 // Expor globalmente

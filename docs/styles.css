@@ -456,7 +456,7 @@ body {
 .promoted-carousel {
     overflow-x: scroll;
     overflow-y: hidden;
-    scroll-behavior: smooth;
+    /* scroll-behavior removido - usando animação JS customizada */
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: var(--primary) var(--gray-200);
