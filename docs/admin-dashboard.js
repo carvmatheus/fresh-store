@@ -1488,8 +1488,15 @@ async function editProduct(productId) {
     openModal('productModal');
 }
 
+// Flag para evitar duplo salvamento
+let isSavingProduct = false;
+
 async function saveProduct() {
-    const formData = new FormData();
+    // Evitar duplo clique
+    if (isSavingProduct) {
+        console.log('⏳ Já está salvando, aguarde...');
+        return;
+    }
     
     const name = document.getElementById('productName').value.trim();
     const category = document.getElementById('productCategory').value;
@@ -1507,6 +1514,16 @@ async function saveProduct() {
         return;
     }
     
+    // Bloquear duplo salvamento
+    isSavingProduct = true;
+    const saveBtn = document.querySelector('#productForm button[type="submit"]');
+    const originalText = saveBtn?.textContent;
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = '⏳ Salvando...';
+    }
+    
+    const formData = new FormData();
     formData.append('name', name);
     formData.append('category', category);
     formData.append('price', price);
@@ -1552,6 +1569,13 @@ async function saveProduct() {
     } catch (error) {
         console.error('❌ Erro ao salvar produto:', error);
         alert('❌ Erro: ' + error.message);
+    } finally {
+        // Desbloquear salvamento
+        isSavingProduct = false;
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText || 'Salvar';
+        }
     }
 }
 
@@ -1577,8 +1601,8 @@ function handleProductImage(input) {
         return;
     }
     
-    // Limite de 2MB - se maior, comprimir
-    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+    // Limite de 5MB - se maior, comprimir
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
     
     if (file.size > MAX_SIZE) {
         console.log(`📷 Imagem grande (${(file.size / 1024 / 1024).toFixed(2)}MB), comprimindo...`);
@@ -1607,21 +1631,24 @@ function compressImage(file, callback) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Redimensionar para máximo 1200px mantendo proporção
-            const MAX_WIDTH = 1200;
-            const MAX_HEIGHT = 1200;
+            // Redimensionar para máximo 1920px mantendo proporção (Full HD)
+            const MAX_WIDTH = 1920;
+            const MAX_HEIGHT = 1920;
             let width = img.width;
             let height = img.height;
             
-            if (width > height) {
-                if (width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
-                }
-            } else {
-                if (height > MAX_HEIGHT) {
-                    width *= MAX_HEIGHT / height;
-                    height = MAX_HEIGHT;
+            // Só redimensionar se for maior que o máximo
+            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height = Math.round(height * MAX_WIDTH / width);
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width = Math.round(width * MAX_HEIGHT / height);
+                        height = MAX_HEIGHT;
+                    }
                 }
             }
             
@@ -1629,15 +1656,15 @@ function compressImage(file, callback) {
             canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Converter para blob com qualidade 0.8
+            // Converter para blob com qualidade 0.92 (alta qualidade)
             canvas.toBlob((blob) => {
                 const compressedFile = new File([blob], file.name, {
                     type: 'image/jpeg',
                     lastModified: Date.now()
                 });
-                console.log(`✅ Imagem comprimida: ${(compressedFile.size / 1024).toFixed(0)}KB`);
+                console.log(`✅ Imagem comprimida: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024).toFixed(0)}KB`);
                 callback(compressedFile);
-            }, 'image/jpeg', 0.8);
+            }, 'image/jpeg', 0.92);
         };
         img.src = e.target.result;
     };
