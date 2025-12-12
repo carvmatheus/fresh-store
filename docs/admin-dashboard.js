@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupNavigation();
     setupMobileMenu();
     setupModals();
+    setupGlobalFilters();
     
     // Load admin name
     try {
@@ -51,6 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Initial load
     await loadDashboardData();
+    
+    // Populate CNPJ list for autocomplete
+    populateCnpjList();
     
     console.log('✅ Dashboard inicializado');
 });
@@ -130,6 +134,319 @@ async function loadSectionData(section) {
 function setupMobileMenu() {
     // Menu mobile removido - sidebar sempre visível
     // Função mantida para compatibilidade
+}
+
+// ========== GLOBAL FILTERS ==========
+function setupGlobalFilters() {
+    // Debounce para filtros de texto
+    let filterTimeout;
+    const searchInput = document.getElementById('globalSearchInput');
+    const cnpjInput = document.getElementById('globalCnpjFilter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(applyGlobalFilters, 300);
+        });
+    }
+    
+    if (cnpjInput) {
+        cnpjInput.addEventListener('input', () => {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(applyGlobalFilters, 300);
+        });
+    }
+}
+
+function populateCnpjList() {
+    const datalist = document.getElementById('cnpjList');
+    if (!datalist || !users.length) return;
+    
+    // Pegar CNPJs únicos dos usuários
+    const cnpjs = [...new Set(users.filter(u => u.cnpj).map(u => u.cnpj))];
+    datalist.innerHTML = cnpjs.map(cnpj => `<option value="${cnpj}">`).join('');
+}
+
+function applyGlobalFilters() {
+    const searchTerm = document.getElementById('globalSearchInput')?.value.toLowerCase().trim() || '';
+    const cnpjFilter = document.getElementById('globalCnpjFilter')?.value.toLowerCase().trim() || '';
+    const categoryFilter = document.getElementById('globalCategoryFilter')?.value || '';
+    
+    console.log('🔍 Aplicando filtros:', { searchTerm, cnpjFilter, categoryFilter });
+    
+    // Aplicar filtro baseado na seção atual
+    switch (currentSection) {
+        case 'users':
+        case 'approvals':
+            filterUsersGlobal(searchTerm, cnpjFilter, categoryFilter);
+            break;
+        case 'orders':
+            filterOrdersGlobal(searchTerm, cnpjFilter, categoryFilter);
+            break;
+        case 'products':
+            filterProductsGlobal(searchTerm);
+            break;
+        case 'campaigns':
+            filterCampaignsGlobal(searchTerm);
+            break;
+        default:
+            // Dashboard - não filtra
+            break;
+    }
+}
+
+function clearGlobalFilters() {
+    document.getElementById('globalSearchInput').value = '';
+    document.getElementById('globalCnpjFilter').value = '';
+    document.getElementById('globalCategoryFilter').value = '';
+    applyGlobalFilters();
+}
+
+function filterUsersGlobal(searchTerm, cnpjFilter, categoryFilter) {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    
+    let filteredUsers = users.filter(user => {
+        // Filtro de busca por nome/empresa
+        if (searchTerm) {
+            const matchesSearch = 
+                (user.name?.toLowerCase().includes(searchTerm)) ||
+                (user.email?.toLowerCase().includes(searchTerm)) ||
+                (user.company?.toLowerCase().includes(searchTerm));
+            if (!matchesSearch) return false;
+        }
+        
+        // Filtro de CNPJ
+        if (cnpjFilter) {
+            const matchesCnpj = user.cnpj?.toLowerCase().includes(cnpjFilter);
+            if (!matchesCnpj) return false;
+        }
+        
+        // Filtro de categoria
+        if (categoryFilter) {
+            if (user.business_type !== categoryFilter) return false;
+        }
+        
+        return true;
+    });
+    
+    // Aplicar filtros da seção também
+    const roleFilter = document.getElementById('userRoleFilter')?.value || '';
+    const statusFilter = document.getElementById('userStatusFilter')?.value || '';
+    const businessFilter = document.getElementById('userBusinessFilter')?.value || '';
+    
+    if (roleFilter) filteredUsers = filteredUsers.filter(u => u.role === roleFilter);
+    if (statusFilter) filteredUsers = filteredUsers.filter(u => u.approval_status === statusFilter);
+    if (businessFilter) filteredUsers = filteredUsers.filter(u => u.business_type === businessFilter);
+    
+    renderFilteredUsers(filteredUsers);
+}
+
+function renderFilteredUsers(filteredUsers) {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    
+    if (filteredUsers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 48px; color: var(--text-muted);">Nenhum usuário encontrado com os filtros aplicados</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filteredUsers.map(user => `
+        <tr>
+            <td>
+                <div class="user-cell">
+                    <div class="user-avatar-sm">${getRoleIcon(user.role)}</div>
+                    <div class="user-details">
+                        <span class="user-name-cell">${user.name}</span>
+                        <span class="user-email-cell">${user.email}</span>
+                    </div>
+                </div>
+            </td>
+            <td><span class="role-badge ${user.role}">${getRoleLabel(user.role)}</span></td>
+            <td>
+                <div>${user.company || '-'}</div>
+                <small style="color: var(--text-muted)">${user.cnpj || ''}</small>
+            </td>
+            <td>${getBusinessTypeLabel(user.business_type)}</td>
+            <td class="date-cell ${!user.last_login ? 'never' : ''}">
+                ${user.last_login ? formatDateTime(user.last_login) : 'Nunca'}
+            </td>
+            <td class="date-cell ${!user.last_purchase ? 'never' : ''}">
+                ${user.last_purchase ? formatDateTime(user.last_purchase) : 'Nunca'}
+            </td>
+            <td class="money-cell">${formatCurrency(user.total_spent || 0)}</td>
+            <td><span class="status-badge ${user.approval_status}">${getApprovalLabel(user.approval_status)}</span></td>
+            <td>
+                <button class="btn-icon" onclick="viewUser('${user.id}')" title="Ver detalhes">👁️</button>
+                ${user.approval_status === 'approved' ? 
+                    `<button class="btn-icon" onclick="suspendUser('${user.id}')" title="Suspender">⛔</button>` :
+                    `<button class="btn-icon" onclick="reactivateUser('${user.id}')" title="Reativar">✅</button>`
+                }
+            </td>
+        </tr>
+    `).join('');
+}
+
+function filterOrdersGlobal(searchTerm, cnpjFilter, categoryFilter) {
+    const container = document.getElementById('ordersListContainer');
+    if (!container) return;
+    
+    let filteredOrders = orders;
+    
+    // Se há filtros de usuário, filtrar pedidos por usuário
+    if (searchTerm || cnpjFilter || categoryFilter) {
+        // Primeiro encontrar usuários que correspondem
+        const matchingUserIds = users.filter(user => {
+            if (searchTerm) {
+                const matchesSearch = 
+                    (user.name?.toLowerCase().includes(searchTerm)) ||
+                    (user.email?.toLowerCase().includes(searchTerm)) ||
+                    (user.company?.toLowerCase().includes(searchTerm));
+                if (!matchesSearch) return false;
+            }
+            if (cnpjFilter && !user.cnpj?.toLowerCase().includes(cnpjFilter)) return false;
+            if (categoryFilter && user.business_type !== categoryFilter) return false;
+            return true;
+        }).map(u => u.id);
+        
+        filteredOrders = orders.filter(o => matchingUserIds.includes(o.user_id));
+    }
+    
+    // Aplicar filtro de status
+    const statusFilter = document.getElementById('orderStatusFilter')?.value || '';
+    if (statusFilter) {
+        filteredOrders = filteredOrders.filter(o => o.status === statusFilter);
+    }
+    
+    renderFilteredOrders(filteredOrders);
+}
+
+function renderFilteredOrders(filteredOrders) {
+    const container = document.getElementById('ordersListContainer');
+    if (!container) return;
+    
+    if (filteredOrders.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-icon">📦</span>
+                <p class="empty-state-text">Nenhum pedido encontrado com os filtros aplicados</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filteredOrders.map(order => {
+        const user = users.find(u => u.id === order.user_id) || {};
+        return `
+        <div class="order-card">
+            <div class="order-header">
+                <div class="order-info">
+                    <span class="order-number">#${order.order_number}</span>
+                    <span class="order-date">${formatDateTime(order.created_at)}</span>
+                </div>
+                <span class="status-badge ${order.status}">${getStatusLabel(order.status)}</span>
+            </div>
+            <div class="order-body">
+                <div class="order-customer">
+                    <strong>${user.name || 'Cliente'}</strong>
+                    <span>${user.company || ''}</span>
+                    <small>${user.cnpj || ''}</small>
+                </div>
+                <div class="order-items">
+                    ${(order.items || []).slice(0, 3).map(item => `
+                        <span class="order-item">${item.quantity}x ${item.name}</span>
+                    `).join('')}
+                    ${(order.items || []).length > 3 ? `<span class="order-item">+${order.items.length - 3} itens</span>` : ''}
+                </div>
+                <div class="order-total">
+                    <span class="total-label">Total</span>
+                    <span class="total-value">${formatCurrency(order.total)}</span>
+                </div>
+            </div>
+            <div class="order-actions">
+                <select class="status-select" onchange="updateOrderStatus('${order.id}', this.value)">
+                    <option value="pendente" ${order.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                    <option value="confirmado" ${order.status === 'confirmado' ? 'selected' : ''}>Confirmado</option>
+                    <option value="em_preparacao" ${order.status === 'em_preparacao' ? 'selected' : ''}>Em Preparação</option>
+                    <option value="em_transporte" ${order.status === 'em_transporte' ? 'selected' : ''}>Em Transporte</option>
+                    <option value="concluido" ${order.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                    <option value="cancelado" ${order.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                </select>
+            </div>
+        </div>
+    `}).join('');
+}
+
+function filterProductsGlobal(searchTerm) {
+    if (!searchTerm) {
+        renderProducts();
+        return;
+    }
+    
+    const filtered = products.filter(p => 
+        p.name?.toLowerCase().includes(searchTerm) ||
+        p.category?.toLowerCase().includes(searchTerm)
+    );
+    
+    renderFilteredProducts(filtered);
+}
+
+function renderFilteredProducts(filtered) {
+    const tbody = document.getElementById('productsTableBody');
+    if (!tbody) return;
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 48px; color: var(--text-muted);">Nenhum produto encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filtered.map(product => {
+        const effectivePrice = product.is_promo && product.promo_price ? product.promo_price : product.price;
+        return `
+            <tr>
+                <td>
+                    <img src="${product.image_url || 'https://via.placeholder.com/50'}" class="product-thumb" alt="${product.name}">
+                </td>
+                <td><strong>${product.name}</strong></td>
+                <td><span class="category-badge">${product.category}</span></td>
+                <td class="money-cell">
+                    ${product.is_promo ? `<s style="color: var(--text-muted); font-size: 12px;">R$ ${product.price?.toFixed(2)}</s><br>` : ''}
+                    R$ ${effectivePrice?.toFixed(2)}
+                </td>
+                <td>${product.stock} ${product.unit}</td>
+                <td>
+                    ${product.is_promo ? '<span class="promo-badge">🔥 Promo</span>' : '<span style="color: var(--text-muted)">-</span>'}
+                </td>
+                <td>
+                    <button class="btn-icon" onclick="openProductModal('${product.id}')" title="Editar">✏️</button>
+                    <button class="btn-icon" onclick="deleteProduct('${product.id}')" title="Excluir">🗑️</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterCampaignsGlobal(searchTerm) {
+    if (!searchTerm) {
+        renderCampaigns();
+        return;
+    }
+    
+    const filtered = campaigns.filter(c => 
+        c.name?.toLowerCase().includes(searchTerm) ||
+        c.description?.toLowerCase().includes(searchTerm)
+    );
+    
+    // Renderizar campanhas filtradas
+    const container = document.getElementById('campaignsContainer');
+    if (container && filtered.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <span class="empty-state-icon">🎯</span>
+                <p class="empty-state-text">Nenhuma campanha encontrada</p>
+            </div>
+        `;
+    }
 }
 
 // ========== DASHBOARD ==========
@@ -660,7 +977,7 @@ function renderOrders() {
 }
 
 function filterOrders() {
-    loadOrders();
+    applyGlobalFilters();
 }
 
 function refreshOrders() {
@@ -691,6 +1008,7 @@ async function loadUsers() {
         
         users = await api.getUsers(status, businessType, role);
         renderUsers();
+        populateCnpjList(); // Atualizar lista de CNPJs para autocomplete
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
         users = [];
@@ -801,7 +1119,7 @@ function getRoleLabel(role) {
 }
 
 function filterUsers() {
-    loadUsers();
+    applyGlobalFilters();
 }
 
 async function viewUser(userId) {

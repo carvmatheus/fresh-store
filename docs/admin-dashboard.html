@@ -80,16 +80,40 @@
                 <h1 class="page-title" id="pageTitle">Dashboard</h1>
             </div>
             <div class="header-right">
-                <div class="header-search">
-                    <input type="text" placeholder="Buscar..." id="globalSearch">
-                    <span class="search-icon">🔍</span>
-                </div>
                 <div class="user-info">
                     <span class="user-name" id="adminName">Admin</span>
                     <div class="user-avatar">👤</div>
                 </div>
             </div>
         </header>
+
+        <!-- Global Filters Bar -->
+        <div class="global-filters-bar" id="globalFiltersBar">
+            <div class="filter-group">
+                <label>🔍 Buscar</label>
+                <input type="text" id="globalSearchInput" placeholder="Nome, empresa..." onkeyup="applyGlobalFilters()">
+            </div>
+            <div class="filter-group">
+                <label>📋 CNPJ</label>
+                <input type="text" id="globalCnpjFilter" list="cnpjList" placeholder="Digite ou selecione..." onchange="applyGlobalFilters()" onkeyup="applyGlobalFilters()">
+                <datalist id="cnpjList"></datalist>
+            </div>
+            <div class="filter-group">
+                <label>🏷️ Categoria</label>
+                <select id="globalCategoryFilter" onchange="applyGlobalFilters()">
+                    <option value="">Todas</option>
+                    <option value="hotel">Hotel</option>
+                    <option value="mercado">Mercado</option>
+                    <option value="restaurante">Restaurante</option>
+                    <option value="padaria">Padaria</option>
+                    <option value="lanchonete">Lanchonete</option>
+                    <option value="bar">Bar</option>
+                    <option value="cafeteria">Cafeteria</option>
+                    <option value="outros">Outros</option>
+                </select>
+            </div>
+            <button class="filter-clear-btn" onclick="clearGlobalFilters()">✕ Limpar</button>
+        </div>
 
         <!-- Content Sections -->
         <div class="admin-content">
