@@ -161,6 +161,10 @@ async function loadDashboardData() {
         renderCategoryChart(metrics.users_by_business_type || {});
         renderTopCustomers(metrics.top_customers || []);
         
+        // Render TPV chart
+        renderTPVChart(orders, 7);
+        setupTPVPeriodSelector();
+        
         // Render recent activity
         renderRecentOrders(orders.slice(0, 5));
         renderRecentUsers(await loadRecentUsers());
@@ -197,6 +201,86 @@ function renderCategoryChart(data) {
             </div>
         `;
     }).join('');
+}
+
+// ========== TPV CHART ==========
+function renderTPVChart(ordersData, days = 7) {
+    const container = document.getElementById('tpvChart');
+    const totalEl = document.getElementById('tpvTotal');
+    const averageEl = document.getElementById('tpvAverage');
+    
+    if (!container) return;
+    
+    // Calcular datas
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - days + 1);
+    
+    // Agrupar pedidos por dia
+    const dailyTotals = {};
+    for (let i = 0; i < days; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        const dateKey = date.toISOString().split('T')[0];
+        dailyTotals[dateKey] = 0;
+    }
+    
+    // Somar valores dos pedidos
+    ordersData.forEach(order => {
+        if (!order.created_at) return;
+        const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+        if (dailyTotals.hasOwnProperty(orderDate)) {
+            dailyTotals[orderDate] += parseFloat(order.total) || 0;
+        }
+    });
+    
+    // Calcular totais
+    const values = Object.values(dailyTotals);
+    const total = values.reduce((sum, v) => sum + v, 0);
+    const average = values.length > 0 ? total / values.length : 0;
+    const maxValue = Math.max(...values, 1);
+    
+    // Atualizar resumo
+    if (totalEl) totalEl.textContent = formatCurrency(total);
+    if (averageEl) averageEl.textContent = formatCurrency(average);
+    
+    // Renderizar barras
+    const entries = Object.entries(dailyTotals);
+    container.innerHTML = entries.map(([date, value]) => {
+        const height = maxValue > 0 ? (value / maxValue) * 180 : 0;
+        const dateObj = new Date(date + 'T12:00:00');
+        const dayName = dateObj.toLocaleDateString('pt-BR', { weekday: 'short' });
+        const dayNum = dateObj.getDate();
+        
+        return `
+            <div class="tpv-bar-container">
+                <div class="tpv-bar" style="height: ${Math.max(height, 4)}px">
+                    <div class="tpv-bar-tooltip">
+                        ${formatCurrency(value)}<br>
+                        <small>${dateObj.toLocaleDateString('pt-BR')}</small>
+                    </div>
+                </div>
+                <span class="tpv-date">${dayName}<br>${dayNum}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function setupTPVPeriodSelector() {
+    const buttons = document.querySelectorAll('.period-btn');
+    
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remover active de todos
+            buttons.forEach(b => b.classList.remove('active'));
+            // Adicionar active ao clicado
+            btn.classList.add('active');
+            
+            // Atualizar gráfico
+            const days = parseInt(btn.dataset.period);
+            renderTPVChart(orders, days);
+        });
+    });
 }
 
 function renderTopCustomers(customers) {
