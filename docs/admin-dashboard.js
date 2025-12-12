@@ -607,8 +607,9 @@ async function loadUsers() {
     try {
         const status = document.getElementById('userStatusFilter')?.value || '';
         const businessType = document.getElementById('userBusinessFilter')?.value || '';
+        const role = document.getElementById('userRoleFilter')?.value || '';
         
-        users = await api.getUsers(status, businessType);
+        users = await api.getUsers(status, businessType, role);
         renderUsers();
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
@@ -617,12 +618,53 @@ async function loadUsers() {
     }
 }
 
+// Criar novo usuário (consultor ou admin)
+async function openNewUserModal() {
+    document.getElementById('newUserForm').reset();
+    openModal('newUserModal');
+}
+
+async function saveNewUser() {
+    const form = document.getElementById('newUserForm');
+    const formData = new FormData(form);
+    
+    const userData = {
+        email: formData.get('email'),
+        username: formData.get('username'),
+        name: formData.get('name'),
+        password: formData.get('password'),
+        role: formData.get('role'),
+        company: formData.get('company') || null,
+        phone: formData.get('phone') || null
+    };
+    
+    // Validação
+    if (!userData.email || !userData.username || !userData.name || !userData.password) {
+        alert('Por favor, preencha todos os campos obrigatórios');
+        return;
+    }
+    
+    if (userData.password.length < 6) {
+        alert('A senha deve ter pelo menos 6 caracteres');
+        return;
+    }
+    
+    try {
+        await api.createUser(userData);
+        closeModal('newUserModal');
+        alert('✅ Usuário criado com sucesso!');
+        await loadUsers();
+    } catch (error) {
+        alert('❌ Erro ao criar usuário: ' + error.message);
+    }
+}
+
 function renderUsers() {
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
     
     if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 48px; color: var(--text-muted);">Nenhum cliente encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 48px; color: var(--text-muted);">Nenhum usuário encontrado</td></tr>';
         return;
     }
     
@@ -630,13 +672,14 @@ function renderUsers() {
         <tr>
             <td>
                 <div class="user-cell">
-                    <div class="user-avatar-sm">👤</div>
+                    <div class="user-avatar-sm">${getRoleIcon(user.role)}</div>
                     <div class="user-details">
                         <span class="user-name-cell">${user.name}</span>
                         <span class="user-email-cell">${user.email}</span>
                     </div>
                 </div>
             </td>
+            <td><span class="role-badge ${user.role}">${getRoleLabel(user.role)}</span></td>
             <td>
                 <div>${user.company || '-'}</div>
                 <small style="color: var(--text-muted)">${user.cnpj || ''}</small>
@@ -659,6 +702,22 @@ function renderUsers() {
             </td>
         </tr>
     `).join('');
+}
+
+function getRoleIcon(role) {
+    switch (role) {
+        case 'admin': return '👑';
+        case 'consultor': return '🎯';
+        default: return '👤';
+    }
+}
+
+function getRoleLabel(role) {
+    switch (role) {
+        case 'admin': return 'Administrador';
+        case 'consultor': return 'Consultor';
+        default: return 'Cliente';
+    }
 }
 
 function filterUsers() {
@@ -1183,13 +1242,21 @@ if (typeof api !== 'undefined') {
         return this.request('/users/metrics', { method: 'GET' });
     };
     
-    api.getUsers = async function(status = '', businessType = '') {
+    api.getUsers = async function(status = '', businessType = '', role = '') {
         let url = '/users/';
         const params = [];
+        if (role) params.push(`role=${role}`);
         if (status) params.push(`status=${status}`);
         if (businessType) params.push(`business_type=${businessType}`);
         if (params.length) url += '?' + params.join('&');
         return this.request(url, { method: 'GET' });
+    };
+    
+    api.createUser = async function(userData) {
+        return this.request('/users/', {
+            method: 'POST',
+            body: JSON.stringify(userData)
+        });
     };
     
     api.getUser = async function(userId) {

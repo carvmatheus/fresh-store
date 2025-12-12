@@ -406,13 +406,13 @@
                     password: password,
                     name: document.getElementById('contactName').value.trim(),
                     company: document.getElementById('nomeFantasia').value.trim(),
-                    role: 'cliente',
-                    // Dados extras para armazenar
+                    // Dados da empresa
                     business_type: document.getElementById('businessType').value,
                     cnpj: document.getElementById('cnpj').value,
                     ie: document.getElementById('ie').value,
                     razao_social: document.getElementById('razaoSocial').value,
                     phone: document.getElementById('contactPhone').value,
+                    // Endereço
                     address: {
                         cep: document.getElementById('cep').value,
                         street: document.getElementById('street').value,
@@ -423,10 +423,8 @@
                         state: document.getElementById('state').value
                     },
                     // Dados de Pagamento
-                    payment_preference: {
-                        type: document.getElementById('paymentType').value,
-                        justificativa: document.getElementById('justificativaFaturamento').value.trim() || null
-                    }
+                    payment_preference: document.getElementById('paymentType').value,
+                    payment_justification: document.getElementById('justificativaFaturamento').value.trim() || null
                 };
                 
                 console.log('📤 Enviando dados de cadastro:', userData);
