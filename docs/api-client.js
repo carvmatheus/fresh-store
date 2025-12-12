@@ -70,6 +70,24 @@ class ApiClient {
                 return null;
             }
             
+            // Verificar se a resposta é JSON antes de tentar parsear
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('❌ Resposta não é JSON:', text.substring(0, 200));
+                
+                if (response.status === 404) {
+                    throw new Error('Rota não encontrada no servidor. Verifique se o backend está rodando.');
+                }
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('Não autorizado. Faça login novamente.');
+                }
+                if (response.status >= 500) {
+                    throw new Error('Erro interno do servidor. Tente novamente mais tarde.');
+                }
+                throw new Error(`Resposta inválida do servidor (${response.status})`);
+            }
+            
             const data = await response.json();
             
             if (!response.ok) {

@@ -438,10 +438,21 @@
                     <div class="image-upload-area">
                         <input type="file" id="productImageFile" accept="image/*" onchange="handleProductImage(this)">
                         <input type="hidden" id="productImageUrl">
-                        <div class="image-preview" id="productImagePreview" onclick="document.getElementById('productImageFile').click()">
-                            <div class="preview-placeholder">
-                                <span class="preview-icon">🖼️</span>
-                                <p>Clique para selecionar</p>
+                        <div class="image-preview-container">
+                            <div class="image-preview" id="productImagePreview" onclick="document.getElementById('productImageFile').click()">
+                                <div class="preview-placeholder" id="previewPlaceholder">
+                                    <span class="preview-icon">🖼️</span>
+                                    <p>Clique para selecionar</p>
+                                </div>
+                                <img id="previewImage" src="" alt="Preview" style="display: none;">
+                            </div>
+                            <div class="image-actions" id="imageActions" style="display: none;">
+                                <button type="button" class="image-action-btn edit" onclick="document.getElementById('productImageFile').click()" title="Alterar imagem">
+                                    ✏️
+                                </button>
+                                <button type="button" class="image-action-btn remove" onclick="removeProductImage()" title="Remover imagem">
+                                    🗑️
+                                </button>
                             </div>
                         </div>
                     </div>

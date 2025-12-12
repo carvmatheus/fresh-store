@@ -1480,8 +1480,9 @@ async function editProduct(productId) {
     
     // Show image preview
     if (product.image_url) {
-        const preview = document.getElementById('productImagePreview');
-        preview.innerHTML = `<img src="${product.image_url}" alt="Preview">`;
+        showImagePreview(product.image_url);
+    } else {
+        resetImagePreview();
     }
     
     openModal('productModal');
@@ -1490,18 +1491,36 @@ async function editProduct(productId) {
 async function saveProduct() {
     const formData = new FormData();
     
-    formData.append('name', document.getElementById('productName').value);
-    formData.append('category', document.getElementById('productCategory').value);
-    formData.append('price', parseFloat(document.getElementById('productPrice').value));
-    formData.append('unit', document.getElementById('productUnit').value);
-    formData.append('min_order', parseInt(document.getElementById('productMinOrder').value) || 1);
-    formData.append('stock', parseInt(document.getElementById('productStock').value));
-    formData.append('description', document.getElementById('productDescription').value || '');
-    formData.append('is_promo', document.getElementById('productIsPromo').checked);
-    
+    const name = document.getElementById('productName').value.trim();
+    const category = document.getElementById('productCategory').value;
+    const price = document.getElementById('productPrice').value;
+    const unit = document.getElementById('productUnit').value;
+    const minOrder = document.getElementById('productMinOrder').value || '1';
+    const stock = document.getElementById('productStock').value;
+    const description = document.getElementById('productDescription').value || '';
+    const isPromo = document.getElementById('productIsPromo').checked;
     const promoPrice = document.getElementById('productPromoPrice').value;
-    if (promoPrice) {
-        formData.append('promo_price', parseFloat(promoPrice));
+    
+    // Validação básica
+    if (!name || !category || !price || !unit || !stock) {
+        alert('❌ Preencha todos os campos obrigatórios');
+        return;
+    }
+    
+    formData.append('name', name);
+    formData.append('category', category);
+    formData.append('price', price);
+    formData.append('unit', unit);
+    formData.append('min_order', minOrder);
+    formData.append('stock', stock);
+    formData.append('description', description);
+    
+    // Boolean como string para FormData
+    if (isPromo) {
+        formData.append('is_promo', 'true');
+        if (promoPrice) {
+            formData.append('promo_price', promoPrice);
+        }
     }
     
     const imageFile = document.getElementById('productImageFile')?.files[0];
@@ -1511,6 +1530,12 @@ async function saveProduct() {
         formData.append('image_file', imageFile);
     } else if (imageUrl) {
         formData.append('image_url', imageUrl);
+    }
+    
+    // Debug
+    console.log('📦 Salvando produto...');
+    for (let [key, value] of formData.entries()) {
+        console.log(`   ${key}: ${value}`);
     }
     
     try {
@@ -1525,6 +1550,7 @@ async function saveProduct() {
         closeProductModal();
         await loadProducts();
     } catch (error) {
+        console.error('❌ Erro ao salvar produto:', error);
         alert('❌ Erro: ' + error.message);
     }
 }
@@ -1553,22 +1579,43 @@ function handleProductImage(input) {
     
     const reader = new FileReader();
     reader.onload = (e) => {
-        const preview = document.getElementById('productImagePreview');
-        preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+        showImagePreview(e.target.result);
     };
     reader.readAsDataURL(file);
 }
 
-function resetImagePreview() {
-    const preview = document.getElementById('productImagePreview');
-    if (preview) {
-        preview.innerHTML = `
-            <div class="preview-placeholder">
-                <span class="preview-icon">🖼️</span>
-                <p>Clique para selecionar</p>
-            </div>
-        `;
+function showImagePreview(imageSrc) {
+    const placeholder = document.getElementById('previewPlaceholder');
+    const previewImage = document.getElementById('previewImage');
+    const imageActions = document.getElementById('imageActions');
+    
+    if (placeholder) placeholder.style.display = 'none';
+    if (previewImage) {
+        previewImage.src = imageSrc;
+        previewImage.style.display = 'block';
     }
+    if (imageActions) imageActions.style.display = 'flex';
+}
+
+function removeProductImage() {
+    const placeholder = document.getElementById('previewPlaceholder');
+    const previewImage = document.getElementById('previewImage');
+    const imageActions = document.getElementById('imageActions');
+    const fileInput = document.getElementById('productImageFile');
+    const urlInput = document.getElementById('productImageUrl');
+    
+    if (placeholder) placeholder.style.display = 'flex';
+    if (previewImage) {
+        previewImage.src = '';
+        previewImage.style.display = 'none';
+    }
+    if (imageActions) imageActions.style.display = 'none';
+    if (fileInput) fileInput.value = '';
+    if (urlInput) urlInput.value = '';
+}
+
+function resetImagePreview() {
+    removeProductImage();
 }
 
 // Campaign Modal
