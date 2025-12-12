@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial load
     await loadDashboardData();
     
-    // Populate CNPJ list for autocomplete
-    populateCnpjList();
+    // Populate comboboxes com dados dos usuários
+    await populateComboboxes();
     
     console.log('✅ Dashboard inicializado');
 });
@@ -158,86 +158,209 @@ function setupGlobalFilters() {
     }
 }
 
-function populateCnpjList() {
-    const datalist = document.getElementById('cnpjList');
-    if (!datalist || !users.length) return;
+// Dados para os comboboxes
+let comboboxData = {
+    responsavel: [],
+    empresa: [],
+    cnpj: [],
+    categoria: ['Hotel', 'Mercado', 'Restaurante', 'Padaria', 'Lanchonete', 'Bar', 'Cafeteria', 'Outros']
+};
+
+async function populateComboboxes() {
+    // Se não tiver usuários carregados, carregar primeiro
+    if (!users.length) {
+        try {
+            users = await api.getUsers();
+        } catch (e) {
+            console.error('Erro ao carregar usuários para comboboxes:', e);
+        }
+    }
     
-    // Pegar CNPJs únicos dos usuários
-    const cnpjs = [...new Set(users.filter(u => u.cnpj).map(u => u.cnpj))];
-    datalist.innerHTML = cnpjs.map(cnpj => `<option value="${cnpj}">`).join('');
+    // Extrair dados únicos dos usuários
+    comboboxData.responsavel = [...new Set(users.filter(u => u.name).map(u => u.name))].sort();
+    comboboxData.empresa = [...new Set(users.filter(u => u.company).map(u => u.company))].sort();
+    comboboxData.cnpj = [...new Set(users.filter(u => u.cnpj).map(u => u.cnpj))].sort();
+    
+    console.log('📋 Comboboxes populados:', {
+        responsaveis: comboboxData.responsavel.length,
+        empresas: comboboxData.empresa.length,
+        cnpjs: comboboxData.cnpj.length
+    });
+    
+    // Popular todos os dropdowns
+    renderComboboxOptions('responsavel');
+    renderComboboxOptions('empresa');
+    renderComboboxOptions('cnpj');
+    renderComboboxOptions('categoria');
 }
 
+function renderComboboxOptions(type, filter = '') {
+    const dropdown = document.getElementById(`${type}Dropdown`);
+    if (!dropdown) return;
+    
+    const data = comboboxData[type] || [];
+    const filtered = filter 
+        ? data.filter(item => item.toLowerCase().includes(filter.toLowerCase()))
+        : data;
+    
+    let html = `<div class="combobox-option combobox-option-clear" onclick="selectComboboxOption('${type}', '')">Todos</div>`;
+    html += filtered.map(item => 
+        `<div class="combobox-option" onclick="selectComboboxOption('${type}', '${item.replace(/'/g, "\\'")}')">${item}</div>`
+    ).join('');
+    
+    dropdown.innerHTML = html;
+}
+
+function toggleCombobox(type) {
+    const combobox = document.getElementById(`${type}Combobox`);
+    const isOpen = combobox.classList.contains('open');
+    
+    // Fechar todos os outros comboboxes
+    document.querySelectorAll('.combobox').forEach(cb => cb.classList.remove('open'));
+    
+    // Abrir/fechar o atual
+    if (!isOpen) {
+        combobox.classList.add('open');
+        renderComboboxOptions(type); // Resetar filtro ao abrir
+    }
+}
+
+function filterComboboxOptions(type) {
+    const input = document.getElementById(`filter${capitalize(type)}`);
+    const value = input?.value || '';
+    renderComboboxOptions(type, value);
+    
+    // Abrir dropdown enquanto digita
+    const combobox = document.getElementById(`${type}Combobox`);
+    if (value && !combobox.classList.contains('open')) {
+        combobox.classList.add('open');
+    }
+    
+    // Aplicar filtros em tempo real
+    applyGlobalFilters();
+}
+
+function selectComboboxOption(type, value) {
+    const input = document.getElementById(`filter${capitalize(type)}`);
+    if (input) {
+        input.value = value;
+    }
+    
+    // Fechar dropdown
+    const combobox = document.getElementById(`${type}Combobox`);
+    combobox.classList.remove('open');
+    
+    // Aplicar filtros
+    applyGlobalFilters();
+}
+
+// Fechar comboboxes ao clicar fora
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.combobox')) {
+        document.querySelectorAll('.combobox').forEach(cb => cb.classList.remove('open'));
+    }
+});
+
+
 function applyGlobalFilters() {
-    const searchTerm = document.getElementById('globalSearchInput')?.value.toLowerCase().trim() || '';
-    const cnpjFilter = document.getElementById('globalCnpjFilter')?.value.toLowerCase().trim() || '';
-    const categoryFilter = document.getElementById('globalCategoryFilter')?.value || '';
+    const responsavelFilter = document.getElementById('filterResponsavel')?.value.trim() || '';
+    const empresaFilter = document.getElementById('filterEmpresa')?.value.trim() || '';
+    const cnpjFilter = document.getElementById('filterCnpj')?.value.trim() || '';
+    const categoryFilter = document.getElementById('filterCategoria')?.value.trim().toLowerCase() || '';
     
-    console.log('🔍 Aplicando filtros:', { searchTerm, cnpjFilter, categoryFilter });
+    const filters = { responsavelFilter, empresaFilter, cnpjFilter, categoryFilter };
+    console.log('🔍 Aplicando filtros:', filters);
     
-    // Aplicar filtro baseado na seção atual
-    switch (currentSection) {
-        case 'users':
-        case 'approvals':
-            filterUsersGlobal(searchTerm, cnpjFilter, categoryFilter);
-            break;
-        case 'orders':
-            filterOrdersGlobal(searchTerm, cnpjFilter, categoryFilter);
-            break;
-        case 'products':
-            filterProductsGlobal(searchTerm);
-            break;
-        case 'campaigns':
-            filterCampaignsGlobal(searchTerm);
-            break;
-        default:
-            // Dashboard - não filtra
-            break;
+    // Aplicar filtro em TODAS as seções (filtro master)
+    filterUsersGlobal(filters);
+    filterOrdersGlobal(filters);
+    
+    // Re-render dashboard se estiver nele
+    if (currentSection === 'dashboard') {
+        filterDashboardMetrics(filters);
     }
 }
 
 function clearGlobalFilters() {
-    document.getElementById('globalSearchInput').value = '';
-    document.getElementById('globalCnpjFilter').value = '';
-    document.getElementById('globalCategoryFilter').value = '';
-    applyGlobalFilters();
+    document.getElementById('filterResponsavel').value = '';
+    document.getElementById('filterEmpresa').value = '';
+    document.getElementById('filterCnpj').value = '';
+    document.getElementById('filterCategoria').value = '';
+    
+    // Re-render all data
+    renderUsers();
+    renderOrders();
+    if (currentSection === 'dashboard') {
+        loadDashboardData();
+    }
 }
 
-function filterUsersGlobal(searchTerm, cnpjFilter, categoryFilter) {
+function filterDashboardMetrics(filters) {
+    const { responsavelFilter, empresaFilter, cnpjFilter, categoryFilter } = filters;
+    
+    // Filtrar usuários para métricas
+    let filteredUsers = users.filter(user => {
+        if (responsavelFilter && !user.name?.toLowerCase().includes(responsavelFilter.toLowerCase())) return false;
+        if (empresaFilter && !user.company?.toLowerCase().includes(empresaFilter.toLowerCase())) return false;
+        if (cnpjFilter && !user.cnpj?.toLowerCase().includes(cnpjFilter.toLowerCase())) return false;
+        if (categoryFilter && user.business_type?.toLowerCase() !== categoryFilter.toLowerCase()) return false;
+        return true;
+    });
+    
+    // Filtrar pedidos dos usuários filtrados
+    const filteredUserIds = filteredUsers.map(u => u.id);
+    let filteredOrders = orders.filter(o => filteredUserIds.includes(o.user_id));
+    
+    // Atualizar métricas no dashboard
+    const activeClients = filteredUsers.filter(u => u.approval_status === 'approved').length;
+    const totalOrders = filteredOrders.length;
+    const pendingOrders = filteredOrders.filter(o => o.status === 'pendente').length;
+    const totalRevenue = filteredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    
+    // Atualizar cards de KPI
+    document.getElementById('kpiActiveClients').textContent = activeClients;
+    document.getElementById('kpiTotalOrders').textContent = totalOrders;
+    document.getElementById('kpiPendingOrders').textContent = pendingOrders;
+    document.getElementById('kpiRevenue').textContent = `R$ ${totalRevenue.toFixed(2)}`;
+}
+
+function filterUsersGlobal(filters) {
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
     
+    const { responsavelFilter, empresaFilter, cnpjFilter, categoryFilter } = filters;
+    
     let filteredUsers = users.filter(user => {
-        // Filtro de busca por nome/empresa
-        if (searchTerm) {
-            const matchesSearch = 
-                (user.name?.toLowerCase().includes(searchTerm)) ||
-                (user.email?.toLowerCase().includes(searchTerm)) ||
-                (user.company?.toLowerCase().includes(searchTerm));
-            if (!matchesSearch) return false;
+        // Filtro por responsável (nome)
+        if (responsavelFilter) {
+            const matchesResponsavel = user.name?.toLowerCase().includes(responsavelFilter.toLowerCase());
+            if (!matchesResponsavel) return false;
+        }
+        
+        // Filtro por empresa
+        if (empresaFilter) {
+            const matchesEmpresa = user.company?.toLowerCase().includes(empresaFilter.toLowerCase());
+            if (!matchesEmpresa) return false;
         }
         
         // Filtro de CNPJ
         if (cnpjFilter) {
-            const matchesCnpj = user.cnpj?.toLowerCase().includes(cnpjFilter);
+            const matchesCnpj = user.cnpj?.toLowerCase().includes(cnpjFilter.toLowerCase());
             if (!matchesCnpj) return false;
         }
         
-        // Filtro de categoria
-        if (categoryFilter) {
-            if (user.business_type !== categoryFilter) return false;
-        }
+        // Filtro de categoria/segmento
+        if (categoryFilter && user.business_type?.toLowerCase() !== categoryFilter.toLowerCase()) return false;
         
         return true;
     });
     
-    // Aplicar filtros da seção também
+    // Aplicar filtros da seção também (se existirem)
     const roleFilter = document.getElementById('userRoleFilter')?.value || '';
     const statusFilter = document.getElementById('userStatusFilter')?.value || '';
-    const businessFilter = document.getElementById('userBusinessFilter')?.value || '';
     
     if (roleFilter) filteredUsers = filteredUsers.filter(u => u.role === roleFilter);
     if (statusFilter) filteredUsers = filteredUsers.filter(u => u.approval_status === statusFilter);
-    if (businessFilter) filteredUsers = filteredUsers.filter(u => u.business_type === businessFilter);
     
     renderFilteredUsers(filteredUsers);
 }
@@ -287,25 +410,31 @@ function renderFilteredUsers(filteredUsers) {
     `).join('');
 }
 
-function filterOrdersGlobal(searchTerm, cnpjFilter, categoryFilter) {
+function filterOrdersGlobal(filters) {
     const container = document.getElementById('ordersListContainer');
     if (!container) return;
     
-    let filteredOrders = orders;
+    const { responsavelFilter, empresaFilter, cnpjFilter, categoryFilter } = filters;
+    
+    let filteredOrders = [...orders];
     
     // Se há filtros de usuário, filtrar pedidos por usuário
-    if (searchTerm || cnpjFilter || categoryFilter) {
+    if (responsavelFilter || empresaFilter || cnpjFilter || categoryFilter) {
         // Primeiro encontrar usuários que correspondem
         const matchingUserIds = users.filter(user => {
-            if (searchTerm) {
-                const matchesSearch = 
-                    (user.name?.toLowerCase().includes(searchTerm)) ||
-                    (user.email?.toLowerCase().includes(searchTerm)) ||
-                    (user.company?.toLowerCase().includes(searchTerm));
-                if (!matchesSearch) return false;
+            if (responsavelFilter) {
+                const matchesResponsavel = user.name?.toLowerCase().includes(responsavelFilter.toLowerCase());
+                if (!matchesResponsavel) return false;
             }
-            if (cnpjFilter && !user.cnpj?.toLowerCase().includes(cnpjFilter)) return false;
-            if (categoryFilter && user.business_type !== categoryFilter) return false;
+            if (empresaFilter) {
+                const matchesEmpresa = user.company?.toLowerCase().includes(empresaFilter.toLowerCase());
+                if (!matchesEmpresa) return false;
+            }
+            if (cnpjFilter) {
+                const matchesCnpj = user.cnpj?.toLowerCase().includes(cnpjFilter.toLowerCase());
+                if (!matchesCnpj) return false;
+            }
+            if (categoryFilter && user.business_type?.toLowerCase() !== categoryFilter.toLowerCase()) return false;
             return true;
         }).map(u => u.id);
         
@@ -1008,7 +1137,7 @@ async function loadUsers() {
         
         users = await api.getUsers(status, businessType, role);
         renderUsers();
-        populateCnpjList(); // Atualizar lista de CNPJs para autocomplete
+        populateComboboxes(); // Atualizar comboboxes com dados dos usuários
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
         users = [];
