@@ -80,16 +80,31 @@
     padding: var(--spacing-lg);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     border-bottom: 1px solid var(--admin-border);
+    min-height: 80px;
 }
 
 .sidebar-logo {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    justify-content: center;
+    width: 100%;
 }
 
+.logo-image {
+    max-width: 180px;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    transition: transform var(--transition-normal);
+}
+
+.logo-image:hover {
+    transform: scale(1.02);
+}
+
+/* Legacy icon/text styles (fallback) */
 .logo-icon {
     font-size: 28px;
 }
@@ -273,26 +288,7 @@
     gap: var(--spacing-md);
 }
 
-.mobile-menu-btn {
-    display: none;
-    background: none;
-    border: none;
-    width: 36px;
-    height: 36px;
-    cursor: pointer;
-    flex-direction: column;
-    gap: 5px;
-    align-items: center;
-    justify-content: center;
-}
-
-.mobile-menu-btn span {
-    display: block;
-    width: 22px;
-    height: 2px;
-    background: var(--text-primary);
-    border-radius: 1px;
-}
+/* Mobile menu button removed - sidebar always visible */
 
 .page-title {
     font-size: 22px;
@@ -1682,12 +1678,16 @@
         transform: translateX(0);
     }
     
-    .admin-main {
-        margin-left: 0;
+    .admin-sidebar {
+        width: 200px;
     }
     
-    .mobile-menu-btn {
-        display: flex;
+    .admin-main {
+        margin-left: 200px;
+    }
+    
+    .logo-image {
+        max-width: 140px;
     }
     
     .header-search {

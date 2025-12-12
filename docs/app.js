@@ -288,9 +288,9 @@ function loadProducts() {
           <div class="product-price">
             <div class="price-original-line">${hasPromo ? `De: <s>${product.price.toFixed(2)}/${product.unit}</s>` : ''}</div>
             <div class="price-current ${hasPromo ? 'promo-price' : ''}">
-              <span class="price-label">R$</span>
+            <span class="price-label">R$</span>
               <span class="price-value">${displayPrice.toFixed(2)}</span>
-              <span class="price-unit">/${product.unit}</span>
+            <span class="price-unit">/${product.unit}</span>
             </div>
           </div>
           <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product.id}', event)">

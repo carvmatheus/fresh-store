@@ -128,12 +128,8 @@ async function loadSectionData(section) {
 }
 
 function setupMobileMenu() {
-    const mobileBtn = document.getElementById('mobileMenuBtn');
-    const sidebar = document.getElementById('adminSidebar');
-    
-    mobileBtn?.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-    });
+    // Menu mobile removido - sidebar sempre visível
+    // Função mantida para compatibilidade
 }
 
 // ========== DASHBOARD ==========

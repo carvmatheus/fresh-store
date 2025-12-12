@@ -377,14 +377,14 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
     items: cart.map(item => {
       const effectivePrice = getEffectivePrice(item);
       return {
-        product_id: String(item.id),
-        name: item.name,
-        quantity: item.quantity,
-        unit: item.unit,
+      product_id: String(item.id),
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
         price: effectivePrice, // Usar preço promocional se disponível
         original_price: item.price, // Preço original para referência
         is_promo: item.isPromo || false,
-        image: item.image
+      image: item.image
       };
     }),
     shipping_address: {
