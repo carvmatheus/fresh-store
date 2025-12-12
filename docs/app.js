@@ -690,6 +690,33 @@ function removeFromCart(productId) {
   updateCartUI();
 }
 
+// Validar e atualizar quantidade digitada
+function validateAndUpdateQuantity(input) {
+  const productId = input.dataset.productId;
+  const minOrder = parseInt(input.dataset.minOrder) || 1;
+  let newQty = parseInt(input.value) || minOrder;
+  
+  const normalizedId = String(productId);
+  const item = cart.find(i => String(i.id) === normalizedId);
+  
+  if (!item) return;
+  
+  // Validar mínimo
+  if (newQty < minOrder) {
+    alert(`⚠️ Quantidade mínima para "${item.name}" é ${minOrder} ${item.unit || 'un'}. Ajustando automaticamente.`);
+    newQty = minOrder;
+    input.value = minOrder;
+  }
+  
+  // Atualizar quantidade
+  item.quantity = newQty;
+  saveCartToStorage();
+  updateCartUI();
+}
+
+// Expor função globalmente
+window.validateAndUpdateQuantity = validateAndUpdateQuantity;
+
 // Obter preço efetivo (promocional ou normal)
 function getEffectivePrice(item) {
   return (item.isPromo && item.promoPrice) ? item.promoPrice : item.price;
@@ -750,7 +777,14 @@ function updateCartUI() {
           <div class="cart-item-controls">
             <div class="cart-item-quantity">
               <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', -1)">−</button>
-              <span class="cart-item-qty">${item.quantity}</span>
+              <input type="number" 
+                     class="cart-item-qty-input" 
+                     value="${item.quantity}" 
+                     min="${item.minOrder || 1}"
+                     data-product-id="${item.id}"
+                     data-min-order="${item.minOrder || 1}"
+                     onchange="validateAndUpdateQuantity(this)"
+                     onkeypress="if(event.key==='Enter'){this.blur();}">
               <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
             </div>
             <button class="cart-item-remove" onclick="removeFromCart('${item.id}')" title="Remover">🗑️</button>

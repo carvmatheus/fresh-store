@@ -263,6 +263,31 @@
             min-width: 32px;
             text-align: center;
             font-weight: 600;
+        }
+
+        .qty-input {
+            width: 60px;
+            padding: 6px 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            background: white;
+            color: var(--gray-800);
+            -moz-appearance: textfield;
+        }
+
+        .qty-input::-webkit-outer-spin-button,
+        .qty-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .qty-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
             font-size: 1rem;
         }
 
@@ -900,7 +925,16 @@
                             <div class="item-bottom">
                                 <div class="quantity-selector">
                                     <button class="qty-btn" onclick="updateQty('${item.id}', -1)">−</button>
-                                    <span class="qty-value">${item.quantity}</span>
+                                    <input type="number" 
+                                           class="qty-input" 
+                                           value="${item.quantity}" 
+                                           min="${item.minOrder || 1}"
+                                           data-product-id="${item.id}"
+                                           data-min-order="${item.minOrder || 1}"
+                                           data-product-name="${item.name}"
+                                           data-product-unit="${item.unit || 'un'}"
+                                           onchange="validateQtyInput(this)"
+                                           onkeypress="if(event.key==='Enter'){this.blur();}">
                                     <button class="qty-btn" onclick="updateQty('${item.id}', 1)">+</button>
                                 </div>
                                 <div class="item-total-price ${hasPromo ? 'promo-total' : ''}">
@@ -968,6 +1002,37 @@
             // Limpar pending se existir
             delete pendingRemoval[productId];
             
+            item.quantity = newQty;
+            saveCart();
+            loadCart();
+        }
+
+        // Validar quantidade digitada no input
+        function validateQtyInput(input) {
+            const productId = input.dataset.productId;
+            const minOrder = parseInt(input.dataset.minOrder) || 1;
+            const productName = input.dataset.productName || 'Produto';
+            const productUnit = input.dataset.productUnit || 'un';
+            let newQty = parseInt(input.value) || minOrder;
+            
+            const item = cart.find(i => String(i.id) === String(productId));
+            if (!item) return;
+            
+            // Validar mínimo
+            if (newQty < minOrder) {
+                showToast(`Quantidade mínima para "${productName}" é ${minOrder} ${productUnit}. Ajustando automaticamente.`, '⚠️');
+                newQty = minOrder;
+                input.value = minOrder;
+            }
+            
+            // Validar estoque
+            if (newQty > item.stock) {
+                showToast(`Estoque insuficiente. Máximo: ${item.stock} ${productUnit}`, '❌');
+                newQty = item.stock;
+                input.value = item.stock;
+            }
+            
+            // Atualizar quantidade
             item.quantity = newQty;
             saveCart();
             loadCart();
