@@ -944,11 +944,20 @@ function renderCampaigns() {
         const startTime = startDate.getTime();
         const endTime = endDate.getTime();
         
+        // Verificar status da campanha (do backend)
+        const campaignStatus = campaign.status || 'active';
+        
         let status = 'inactive';
         let statusLabel = 'Inativa';
         
-        if (campaign.is_active) {
-            // Tolerância de 1 minuto para evitar problemas de sincronização
+        // Status baseado no campo status da campanha
+        if (campaignStatus === 'paused') {
+            status = 'paused';
+            statusLabel = 'Pausada';
+        } else if (campaignStatus === 'suspended') {
+            status = 'suspended';
+            statusLabel = 'Suspensa';
+        } else if (campaign.is_active) {
             const tolerance = 60 * 1000;
             
             if (nowTime < startTime - tolerance) {
@@ -958,7 +967,7 @@ function renderCampaigns() {
                 status = 'active';
                 statusLabel = 'Ativa';
             } else {
-                status = 'inactive';
+                status = 'expired';
                 statusLabel = 'Expirada';
             }
         }
@@ -967,8 +976,45 @@ function renderCampaigns() {
             ? `-${campaign.discount_value}%` 
             : `-R$ ${campaign.discount_value.toFixed(2)}`;
         
+        // Botões baseados no status
+        let actionButtons = '';
+        
+        if (status === 'paused') {
+            // Campanha pausada - pode resumir ou suspender
+            actionButtons = `
+                <button class="btn-secondary btn-sm" onclick="resumeCampaign('${campaign.id}')" title="Resumir campanha">
+                    ▶️ Resumir
+                </button>
+                <button class="btn-secondary btn-sm btn-danger-text" onclick="suspendCampaign('${campaign.id}')" title="Suspender permanentemente">
+                    ⛔ Suspender
+                </button>
+            `;
+        } else if (status === 'suspended') {
+            // Campanha suspensa - só pode excluir
+            actionButtons = `
+                <span class="status-text-muted">Campanha suspensa</span>
+            `;
+        } else if (status === 'active') {
+            // Campanha ativa - pode pausar ou suspender
+            actionButtons = `
+                <button class="btn-secondary btn-sm" onclick="pauseCampaign('${campaign.id}')" title="Pausar campanha">
+                    ⏸️ Pausar
+                </button>
+                <button class="btn-secondary btn-sm btn-danger-text" onclick="suspendCampaign('${campaign.id}')" title="Suspender permanentemente">
+                    ⛔ Suspender
+                </button>
+            `;
+        } else {
+            // Agendada ou expirada - pode aplicar
+            actionButtons = `
+                <button class="btn-secondary btn-sm" onclick="applyCampaign('${campaign.id}')">
+                    ⚡ Aplicar
+                </button>
+            `;
+        }
+        
         return `
-            <div class="campaign-card ${status === 'inactive' ? 'inactive' : ''}">
+            <div class="campaign-card ${status === 'suspended' || status === 'expired' ? 'inactive' : ''}">
                 <div class="campaign-info">
                     <div class="campaign-name">
                         ${campaign.name}
@@ -983,9 +1029,7 @@ function renderCampaigns() {
                 </div>
                 <div class="campaign-discount">${discountDisplay}</div>
                 <div class="campaign-actions">
-                    <button class="btn-secondary btn-sm" onclick="applyCampaign('${campaign.id}')">
-                        ⚡ Aplicar
-                    </button>
+                    ${actionButtons}
                     <button class="btn-icon edit" onclick="editCampaign('${campaign.id}')" title="Editar campanha">✏️</button>
                     <button class="btn-icon delete" onclick="deleteCampaign('${campaign.id}')" title="Excluir campanha">🗑️</button>
                 </div>
@@ -1004,11 +1048,49 @@ async function applyCampaign(campaignId) {
     try {
         const result = await api.applyCampaign(campaignId);
         showNotification(`✅ ${result.message}`, 'success');
-        // Recarregar campanhas para atualizar status visual
         await loadCampaigns();
         await loadProducts();
     } catch (error) {
         showNotification('❌ Erro ao aplicar campanha: ' + error.message, 'error');
+    }
+}
+
+async function pauseCampaign(campaignId) {
+    if (!confirm('Pausar esta campanha? Os produtos voltarão ao preço normal, mas você pode resumir depois.')) return;
+    
+    try {
+        const result = await api.pauseCampaign(campaignId);
+        showNotification(`⏸️ ${result.message}`, 'success');
+        await loadCampaigns();
+        await loadProducts();
+    } catch (error) {
+        showNotification('❌ Erro ao pausar campanha: ' + error.message, 'error');
+    }
+}
+
+async function resumeCampaign(campaignId) {
+    if (!confirm('Resumir esta campanha? Os descontos serão reaplicados aos produtos.')) return;
+    
+    try {
+        const result = await api.resumeCampaign(campaignId);
+        showNotification(`▶️ ${result.message}`, 'success');
+        await loadCampaigns();
+        await loadProducts();
+    } catch (error) {
+        showNotification('❌ Erro ao resumir campanha: ' + error.message, 'error');
+    }
+}
+
+async function suspendCampaign(campaignId) {
+    if (!confirm('⚠️ SUSPENDER esta campanha PERMANENTEMENTE? Os produtos voltarão ao preço normal e a campanha NÃO poderá ser resumida.')) return;
+    
+    try {
+        const result = await api.suspendCampaign(campaignId);
+        showNotification(`⛔ ${result.message}`, 'warning');
+        await loadCampaigns();
+        await loadProducts();
+    } catch (error) {
+        showNotification('❌ Erro ao suspender campanha: ' + error.message, 'error');
     }
 }
 
@@ -2176,6 +2258,18 @@ if (typeof api !== 'undefined') {
     
     api.removeCampaign = async function(campaignId) {
         return this.request(`/campaigns/${campaignId}/remove`, { method: 'POST' });
+    };
+    
+    api.pauseCampaign = async function(campaignId) {
+        return this.request(`/campaigns/${campaignId}/pause`, { method: 'POST' });
+    };
+    
+    api.resumeCampaign = async function(campaignId) {
+        return this.request(`/campaigns/${campaignId}/resume`, { method: 'POST' });
+    };
+    
+    api.suspendCampaign = async function(campaignId) {
+        return this.request(`/campaigns/${campaignId}/suspend`, { method: 'POST' });
     };
 }
 

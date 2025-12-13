@@ -1176,6 +1176,36 @@
     color: var(--accent-secondary);
 }
 
+.campaign-badge.paused {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.campaign-badge.suspended {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.campaign-badge.expired {
+    background: rgba(100, 116, 139, 0.2);
+    color: var(--text-muted);
+}
+
+.btn-danger-text {
+    color: #ef4444 !important;
+}
+
+.btn-danger-text:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: #ef4444 !important;
+}
+
+.status-text-muted {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+}
+
 .campaign-meta {
     font-size: 13px;
     color: var(--text-secondary);
