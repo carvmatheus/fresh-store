@@ -1044,11 +1044,16 @@ async function applyCampaign(campaignId) {
     if (!confirm('Aplicar esta campanha AGORA aos produtos? Isso atualizará os preços promocionais imediatamente.')) return;
     
     try {
+        console.log('⚡ Aplicando campanha:', campaignId);
         const result = await api.applyCampaign(campaignId);
+        console.log('✅ Resultado:', result);
         showNotification(`✅ ${result.message}`, 'success');
-        await loadCampaigns();
-        await loadProducts();
+        
+        // Forçar atualização imediata
+        console.log('🔄 Atualizando lista de campanhas...');
+        await reloadCampaignsNow();
     } catch (error) {
+        console.error('❌ Erro:', error);
         showNotification('❌ Erro ao aplicar campanha: ' + error.message, 'error');
     }
 }
@@ -1057,11 +1062,16 @@ async function pauseCampaign(campaignId) {
     if (!confirm('Pausar esta campanha? Os produtos voltarão ao preço normal, mas você pode resumir depois.')) return;
     
     try {
+        console.log('⏸️ Pausando campanha:', campaignId);
         const result = await api.pauseCampaign(campaignId);
+        console.log('✅ Resultado:', result);
         showNotification(`⏸️ ${result.message}`, 'success');
-        await loadCampaigns();
-        await loadProducts();
+        
+        // Forçar atualização imediata
+        console.log('🔄 Atualizando lista de campanhas...');
+        await reloadCampaignsNow();
     } catch (error) {
+        console.error('❌ Erro:', error);
         showNotification('❌ Erro ao pausar campanha: ' + error.message, 'error');
     }
 }
@@ -1070,11 +1080,16 @@ async function resumeCampaign(campaignId) {
     if (!confirm('Resumir esta campanha? Os descontos serão reaplicados aos produtos.')) return;
     
     try {
+        console.log('▶️ Resumindo campanha:', campaignId);
         const result = await api.resumeCampaign(campaignId);
+        console.log('✅ Resultado:', result);
         showNotification(`▶️ ${result.message}`, 'success');
-        await loadCampaigns();
-        await loadProducts();
+        
+        // Forçar atualização imediata
+        console.log('🔄 Atualizando lista de campanhas...');
+        await reloadCampaignsNow();
     } catch (error) {
+        console.error('❌ Erro:', error);
         showNotification('❌ Erro ao resumir campanha: ' + error.message, 'error');
     }
 }
@@ -1083,12 +1098,44 @@ async function suspendCampaign(campaignId) {
     if (!confirm('⚠️ SUSPENDER esta campanha PERMANENTEMENTE? Os produtos voltarão ao preço normal e a campanha NÃO poderá ser resumida.')) return;
     
     try {
+        console.log('⛔ Suspendendo campanha:', campaignId);
         const result = await api.suspendCampaign(campaignId);
+        console.log('✅ Resultado:', result);
         showNotification(`⛔ ${result.message}`, 'warning');
-        await loadCampaigns();
+        
+        // Forçar atualização imediata
+        console.log('🔄 Atualizando lista de campanhas...');
+        await reloadCampaignsNow();
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        showNotification('❌ Erro ao suspender campanha: ' + error.message, 'error');
+    }
+}
+
+// Função para forçar reload imediato das campanhas
+async function reloadCampaignsNow() {
+    try {
+        const activeOnly = document.getElementById('activeOnlyFilter')?.checked || false;
+        const timestamp = Date.now();
+        const url = activeOnly 
+            ? `/campaigns/?active_only=true&_t=${timestamp}` 
+            : `/campaigns/?_t=${timestamp}`;
+        
+        console.log('📡 Buscando campanhas:', url);
+        const newCampaigns = await api.request(url, { method: 'GET' });
+        console.log('📦 Campanhas recebidas:', newCampaigns.map(c => ({ name: c.name, status: c.status })));
+        
+        // Atualizar array global
+        campaigns = newCampaigns;
+        
+        // Re-renderizar
+        renderCampaigns();
+        console.log('✅ Campanhas renderizadas!');
+        
+        // Atualizar produtos também
         await loadProducts();
     } catch (error) {
-        showNotification('❌ Erro ao suspender campanha: ' + error.message, 'error');
+        console.error('❌ Erro ao recarregar campanhas:', error);
     }
 }
 
