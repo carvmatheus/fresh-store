@@ -924,8 +924,13 @@ async function loadCampaigns() {
 }
 
 function renderCampaigns() {
+    console.log('🎨 renderCampaigns() chamado com', campaigns.length, 'campanhas');
     const container = document.getElementById('campaignsList');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ Container campaignsList não encontrado!');
+        return;
+    }
+    console.log('📍 Container encontrado:', container.id);
     
     if (campaigns.length === 0) {
         container.innerHTML = `
@@ -1127,6 +1132,16 @@ async function reloadCampaignsNow() {
         
         // Atualizar array global
         campaigns = newCampaigns;
+        
+        // Forçar limpeza e re-renderização do container
+        const container = document.getElementById('campaignsList');
+        if (container) {
+            container.innerHTML = ''; // Limpar primeiro
+            console.log('🧹 Container limpo');
+        }
+        
+        // Pequeno delay para garantir atualização do DOM
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         // Re-renderizar
         renderCampaigns();
