@@ -978,42 +978,38 @@ function renderCampaigns() {
             ? `-${campaign.discount_value}%` 
             : `-R$ ${campaign.discount_value.toFixed(2)}`;
         
-        // Botões baseados no status
-        let actionButtons = '';
+        // Todos os botões sempre visíveis, desabilitados quando não aplicável
+        const canApply = status === 'scheduled' || status === 'expired' || status === 'paused';
+        const canPause = status === 'active';
+        const canResume = status === 'paused';
+        const canSuspend = status !== 'suspended';
         
-        if (status === 'paused') {
-            // Campanha pausada - pode resumir ou suspender
-            actionButtons = `
-                <button class="btn-secondary btn-sm" onclick="resumeCampaign('${campaign.id}')" title="Resumir campanha">
-                    ▶️ Resumir
-                </button>
-                <button class="btn-secondary btn-sm btn-danger-text" onclick="suspendCampaign('${campaign.id}')" title="Suspender permanentemente">
-                    ⛔ Suspender
-                </button>
-            `;
-        } else if (status === 'suspended') {
-            // Campanha suspensa - só pode excluir
-            actionButtons = `
-                <span class="status-text-muted">Campanha suspensa</span>
-            `;
-        } else if (status === 'active') {
-            // Campanha ativa - pode pausar ou suspender
-            actionButtons = `
-                <button class="btn-secondary btn-sm" onclick="pauseCampaign('${campaign.id}')" title="Pausar campanha">
-                    ⏸️ Pausar
-                </button>
-                <button class="btn-secondary btn-sm btn-danger-text" onclick="suspendCampaign('${campaign.id}')" title="Suspender permanentemente">
-                    ⛔ Suspender
-                </button>
-            `;
-        } else {
-            // Agendada ou expirada - pode aplicar
-            actionButtons = `
-                <button class="btn-secondary btn-sm" onclick="applyCampaign('${campaign.id}')">
-                    ⚡ Aplicar
-                </button>
-            `;
-        }
+        const actionButtons = `
+            <button class="btn-secondary btn-sm ${!canApply ? 'btn-disabled' : ''}" 
+                    onclick="${canApply ? `applyCampaign('${campaign.id}')` : 'return false'}" 
+                    title="Aplicar campanha"
+                    ${!canApply ? 'disabled' : ''}>
+                ⚡ Aplicar
+            </button>
+            <button class="btn-secondary btn-sm ${!canPause ? 'btn-disabled' : ''}" 
+                    onclick="${canPause ? `pauseCampaign('${campaign.id}')` : 'return false'}" 
+                    title="Pausar campanha"
+                    ${!canPause ? 'disabled' : ''}>
+                ⏸️ Pausar
+            </button>
+            <button class="btn-secondary btn-sm ${!canResume ? 'btn-disabled' : ''}" 
+                    onclick="${canResume ? `resumeCampaign('${campaign.id}')` : 'return false'}" 
+                    title="Resumir campanha"
+                    ${!canResume ? 'disabled' : ''}>
+                ▶️ Resumir
+            </button>
+            <button class="btn-secondary btn-sm btn-danger-text ${!canSuspend ? 'btn-disabled' : ''}" 
+                    onclick="${canSuspend ? `suspendCampaign('${campaign.id}')` : 'return false'}" 
+                    title="Suspender permanentemente"
+                    ${!canSuspend ? 'disabled' : ''}>
+                ⛔ Suspender
+            </button>
+        `;
         
         return `
             <div class="campaign-card ${status === 'suspended' || status === 'expired' ? 'inactive' : ''}">
