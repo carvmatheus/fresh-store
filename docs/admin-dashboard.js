@@ -940,15 +940,21 @@ function renderCampaigns() {
     container.innerHTML = campaigns.map(campaign => {
         const startDate = new Date(campaign.start_date);
         const endDate = new Date(campaign.end_date);
+        const nowTime = now.getTime();
+        const startTime = startDate.getTime();
+        const endTime = endDate.getTime();
         
         let status = 'inactive';
         let statusLabel = 'Inativa';
         
         if (campaign.is_active) {
-            if (now < startDate) {
+            // Tolerância de 1 minuto para evitar problemas de sincronização
+            const tolerance = 60 * 1000;
+            
+            if (nowTime < startTime - tolerance) {
                 status = 'scheduled';
                 statusLabel = 'Agendada';
-            } else if (now >= startDate && now <= endDate) {
+            } else if (nowTime <= endTime + tolerance) {
                 status = 'active';
                 statusLabel = 'Ativa';
             } else {
@@ -977,14 +983,11 @@ function renderCampaigns() {
                 </div>
                 <div class="campaign-discount">${discountDisplay}</div>
                 <div class="campaign-actions">
-                    <button class="btn-secondary btn-sm" onclick="applyCampaign('${campaign.id}')" ${status !== 'active' ? 'disabled' : ''}>
+                    <button class="btn-secondary btn-sm" onclick="applyCampaign('${campaign.id}')">
                         ⚡ Aplicar
                     </button>
-                    <button class="btn-secondary btn-sm" onclick="removeCampaign('${campaign.id}')">
-                        ↩️ Remover
-                    </button>
-                    <button class="btn-icon edit" onclick="editCampaign('${campaign.id}')">✏️</button>
-                    <button class="btn-icon delete" onclick="deleteCampaign('${campaign.id}')">🗑️</button>
+                    <button class="btn-icon edit" onclick="editCampaign('${campaign.id}')" title="Editar campanha">✏️</button>
+                    <button class="btn-icon delete" onclick="deleteCampaign('${campaign.id}')" title="Excluir campanha">🗑️</button>
                 </div>
             </div>
         `;
@@ -996,26 +999,16 @@ function filterCampaigns() {
 }
 
 async function applyCampaign(campaignId) {
-    if (!confirm('Aplicar esta campanha aos produtos? Isso atualizará os preços promocionais.')) return;
+    if (!confirm('Aplicar esta campanha AGORA aos produtos? Isso atualizará os preços promocionais imediatamente.')) return;
     
     try {
         const result = await api.applyCampaign(campaignId);
-        alert(`✅ ${result.message}`);
+        showNotification(`✅ ${result.message}`, 'success');
+        // Recarregar campanhas para atualizar status visual
+        await loadCampaigns();
         await loadProducts();
     } catch (error) {
-        alert('❌ Erro ao aplicar campanha: ' + error.message);
-    }
-}
-
-async function removeCampaign(campaignId) {
-    if (!confirm('Remover promoções desta campanha? Os preços voltarão ao normal.')) return;
-    
-    try {
-        const result = await api.removeCampaign(campaignId);
-        alert(`✅ ${result.message}`);
-        await loadProducts();
-    } catch (error) {
-        alert('❌ Erro ao remover campanha: ' + error.message);
+        showNotification('❌ Erro ao aplicar campanha: ' + error.message, 'error');
     }
 }
 
@@ -1148,22 +1141,44 @@ async function loadUsers() {
 // Criar novo usuário (consultor ou admin)
 async function openNewUserModal() {
     document.getElementById('newUserForm').reset();
+    document.getElementById('newUserRole').value = 'cliente';
+    toggleClienteFields();
     openModal('newUserModal');
+}
+
+// Mostrar/ocultar campos específicos de cliente
+function toggleClienteFields() {
+    const role = document.getElementById('newUserRole').value;
+    const clienteFields = document.getElementById('clienteFields');
+    
+    if (role === 'cliente') {
+        clienteFields.style.display = 'block';
+    } else {
+        clienteFields.style.display = 'none';
+    }
 }
 
 async function saveNewUser() {
     const form = document.getElementById('newUserForm');
     const formData = new FormData(form);
     
+    const role = formData.get('role');
+    
     const userData = {
         email: formData.get('email'),
         username: formData.get('username'),
         name: formData.get('name'),
         password: formData.get('password'),
-        role: formData.get('role'),
+        role: role,
         company: formData.get('company') || null,
         phone: formData.get('phone') || null
     };
+    
+    // Adicionar campos de cliente se for cliente
+    if (role === 'cliente') {
+        userData.cnpj = formData.get('cnpj') || null;
+        userData.business_type = formData.get('business_type') || null;
+    }
     
     // Validação
     if (!userData.email || !userData.username || !userData.name || !userData.password) {
@@ -1179,7 +1194,7 @@ async function saveNewUser() {
     try {
         await api.createUser(userData);
         closeModal('newUserModal');
-        alert('✅ Usuário criado com sucesso!');
+        showNotification('✅ Usuário criado com sucesso!', 'success');
         await loadUsers();
     } catch (error) {
         alert('❌ Erro ao criar usuário: ' + error.message);
@@ -1611,6 +1626,32 @@ function togglePromoOrder() {
     }
 }
 
+// Abrir modo de edição de produtos (mostrar grid com opções de editar/deletar)
+function openEditProductsMode() {
+    // Fechar painel de ordenar promoções se estiver aberto
+    const promoPanel = document.getElementById('promoOrderPanel');
+    const grid = document.getElementById('productsGrid');
+    
+    if (promoPanel) {
+        promoPanel.style.display = 'none';
+    }
+    if (grid) {
+        grid.style.display = 'grid';
+    }
+    promoOrderVisible = false;
+    
+    // Rolar até a lista de produtos
+    const productsSection = document.getElementById('sectionProducts');
+    if (productsSection) {
+        const gridElement = productsSection.querySelector('.products-grid');
+        if (gridElement) {
+            gridElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    
+    showNotification('Clique em um produto para editar ou use os botões de ação', 'info');
+}
+
 function renderPromoOrderList() {
     const container = document.getElementById('promoOrderList');
     if (!container) return;
@@ -2001,7 +2042,7 @@ function formatRelativeTime(date) {
 function getCategoryLabel(category) {
     const labels = {
         'verduras': 'Verduras',
-        'legumes': 'Legumes',
+        'vegetais': 'Vegetais',
         'frutas': 'Frutas',
         'graos': 'Grãos',
         'temperos': 'Temperos'

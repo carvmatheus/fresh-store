@@ -88,7 +88,7 @@ let products = [];
 const categories = [
   { id: "all", name: "Todos", icon: "todos" },
   { id: "ofertas", name: "Ofertas", icon: "ofertas" },
-  { id: "legumes", name: "Legumes", icon: "legumes" },
+  { id: "vegetais", name: "Vegetais", icon: "vegetais" },
   { id: "frutas", name: "Frutas", icon: "frutas" },
   { id: "verduras", name: "Verduras", icon: "verduras" },
   { id: "exoticos", name: "Exóticos", icon: "exoticos" },

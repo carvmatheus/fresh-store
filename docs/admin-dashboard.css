@@ -8,6 +8,7 @@
     --admin-bg: #0f1419;
     --admin-surface: #1a1f26;
     --admin-surface-hover: #242b33;
+    --admin-surface-modal: #2a323c;
     --admin-border: #2d3640;
     
     /* Accent Colors */
@@ -1634,7 +1635,9 @@
 
 .modal-header {
     padding: var(--spacing-lg);
+    background: var(--admin-surface-modal);
     border-bottom: 1px solid var(--admin-border);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
     display: flex;
     align-items: center;
     justify-content: space-between;

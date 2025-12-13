@@ -495,7 +495,7 @@ function filterProducts() {
 function getCategoryLabel(category) {
   const labels = {
     'verduras': 'Verduras',
-    'legumes': 'Legumes',
+    'vegetais': 'Vegetais',
     'frutas': 'Frutas',
     'graos': 'Grãos',
     'temperos': 'Temperos'

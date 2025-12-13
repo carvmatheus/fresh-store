@@ -248,16 +248,20 @@
                         <button class="btn-primary" onclick="openProductModal()">
                             ➕ Novo Produto
                         </button>
+                        <button class="btn-secondary" onclick="openEditProductsMode()">
+                            ✏️ Editar Produtos
+                        </button>
                         <button class="btn-secondary" onclick="togglePromoOrder()">
                             🔄 Ordenar Promoções
                         </button>
                         <select id="productCategoryFilter" class="filter-select" onchange="filterProducts()">
                             <option value="">Todas Categorias</option>
-                            <option value="verduras">Verduras</option>
-                            <option value="legumes">Legumes</option>
+                            <option value="vegetais">Vegetais</option>
                             <option value="frutas">Frutas</option>
-                            <option value="graos">Grãos</option>
-                            <option value="temperos">Temperos</option>
+                            <option value="verduras">Verduras</option>
+                            <option value="exoticos">Exóticos</option>
+                            <option value="granjeiro">Granjeiro</option>
+                            <option value="processados">Processados</option>
                         </select>
                         <div class="search-box">
                             <input type="text" id="productSearch" placeholder="Buscar produtos..." onkeyup="filterProducts()">
@@ -323,6 +327,7 @@
             <section class="content-section" id="sectionUsers">
                 <div class="section-header">
                     <div class="section-actions">
+                        <button class="btn-primary" onclick="openNewUserModal()">➕ Novo Usuário</button>
                         <select id="userRoleFilter" class="filter-select" onchange="filterUsers()">
                             <option value="">Todos os Tipos</option>
                             <option value="cliente">Clientes</option>
@@ -341,7 +346,6 @@
                             <option value="restaurante">Restaurante</option>
                             <option value="outros">Outros</option>
                         </select>
-                        <button class="btn-primary" onclick="openNewUserModal()">+ Novo Consultor/Admin</button>
                     </div>
                 </div>
                 <div class="users-table-container">
@@ -401,11 +405,12 @@
                         <label for="productCategory">Categoria *</label>
                         <select id="productCategory" required>
                             <option value="">Selecione...</option>
-                            <option value="verduras">Verduras</option>
-                            <option value="legumes">Legumes</option>
+                            <option value="vegetais">Vegetais</option>
                             <option value="frutas">Frutas</option>
-                            <option value="graos">Grãos</option>
-                            <option value="temperos">Temperos</option>
+                            <option value="verduras">Verduras</option>
+                            <option value="exoticos">Exóticos</option>
+                            <option value="granjeiro">Granjeiro</option>
+                            <option value="processados">Processados</option>
                         </select>
                     </div>
                 </div>
@@ -537,11 +542,12 @@
                     <label for="campaignCategory">Categoria (deixe vazio para todas)</label>
                     <select id="campaignCategory">
                         <option value="">Todas as Categorias</option>
-                        <option value="verduras">Verduras</option>
-                        <option value="legumes">Legumes</option>
+                        <option value="vegetais">Vegetais</option>
                         <option value="frutas">Frutas</option>
-                        <option value="graos">Grãos</option>
-                        <option value="temperos">Temperos</option>
+                        <option value="verduras">Verduras</option>
+                        <option value="exoticos">Exóticos</option>
+                        <option value="granjeiro">Granjeiro</option>
+                        <option value="processados">Processados</option>
                     </select>
                 </div>
                 
@@ -568,14 +574,15 @@
     <div class="modal" id="newUserModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Novo Consultor/Administrador</h2>
+                <h2 id="newUserModalTitle">Novo Usuário</h2>
                 <button class="modal-close" onclick="closeModal('newUserModal')">×</button>
             </div>
             <div class="modal-body">
                 <form id="newUserForm" onsubmit="event.preventDefault(); saveNewUser();">
                     <div class="form-group">
                         <label for="newUserRole">Tipo de Usuário *</label>
-                        <select id="newUserRole" name="role" required>
+                        <select id="newUserRole" name="role" required onchange="toggleClienteFields()">
+                            <option value="cliente">🛒 Cliente</option>
                             <option value="consultor">👔 Consultor</option>
                             <option value="admin">👑 Administrador</option>
                         </select>
@@ -611,6 +618,26 @@
                     <div class="form-group">
                         <label for="newUserCompany">Empresa/Setor</label>
                         <input type="text" id="newUserCompany" name="company" placeholder="Nome da empresa ou setor">
+                    </div>
+                    
+                    <!-- Campos específicos para Cliente -->
+                    <div id="clienteFields" style="display: block;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="newUserCnpj">CNPJ</label>
+                                <input type="text" id="newUserCnpj" name="cnpj" placeholder="00.000.000/0000-00">
+                            </div>
+                            <div class="form-group">
+                                <label for="newUserBusinessType">Segmento</label>
+                                <select id="newUserBusinessType" name="business_type">
+                                    <option value="">Selecione...</option>
+                                    <option value="hotel">Hotel</option>
+                                    <option value="mercado">Mercado</option>
+                                    <option value="restaurante">Restaurante</option>
+                                    <option value="outros">Outros</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="modal-footer">
