@@ -910,12 +910,14 @@ function filterProducts() {
 
 // ========== CAMPAIGNS ==========
 async function loadCampaigns() {
+    console.log('📡 Recarregando campanhas...');
     try {
         const activeOnly = document.getElementById('activeOnlyFilter')?.checked || false;
         campaigns = await api.getCampaigns(activeOnly);
+        console.log('✅ Campanhas carregadas:', campaigns.length, campaigns.map(c => ({ name: c.name, status: c.status })));
         renderCampaigns();
     } catch (error) {
-        console.error('Erro ao carregar campanhas:', error);
+        console.error('❌ Erro ao carregar campanhas:', error);
         campaigns = [];
         renderCampaigns();
     }
@@ -2230,7 +2232,11 @@ if (typeof api !== 'undefined') {
     };
     
     api.getCampaigns = async function(activeOnly = false) {
-        const url = activeOnly ? '/campaigns/?active_only=true' : '/campaigns/';
+        // Adicionar timestamp para evitar cache
+        const timestamp = Date.now();
+        const url = activeOnly 
+            ? `/campaigns/?active_only=true&_t=${timestamp}` 
+            : `/campaigns/?_t=${timestamp}`;
         return this.request(url, { method: 'GET' });
     };
     
