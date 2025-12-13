@@ -39,6 +39,7 @@ async function loadProductsFromAPI() {
         image: p.image_url || 'https://via.placeholder.com/400', // PostgreSQL usa image_url
         description: p.description || '',
         isPromo: p.is_promo === true, // Produto em promoção
+        displayOrder: p.display_order || 0, // Ordem de exibição
         isActive: p.is_active !== false
       };
       
@@ -85,13 +86,18 @@ function showErrorMessage(message) {
 let products = [];
 
 const categories = [
-  { id: "all", name: "Todos os Produtos" },
-  { id: "verduras", name: "Verduras" },
-  { id: "legumes", name: "Legumes" },
-  { id: "frutas", name: "Frutas" },
-  { id: "temperos", name: "Temperos" },
-  { id: "graos", name: "Grãos e Cereais" }
+  { id: "all", name: "Todos", icon: "todos" },
+  { id: "ofertas", name: "Ofertas", icon: "ofertas" },
+  { id: "legumes", name: "Legumes", icon: "legumes" },
+  { id: "frutas", name: "Frutas", icon: "frutas" },
+  { id: "verduras", name: "Verduras", icon: "verduras" },
+  { id: "exoticos", name: "Exóticos", icon: "exoticos" },
+  { id: "granjeiro", name: "Granjeiro", icon: "granjeiro" },
+  { id: "processados", name: "Processados", icon: "processados" }
 ];
+
+// Caminho dos ícones SVG das categorias
+const ICONS_PATH = 'images/icons/';
 
 // Traduzir categoria para nome legível
 function getCategoryName(categoryId) {
@@ -101,7 +107,7 @@ function getCategoryName(categoryId) {
 
 // Estado da aplicação
 let cart = [];
-let selectedCategory = "all";
+let selectedCategory = 'all'; // 'all' = mostra todos os produtos
 let searchQuery = '';
 
 // Inicialização
@@ -144,8 +150,10 @@ function loadPromotedProducts() {
   const container = document.getElementById('promotedGrid');
   if (!container) return;
   
-  // Filtrar apenas produtos marcados como promoção
-  const promoted = products.filter(p => p.isPromo === true);
+  // Filtrar apenas produtos marcados como promoção e ordenar por display_order
+  const promoted = products
+    .filter(p => p.isPromo === true)
+    .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   
   // Se não houver produtos em promoção, esconder a seção
   if (promoted.length === 0) {
@@ -196,13 +204,15 @@ function loadPromotedProducts() {
 // Carregar categorias
 function loadCategories() {
   const container = document.getElementById('categories');
+  if (!container) return;
+  
   container.innerHTML = categories.map(cat => `
-    <button 
-      class="category-btn ${cat.id === selectedCategory ? 'active' : ''}" 
-      onclick="filterCategory('${cat.id}')"
-    >
-      ${cat.name}
-    </button>
+    <div class="category-item ${cat.id === selectedCategory || (selectedCategory === null && cat.id === 'all') ? 'active' : ''}" onclick="filterCategory('${cat.id}')">
+      <div class="category-icon">
+        <img src="${ICONS_PATH}${cat.icon}.svg" alt="${cat.name}" class="category-svg-icon">
+      </div>
+      <span class="category-name">${cat.name}</span>
+    </div>
   `).join('');
 }
 
@@ -236,9 +246,20 @@ function loadProducts() {
     return;
   }
   
-  let filtered = selectedCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category === selectedCategory);
+  let filtered;
+  
+  // Filtrar por categoria
+  if (!selectedCategory || selectedCategory === 'all') {
+    filtered = products;
+  } else if (selectedCategory === 'ofertas') {
+    // Ofertas = produtos em promoção
+    filtered = products.filter(p => p.isPromo === true);
+  } else {
+    // Filtrar por categoria (comparar com a categoria do produto)
+    filtered = products.filter(p => 
+      p.category?.toLowerCase() === selectedCategory.toLowerCase()
+    );
+  }
   
   // Aplicar busca se houver
   if (searchQuery) {

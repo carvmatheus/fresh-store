@@ -1591,6 +1591,173 @@ async function deleteProduct(productId) {
     }
 }
 
+// ========== PROMO ORDER (Drag & Drop) ==========
+
+let promoOrderVisible = false;
+
+function togglePromoOrder() {
+    const panel = document.getElementById('promoOrderPanel');
+    const grid = document.getElementById('productsGrid');
+    
+    promoOrderVisible = !promoOrderVisible;
+    
+    if (promoOrderVisible) {
+        panel.style.display = 'block';
+        grid.style.display = 'none';
+        renderPromoOrderList();
+    } else {
+        panel.style.display = 'none';
+        grid.style.display = 'grid';
+    }
+}
+
+function renderPromoOrderList() {
+    const container = document.getElementById('promoOrderList');
+    if (!container) return;
+    
+    // Filtrar apenas produtos em promoção e ordenar por display_order
+    const promoProducts = products
+        .filter(p => p.is_promo || p.isPromo)
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+    
+    if (promoProducts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-state-icon">🎯</span>
+                <p>Nenhum produto em promoção</p>
+                <small>Marque produtos como "Em Promoção" para aparecerem aqui</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = promoProducts.map((product, index) => `
+        <div class="promo-order-item" 
+             draggable="true" 
+             data-id="${product.id}"
+             data-order="${index}"
+             ondragstart="handleDragStart(event)"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)"
+             ondragend="handleDragEnd(event)">
+            <span class="promo-order-handle">☰</span>
+            <span class="promo-order-position">${index + 1}</span>
+            <img class="promo-order-image" src="${product.image_url || 'images/placeholder.png'}" alt="${product.name}">
+            <div class="promo-order-info">
+                <div class="promo-order-name">${product.name}</div>
+                <div class="promo-order-price">
+                    ${product.promo_price ? `
+                        <span class="original">R$ ${parseFloat(product.price).toFixed(2)}</span>
+                        <span class="promo">R$ ${parseFloat(product.promo_price).toFixed(2)}</span>
+                    ` : `
+                        <span class="promo">R$ ${parseFloat(product.price).toFixed(2)}</span>
+                    `}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+let draggedItem = null;
+
+function handleDragStart(e) {
+    draggedItem = e.target.closest('.promo-order-item');
+    draggedItem.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggedItem.dataset.id);
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const targetItem = e.target.closest('.promo-order-item');
+    if (targetItem && targetItem !== draggedItem) {
+        targetItem.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    const targetItem = e.target.closest('.promo-order-item');
+    if (targetItem) {
+        targetItem.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    
+    const targetItem = e.target.closest('.promo-order-item');
+    if (!targetItem || targetItem === draggedItem) return;
+    
+    targetItem.classList.remove('drag-over');
+    
+    const container = document.getElementById('promoOrderList');
+    const items = Array.from(container.querySelectorAll('.promo-order-item'));
+    const draggedIndex = items.indexOf(draggedItem);
+    const targetIndex = items.indexOf(targetItem);
+    
+    // Reordenar no DOM
+    if (draggedIndex < targetIndex) {
+        targetItem.parentNode.insertBefore(draggedItem, targetItem.nextSibling);
+    } else {
+        targetItem.parentNode.insertBefore(draggedItem, targetItem);
+    }
+    
+    // Atualizar números de posição
+    updatePositionNumbers();
+}
+
+function handleDragEnd(e) {
+    if (draggedItem) {
+        draggedItem.classList.remove('dragging');
+    }
+    
+    document.querySelectorAll('.promo-order-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
+    
+    draggedItem = null;
+}
+
+function updatePositionNumbers() {
+    const items = document.querySelectorAll('.promo-order-item');
+    items.forEach((item, index) => {
+        const positionEl = item.querySelector('.promo-order-position');
+        if (positionEl) {
+            positionEl.textContent = index + 1;
+        }
+        item.dataset.order = index;
+    });
+}
+
+async function savePromoOrder() {
+    const items = document.querySelectorAll('.promo-order-item');
+    const orderData = [];
+    
+    items.forEach((item, index) => {
+        orderData.push({
+            id: item.dataset.id,
+            display_order: index + 1
+        });
+    });
+    
+    console.log('📊 Salvando ordem:', orderData);
+    
+    try {
+        await api.updateProductsOrder(orderData);
+        alert('✅ Ordem salva com sucesso!');
+        
+        // Recarregar produtos para atualizar a ordem no array local
+        await loadProducts();
+        renderPromoOrderList();
+    } catch (error) {
+        console.error('❌ Erro ao salvar ordem:', error);
+        alert('❌ Erro ao salvar ordem: ' + error.message);
+    }
+}
+
 function handleProductImage(input) {
     const file = input.files[0];
     if (!file) return;

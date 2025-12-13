@@ -285,6 +285,18 @@ class ApiClient {
     }
 
     /**
+     * Atualizar ordem de exibição dos produtos (admin)
+     */
+    async updateProductsOrder(products) {
+        const result = await this.request('/products/order/update', {
+            method: 'PUT',
+            body: JSON.stringify({ products })
+        });
+        console.log('✅ Ordem atualizada:', result);
+        return result;
+    }
+
+    /**
      * Listar categorias disponíveis
      */
     async getCategories() {

@@ -248,6 +248,9 @@
                         <button class="btn-primary" onclick="openProductModal()">
                             ➕ Novo Produto
                         </button>
+                        <button class="btn-secondary" onclick="togglePromoOrder()">
+                            🔄 Ordenar Promoções
+                        </button>
                         <select id="productCategoryFilter" class="filter-select" onchange="filterProducts()">
                             <option value="">Todas Categorias</option>
                             <option value="verduras">Verduras</option>
@@ -261,6 +264,20 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Promo Order Panel (drag and drop) -->
+                <div class="promo-order-panel" id="promoOrderPanel" style="display: none;">
+                    <div class="promo-order-header">
+                        <h3>🎯 Ordenar Produtos em Promoção</h3>
+                        <p>Arraste os produtos para definir a ordem no carrossel da página inicial</p>
+                        <div class="promo-order-actions">
+                            <button class="btn-primary" onclick="savePromoOrder()">💾 Salvar Ordem</button>
+                            <button class="btn-secondary" onclick="togglePromoOrder()">✕ Fechar</button>
+                        </div>
+                    </div>
+                    <div class="promo-order-list" id="promoOrderList"></div>
+                </div>
+                
                 <div class="products-grid" id="productsGrid"></div>
             </section>
 
