@@ -1054,21 +1054,49 @@ async function applyCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`✅ ${result.message}`, 'success');
         
-        // FORÇAR refresh - buscar dados novos e re-renderizar
-        const timestamp = Date.now();
-        const freshData = await api.request(`/campaigns/?_t=${timestamp}`, { method: 'GET' });
-        console.log('📦 Dados frescos:', freshData);
-        campaigns = freshData;
-        
-        // Limpar container e re-renderizar
-        document.getElementById('campaignsList').innerHTML = '';
-        renderCampaigns();
-        
-        await loadProducts();
+        // FORÇAR refresh completo da seção de campanhas
+        await forceRefreshCampaigns();
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao aplicar campanha: ' + error.message, 'error');
     }
+}
+
+// Função que FORÇA refresh das campanhas destruindo e recriando o HTML
+async function forceRefreshCampaigns() {
+    console.log('🔄 FORÇANDO refresh de campanhas...');
+    
+    // 1. Buscar dados frescos do servidor
+    const timestamp = Date.now();
+    const url = `/campaigns/?_t=${timestamp}`;
+    console.log('📡 Buscando:', url);
+    
+    const freshData = await api.request(url, { method: 'GET' });
+    console.log('📦 Recebido:', freshData.length, 'campanhas');
+    freshData.forEach(c => console.log(`  - ${c.name}: status=${c.status}`));
+    
+    // 2. Atualizar variável global
+    campaigns = freshData;
+    
+    // 3. Pegar o container
+    const container = document.getElementById('campaignsList');
+    if (!container) {
+        console.error('❌ Container campaignsList não encontrado!');
+        return;
+    }
+    
+    // 4. DESTRUIR o conteúdo atual
+    container.innerHTML = '<div style="padding: 20px; text-align: center;">Atualizando...</div>';
+    
+    // 5. Aguardar o DOM atualizar
+    await new Promise(r => setTimeout(r, 100));
+    
+    // 6. Re-renderizar
+    renderCampaigns();
+    console.log('✅ Campanhas re-renderizadas!');
+    
+    // 7. Atualizar produtos também
+    loadProducts();
 }
 
 async function pauseCampaign(campaignId) {
@@ -1080,17 +1108,8 @@ async function pauseCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`⏸️ ${result.message}`, 'success');
         
-        // FORÇAR refresh - buscar dados novos e re-renderizar
-        const timestamp = Date.now();
-        const freshData = await api.request(`/campaigns/?_t=${timestamp}`, { method: 'GET' });
-        console.log('📦 Dados frescos:', freshData);
-        campaigns = freshData;
-        
-        // Limpar container e re-renderizar
-        document.getElementById('campaignsList').innerHTML = '';
-        renderCampaigns();
-        
-        await loadProducts();
+        // FORÇAR refresh completo da seção de campanhas
+        await forceRefreshCampaigns();
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao pausar campanha: ' + error.message, 'error');
@@ -1106,17 +1125,8 @@ async function resumeCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`▶️ ${result.message}`, 'success');
         
-        // FORÇAR refresh - buscar dados novos e re-renderizar
-        const timestamp = Date.now();
-        const freshData = await api.request(`/campaigns/?_t=${timestamp}`, { method: 'GET' });
-        console.log('📦 Dados frescos:', freshData);
-        campaigns = freshData;
-        
-        // Limpar container e re-renderizar
-        document.getElementById('campaignsList').innerHTML = '';
-        renderCampaigns();
-        
-        await loadProducts();
+        // FORÇAR refresh completo da seção de campanhas
+        await forceRefreshCampaigns();
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao resumir campanha: ' + error.message, 'error');
@@ -1132,17 +1142,8 @@ async function suspendCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`⛔ ${result.message}`, 'warning');
         
-        // FORÇAR refresh - buscar dados novos e re-renderizar
-        const timestamp = Date.now();
-        const freshData = await api.request(`/campaigns/?_t=${timestamp}`, { method: 'GET' });
-        console.log('📦 Dados frescos:', freshData);
-        campaigns = freshData;
-        
-        // Limpar container e re-renderizar
-        document.getElementById('campaignsList').innerHTML = '';
-        renderCampaigns();
-        
-        await loadProducts();
+        // FORÇAR refresh completo da seção de campanhas
+        await forceRefreshCampaigns();
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao suspender campanha: ' + error.message, 'error');
