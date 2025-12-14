@@ -1054,9 +1054,17 @@ async function applyCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`✅ ${result.message}`, 'success');
         
-        // Forçar atualização imediata
-        console.log('🔄 Atualizando lista de campanhas...');
-        await reloadCampaignsNow();
+        // FORÇAR refresh - buscar dados novos e re-renderizar
+        const timestamp = Date.now();
+        const freshData = await api.request(`/campaigns/?_t=${timestamp}`, { method: 'GET' });
+        console.log('📦 Dados frescos:', freshData);
+        campaigns = freshData;
+        
+        // Limpar container e re-renderizar
+        document.getElementById('campaignsList').innerHTML = '';
+        renderCampaigns();
+        
+        await loadProducts();
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao aplicar campanha: ' + error.message, 'error');
@@ -1072,9 +1080,17 @@ async function pauseCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`⏸️ ${result.message}`, 'success');
         
-        // Forçar atualização imediata
-        console.log('🔄 Atualizando lista de campanhas...');
-        await reloadCampaignsNow();
+        // FORÇAR refresh - buscar dados novos e re-renderizar
+        const timestamp = Date.now();
+        const freshData = await api.request(`/campaigns/?_t=${timestamp}`, { method: 'GET' });
+        console.log('📦 Dados frescos:', freshData);
+        campaigns = freshData;
+        
+        // Limpar container e re-renderizar
+        document.getElementById('campaignsList').innerHTML = '';
+        renderCampaigns();
+        
+        await loadProducts();
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao pausar campanha: ' + error.message, 'error');
@@ -1090,9 +1106,17 @@ async function resumeCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`▶️ ${result.message}`, 'success');
         
-        // Forçar atualização imediata
-        console.log('🔄 Atualizando lista de campanhas...');
-        await reloadCampaignsNow();
+        // FORÇAR refresh - buscar dados novos e re-renderizar
+        const timestamp = Date.now();
+        const freshData = await api.request(`/campaigns/?_t=${timestamp}`, { method: 'GET' });
+        console.log('📦 Dados frescos:', freshData);
+        campaigns = freshData;
+        
+        // Limpar container e re-renderizar
+        document.getElementById('campaignsList').innerHTML = '';
+        renderCampaigns();
+        
+        await loadProducts();
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao resumir campanha: ' + error.message, 'error');
@@ -1108,9 +1132,17 @@ async function suspendCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`⛔ ${result.message}`, 'warning');
         
-        // Forçar atualização imediata
-        console.log('🔄 Atualizando lista de campanhas...');
-        await reloadCampaignsNow();
+        // FORÇAR refresh - buscar dados novos e re-renderizar
+        const timestamp = Date.now();
+        const freshData = await api.request(`/campaigns/?_t=${timestamp}`, { method: 'GET' });
+        console.log('📦 Dados frescos:', freshData);
+        campaigns = freshData;
+        
+        // Limpar container e re-renderizar
+        document.getElementById('campaignsList').innerHTML = '';
+        renderCampaigns();
+        
+        await loadProducts();
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao suspender campanha: ' + error.message, 'error');
