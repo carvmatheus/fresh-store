@@ -2349,3 +2349,36 @@
     }
 }
 
+/* ========================================
+   INPUT DATE/DATETIME STYLING
+   ======================================== */
+
+/* Esconder ícone padrão e usar customizado */
+input[type="date"],
+input[type="datetime-local"] {
+    color-scheme: dark;
+    position: relative;
+}
+
+/* Esconder o ícone padrão do calendário */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Container para o ícone customizado */
+.form-group input[type="date"],
+.form-group input[type="datetime-local"] {
+    background-image: url("images/icons/calendar.svg");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px 18px;
+    padding-right: 40px !important;
+}
+

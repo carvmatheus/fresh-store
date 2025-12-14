@@ -35,6 +35,234 @@ let metrics = null;
 let currentSection = 'dashboard';
 let currentEditId = null;
 
+// ========== NOTIFICATIONS ==========
+function showNotification(message, type = 'info') {
+    // Criar elemento de notificação
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <span class="notification-message">${message}</span>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <img src="images/icons/close.svg" alt="Fechar" style="width: 14px; height: 14px; filter: brightness(0) invert(1);">
+        </button>
+    `;
+    
+    // Estilos inline para garantir que funcione
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 20px;
+        border-radius: 12px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        animation: notificationSlideIn 0.3s ease;
+        max-width: 420px;
+        backdrop-filter: blur(8px);
+    `;
+    
+    // Estilo do botão de fechar
+    const closeBtn = notification.querySelector('.notification-close');
+    closeBtn.style.cssText = `
+        background: rgba(255,255,255,0.15);
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        flex-shrink: 0;
+    `;
+    closeBtn.onmouseover = () => closeBtn.style.background = 'rgba(255,255,255,0.3)';
+    closeBtn.onmouseout = () => closeBtn.style.background = 'rgba(255,255,255,0.15)';
+    
+    // Cor baseada no tipo
+    if (type === 'success') {
+        notification.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+    } else if (type === 'error') {
+        notification.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+    } else if (type === 'warning') {
+        notification.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+    } else {
+        notification.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+    }
+    
+    // Adicionar animação CSS se não existir
+    if (!document.getElementById('notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes notificationSlideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes notificationSlideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Adicionar ao body
+    document.body.appendChild(notification);
+    
+    // Remover após 5 segundos
+    setTimeout(() => {
+        notification.style.animation = 'notificationSlideOut 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+// Modal de confirmação customizado
+function showConfirmModal(title, message, onConfirm, onCancel = null) {
+    // Criar overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-modal-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(4px);
+        z-index: 10001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    `;
+    
+    // Criar modal
+    const modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+    modal.style.cssText = `
+        background: linear-gradient(180deg, #2a323c 0%, #1e252d 100%);
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        animation: modalSlideIn 0.3s ease;
+    `;
+    
+    modal.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h3 style="color: #fff; margin: 0; font-size: 1.25rem;">${title}</h3>
+            <button class="confirm-modal-close" style="
+                background: rgba(255,255,255,0.1);
+                border: none;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: background 0.2s ease;
+            ">
+                <img src="images/icons/close.svg" alt="Fechar" style="width: 16px; height: 16px; filter: brightness(0) invert(1);">
+            </button>
+        </div>
+        <p style="color: #9ca3af; margin: 0 0 24px 0; line-height: 1.5;">${message}</p>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="confirm-modal-cancel" style="
+                background: rgba(255,255,255,0.1);
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                color: #fff;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background 0.2s ease;
+            ">Cancelar</button>
+            <button class="confirm-modal-ok" style="
+                background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+                border: none;
+                border-radius: 8px;
+                padding: 10px 24px;
+                color: #fff;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                box-shadow: 0 4px 12px rgba(34,197,94,0.3);
+            ">Confirmar</button>
+        </div>
+    `;
+    
+    // Adicionar estilos de animação
+    if (!document.getElementById('confirm-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'confirm-modal-styles';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes modalSlideIn {
+                from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+                to { transform: scale(1) translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Event listeners
+    const closeModal = () => {
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => overlay.remove(), 200);
+    };
+    
+    modal.querySelector('.confirm-modal-close').onclick = () => {
+        closeModal();
+        if (onCancel) onCancel();
+    };
+    
+    modal.querySelector('.confirm-modal-cancel').onclick = () => {
+        closeModal();
+        if (onCancel) onCancel();
+    };
+    
+    modal.querySelector('.confirm-modal-ok').onclick = () => {
+        closeModal();
+        onConfirm();
+    };
+    
+    // Fechar ao clicar no overlay
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            closeModal();
+            if (onCancel) onCancel();
+        }
+    };
+    
+    // Hover effects
+    const cancelBtn = modal.querySelector('.confirm-modal-cancel');
+    cancelBtn.onmouseover = () => cancelBtn.style.background = 'rgba(255,255,255,0.2)';
+    cancelBtn.onmouseout = () => cancelBtn.style.background = 'rgba(255,255,255,0.1)';
+    
+    const okBtn = modal.querySelector('.confirm-modal-ok');
+    okBtn.onmouseover = () => { okBtn.style.transform = 'scale(1.02)'; okBtn.style.boxShadow = '0 6px 16px rgba(34,197,94,0.4)'; };
+    okBtn.onmouseout = () => { okBtn.style.transform = 'scale(1)'; okBtn.style.boxShadow = '0 4px 12px rgba(34,197,94,0.3)'; };
+    
+    const closeBtn = modal.querySelector('.confirm-modal-close');
+    closeBtn.onmouseover = () => closeBtn.style.background = 'rgba(255,255,255,0.2)';
+    closeBtn.onmouseout = () => closeBtn.style.background = 'rgba(255,255,255,0.1)';
+}
+
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Iniciando Admin Dashboard...');
@@ -952,7 +1180,8 @@ function renderCampaigns() {
         const endTime = endDate.getTime();
         
         // Verificar status da campanha (do backend)
-        const campaignStatus = campaign.status || 'active';
+        // O status pode ser: null (não aplicada), 'active', 'paused', 'suspended'
+        const campaignStatus = campaign.status;
         
         let status = 'inactive';
         let statusLabel = 'Inativa';
@@ -964,18 +1193,27 @@ function renderCampaigns() {
         } else if (campaignStatus === 'suspended') {
             status = 'suspended';
             statusLabel = 'Suspensa';
-        } else if (campaign.is_active) {
+        } else if (campaignStatus === 'active') {
+            // Foi explicitamente aplicada pelo admin - confiar no backend
+            status = 'active';
+            statusLabel = 'Ativa';
+        } else {
+            // Campanha ainda não foi aplicada - usar comparação de datas
             const tolerance = 60 * 1000;
             
             if (nowTime < startTime - tolerance) {
                 status = 'scheduled';
                 statusLabel = 'Agendada';
-            } else if (nowTime <= endTime + tolerance) {
+            } else if (nowTime <= endTime + tolerance && campaign.is_active) {
+                // Está no período e is_active = true
                 status = 'active';
                 statusLabel = 'Ativa';
-            } else {
+            } else if (nowTime > endTime + tolerance) {
                 status = 'expired';
                 statusLabel = 'Expirada';
+            } else {
+                status = 'scheduled';
+                statusLabel = 'Agendada';
             }
         }
         
@@ -984,7 +1222,8 @@ function renderCampaigns() {
             : `-R$ ${campaign.discount_value.toFixed(2)}`;
         
         // Todos os botões sempre visíveis, desabilitados quando não aplicável
-        const canApply = status === 'scheduled' || status === 'expired' || status === 'paused';
+        // Aplicar só quando agendada (não iniciou ainda)
+        const canApply = status === 'scheduled';
         const canPause = status === 'active';
         const canResume = status === 'paused';
         const canSuspend = status !== 'suspended';
@@ -1046,20 +1285,26 @@ function filterCampaigns() {
 }
 
 async function applyCampaign(campaignId) {
-    if (!confirm('Aplicar esta campanha AGORA aos produtos? Isso atualizará os preços promocionais imediatamente.')) return;
-    
-    try {
-        console.log('⚡ Aplicando campanha:', campaignId);
-        const result = await api.applyCampaign(campaignId);
-        console.log('✅ Resultado:', result);
-        showNotification(`✅ ${result.message}`, 'success');
-        
-        // Atualizar status localmente e re-renderizar
-        updateCampaignStatusLocally(campaignId, 'active');
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        showNotification('❌ Erro ao aplicar campanha: ' + error.message, 'error');
-    }
+    showConfirmModal(
+        '⚡ Aplicar Campanha',
+        'Aplicar esta campanha AGORA aos produtos? Isso atualizará os preços promocionais imediatamente. Se a data de início ainda não chegou, ela será atualizada para agora.',
+        async () => {
+            try {
+                console.log('⚡ Aplicando campanha:', campaignId);
+                const result = await api.applyCampaign(campaignId);
+                console.log('✅ Resultado:', result);
+                showNotification(`✅ ${result.message}`, 'success');
+                // Passar start_date atualizado do backend
+                updateCampaignStatusLocally(campaignId, 'active', {
+                    start_date: result.start_date,
+                    is_active: result.is_active
+                });
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                showNotification('❌ Erro ao aplicar campanha: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 // Função que FORÇA refresh das campanhas destruindo e recriando o HTML
@@ -1100,59 +1345,65 @@ async function forceRefreshCampaigns() {
 }
 
 async function pauseCampaign(campaignId) {
-    if (!confirm('Pausar esta campanha? Os produtos voltarão ao preço normal, mas você pode resumir depois.')) return;
-    
-    try {
-        console.log('⏸️ Pausando campanha:', campaignId);
-        const result = await api.pauseCampaign(campaignId);
-        console.log('✅ Resultado:', result);
-        showNotification(`⏸️ ${result.message}`, 'success');
-        
-        // Atualizar status localmente e re-renderizar
-        updateCampaignStatusLocally(campaignId, 'paused');
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        showNotification('❌ Erro ao pausar campanha: ' + error.message, 'error');
-    }
+    showConfirmModal(
+        '⏸️ Pausar Campanha',
+        'Pausar esta campanha? Os produtos voltarão ao preço normal, mas você pode resumir depois.',
+        async () => {
+            try {
+                console.log('⏸️ Pausando campanha:', campaignId);
+                const result = await api.pauseCampaign(campaignId);
+                console.log('✅ Resultado:', result);
+                showNotification(`⏸️ ${result.message}`, 'success');
+                updateCampaignStatusLocally(campaignId, 'paused');
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                showNotification('❌ Erro ao pausar campanha: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 async function resumeCampaign(campaignId) {
-    if (!confirm('Resumir esta campanha? Os descontos serão reaplicados aos produtos.')) return;
-    
-    try {
-        console.log('▶️ Resumindo campanha:', campaignId);
-        const result = await api.resumeCampaign(campaignId);
-        console.log('✅ Resultado:', result);
-        showNotification(`▶️ ${result.message}`, 'success');
-        
-        // Atualizar status localmente e re-renderizar
-        updateCampaignStatusLocally(campaignId, 'active');
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        showNotification('❌ Erro ao resumir campanha: ' + error.message, 'error');
-    }
+    showConfirmModal(
+        '▶️ Resumir Campanha',
+        'Resumir esta campanha? Os descontos serão reaplicados aos produtos.',
+        async () => {
+            try {
+                console.log('▶️ Resumindo campanha:', campaignId);
+                const result = await api.resumeCampaign(campaignId);
+                console.log('✅ Resultado:', result);
+                showNotification(`▶️ ${result.message}`, 'success');
+                updateCampaignStatusLocally(campaignId, 'active');
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                showNotification('❌ Erro ao resumir campanha: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 async function suspendCampaign(campaignId) {
-    if (!confirm('⚠️ SUSPENDER esta campanha PERMANENTEMENTE? Os produtos voltarão ao preço normal e a campanha NÃO poderá ser resumida.')) return;
-    
-    try {
-        console.log('⛔ Suspendendo campanha:', campaignId);
-        const result = await api.suspendCampaign(campaignId);
-        console.log('✅ Resultado:', result);
-        showNotification(`⛔ ${result.message}`, 'warning');
-        
-        // Atualizar status localmente e re-renderizar
-        updateCampaignStatusLocally(campaignId, 'suspended');
-    } catch (error) {
-        console.error('❌ Erro:', error);
-        showNotification('❌ Erro ao suspender campanha: ' + error.message, 'error');
-    }
+    showConfirmModal(
+        '⚠️ Suspender Campanha',
+        'SUSPENDER esta campanha PERMANENTEMENTE? Os produtos voltarão ao preço normal e a campanha NÃO poderá ser resumida.',
+        async () => {
+            try {
+                console.log('⛔ Suspendendo campanha:', campaignId);
+                const result = await api.suspendCampaign(campaignId);
+                console.log('✅ Resultado:', result);
+                showNotification(`⛔ ${result.message}`, 'warning');
+                updateCampaignStatusLocally(campaignId, 'suspended');
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                showNotification('❌ Erro ao suspender campanha: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 // Atualizar status da campanha localmente e re-renderizar com animação
-function updateCampaignStatusLocally(campaignId, newStatus) {
-    console.log(`🔄 Atualizando campanha ${campaignId} para status: ${newStatus}`);
+function updateCampaignStatusLocally(campaignId, newStatus, extraData = {}) {
+    console.log(`🔄 Atualizando campanha ${campaignId} para status: ${newStatus}`, extraData);
     
     // 1. Encontrar a campanha no array local
     const campaignIndex = campaigns.findIndex(c => c.id === campaignId);
@@ -1163,7 +1414,16 @@ function updateCampaignStatusLocally(campaignId, newStatus) {
     
     // 2. Atualizar o status localmente
     campaigns[campaignIndex].status = newStatus;
-    campaigns[campaignIndex].is_active = newStatus !== 'suspended';
+    campaigns[campaignIndex].is_active = newStatus === 'active';
+    
+    // 3. Atualizar dados extras (como start_date quando aplica campanha)
+    if (extraData.start_date) {
+        campaigns[campaignIndex].start_date = extraData.start_date;
+    }
+    if (extraData.is_active !== undefined) {
+        campaigns[campaignIndex].is_active = extraData.is_active;
+    }
+    
     console.log('✅ Status atualizado localmente:', campaigns[campaignIndex]);
     
     // 3. Re-renderizar toda a lista com animação
@@ -1225,15 +1485,19 @@ async function reloadCampaignsNow() {
 }
 
 async function deleteCampaign(campaignId) {
-    if (!confirm('Excluir esta campanha permanentemente?')) return;
-    
-    try {
-        await api.deleteCampaign(campaignId);
-        alert('✅ Campanha excluída!');
-        await loadCampaigns();
-    } catch (error) {
-        alert('❌ Erro ao excluir campanha: ' + error.message);
-    }
+    showConfirmModal(
+        '🗑️ Excluir Campanha',
+        'Excluir esta campanha permanentemente? Esta ação não pode ser desfeita.',
+        async () => {
+            try {
+                await api.deleteCampaign(campaignId);
+                showNotification('✅ Campanha excluída!', 'success');
+                await loadCampaigns();
+            } catch (error) {
+                showNotification('❌ Erro ao excluir campanha: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 // ========== ORDERS ==========
@@ -1326,10 +1590,10 @@ async function updateOrderStatus(orderId) {
     
     try {
         await api.updateOrderStatus(orderId, newStatus);
-        alert('✅ Status atualizado!');
+        showNotification('✅ Status atualizado!', 'success');
         await loadOrders();
     } catch (error) {
-        alert('❌ Erro ao atualizar: ' + error.message);
+        showNotification('❌ Erro ao atualizar: ' + error.message, 'error');
     }
 }
 
@@ -1394,12 +1658,12 @@ async function saveNewUser() {
     
     // Validação
     if (!userData.email || !userData.username || !userData.name || !userData.password) {
-        alert('Por favor, preencha todos os campos obrigatórios');
+        showNotification('⚠️ Por favor, preencha todos os campos obrigatórios', 'warning');
         return;
     }
     
     if (userData.password.length < 6) {
-        alert('A senha deve ter pelo menos 6 caracteres');
+        showNotification('⚠️ A senha deve ter pelo menos 6 caracteres', 'warning');
         return;
     }
     
@@ -1409,7 +1673,7 @@ async function saveNewUser() {
         showNotification('✅ Usuário criado com sucesso!', 'success');
         await loadUsers();
     } catch (error) {
-        alert('❌ Erro ao criar usuário: ' + error.message);
+        showNotification('❌ Erro ao criar usuário: ' + error.message, 'error');
     }
 }
 
@@ -1507,7 +1771,7 @@ async function viewUser(userId) {
         
         openModal('userModal');
     } catch (error) {
-        alert('Erro ao carregar usuário: ' + error.message);
+        showNotification('❌ Erro ao carregar usuário: ' + error.message, 'error');
     }
 }
 
@@ -1517,23 +1781,27 @@ async function suspendUser(userId) {
     
     try {
         await api.manageUserApproval(userId, 'suspend', reason);
-        alert('✅ Usuário suspenso');
+        showNotification('✅ Usuário suspenso', 'success');
         await loadUsers();
     } catch (error) {
-        alert('❌ Erro: ' + error.message);
+        showNotification('❌ Erro: ' + error.message, 'error');
     }
 }
 
 async function reactivateUser(userId) {
-    if (!confirm('Reativar este usuário?')) return;
-    
-    try {
-        await api.manageUserApproval(userId, 'reactivate');
-        alert('✅ Usuário reativado');
-        await loadUsers();
-    } catch (error) {
-        alert('❌ Erro: ' + error.message);
-    }
+    showConfirmModal(
+        '✅ Reativar Usuário',
+        'Reativar este usuário? Ele voltará a ter acesso ao sistema.',
+        async () => {
+            try {
+                await api.manageUserApproval(userId, 'reactivate');
+                showNotification('✅ Usuário reativado', 'success');
+                await loadUsers();
+            } catch (error) {
+                showNotification('❌ Erro: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 // ========== APPROVALS ==========
@@ -1616,16 +1884,20 @@ function renderSuspendedUsers(suspended) {
 }
 
 async function approveUser(userId) {
-    if (!confirm('Aprovar este cadastro?')) return;
-    
-    try {
-        await api.manageUserApproval(userId, 'approve');
-        alert('✅ Usuário aprovado!');
-        await loadApprovals();
-        await loadDashboardData();
-    } catch (error) {
-        alert('❌ Erro: ' + error.message);
-    }
+    showConfirmModal(
+        '✅ Aprovar Cadastro',
+        'Aprovar este cadastro? O usuário terá acesso ao sistema.',
+        async () => {
+            try {
+                await api.manageUserApproval(userId, 'approve');
+                showNotification('✅ Usuário aprovado!', 'success');
+                await loadApprovals();
+                await loadDashboardData();
+            } catch (error) {
+                showNotification('❌ Erro: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 async function rejectUser(userId) {
@@ -1634,10 +1906,10 @@ async function rejectUser(userId) {
     
     try {
         await api.manageUserApproval(userId, 'suspend', reason || 'Cadastro recusado');
-        alert('✅ Cadastro recusado');
+        showNotification('✅ Cadastro recusado', 'success');
         await loadApprovals();
     } catch (error) {
-        alert('❌ Erro: ' + error.message);
+        showNotification('❌ Erro: ' + error.message, 'error');
     }
 }
 
@@ -1737,7 +2009,7 @@ async function saveProduct() {
     
     // Validação básica
     if (!name || !category || !price || !unit || !stock) {
-        alert('❌ Preencha todos os campos obrigatórios');
+        showNotification('⚠️ Preencha todos os campos obrigatórios', 'warning');
         return;
     }
     
@@ -1785,17 +2057,17 @@ async function saveProduct() {
     try {
         if (currentEditId) {
             await api.updateProduct(currentEditId, formData);
-            alert('✅ Produto atualizado!');
+            showNotification('✅ Produto atualizado!', 'success');
         } else {
             await api.createProduct(formData);
-            alert('✅ Produto criado!');
+            showNotification('✅ Produto criado!', 'success');
         }
         
         closeProductModal();
         await loadProducts();
     } catch (error) {
         console.error('❌ Erro ao salvar produto:', error);
-        alert('❌ Erro: ' + error.message);
+        showNotification('❌ Erro: ' + error.message, 'error');
     } finally {
         // Desbloquear salvamento
         isSavingProduct = false;
@@ -1807,15 +2079,19 @@ async function saveProduct() {
 }
 
 async function deleteProduct(productId) {
-    if (!confirm('Excluir este produto permanentemente?')) return;
-    
-    try {
-        await api.deleteProduct(productId);
-        alert('✅ Produto excluído!');
-        await loadProducts();
-    } catch (error) {
-        alert('❌ Erro: ' + error.message);
-    }
+    showConfirmModal(
+        '🗑️ Excluir Produto',
+        'Excluir este produto permanentemente? Esta ação não pode ser desfeita.',
+        async () => {
+            try {
+                await api.deleteProduct(productId);
+                showNotification('✅ Produto excluído!', 'success');
+                await loadProducts();
+            } catch (error) {
+                showNotification('❌ Erro: ' + error.message, 'error');
+            }
+        }
+    );
 }
 
 // ========== PROMO ORDER (Drag & Drop) ==========
@@ -2000,14 +2276,14 @@ async function savePromoOrder() {
     
     try {
         await api.updateProductsOrder(orderData);
-        alert('✅ Ordem salva com sucesso!');
+        showNotification('✅ Ordem salva com sucesso!', 'success');
         
         // Recarregar produtos para atualizar a ordem no array local
         await loadProducts();
         renderPromoOrderList();
     } catch (error) {
         console.error('❌ Erro ao salvar ordem:', error);
-        alert('❌ Erro ao salvar ordem: ' + error.message);
+        showNotification('❌ Erro ao salvar ordem: ' + error.message, 'error');
     }
 }
 
@@ -2016,7 +2292,7 @@ function handleProductImage(input) {
     if (!file) return;
     
     if (!file.type.startsWith('image/')) {
-        alert('Selecione apenas imagens!');
+        showNotification('⚠️ Selecione apenas imagens!', 'warning');
         input.value = '';
         return;
     }
@@ -2149,6 +2425,17 @@ function editCampaign(campaignId) {
     const campaign = campaigns.find(c => c.id === campaignId || String(c.id) === campaignId);
     if (!campaign) return;
     
+    console.log('📝 Editando campanha:');
+    console.log('  start_date do banco:', campaign.start_date);
+    console.log('  end_date do banco:', campaign.end_date);
+    
+    // Usar diretamente a string do banco, sem criar objeto Date
+    const formattedStart = formatDateTimeLocal(campaign.start_date);
+    const formattedEnd = formatDateTimeLocal(campaign.end_date);
+    
+    console.log('  formatDateTimeLocal start:', formattedStart);
+    console.log('  formatDateTimeLocal end:', formattedEnd);
+    
     currentEditId = campaignId;
     document.getElementById('campaignModalTitle').textContent = 'Editar Campanha';
     
@@ -2157,8 +2444,8 @@ function editCampaign(campaignId) {
     document.getElementById('campaignDescription').value = campaign.description || '';
     document.getElementById('campaignDiscountType').value = campaign.discount_type;
     document.getElementById('campaignDiscountValue').value = campaign.discount_value;
-    document.getElementById('campaignStartDate').value = formatDateTimeLocal(new Date(campaign.start_date));
-    document.getElementById('campaignEndDate').value = formatDateTimeLocal(new Date(campaign.end_date));
+    document.getElementById('campaignStartDate').value = formattedStart;
+    document.getElementById('campaignEndDate').value = formattedEnd;
     document.getElementById('campaignCategory').value = campaign.category || '';
     
     updateDiscountLabel();
@@ -2166,29 +2453,42 @@ function editCampaign(campaignId) {
 }
 
 async function saveCampaign() {
+    // Pegar os valores do datetime-local (formato: YYYY-MM-DDTHH:MM)
+    const startDateValue = document.getElementById('campaignStartDate').value;
+    const endDateValue = document.getElementById('campaignEndDate').value;
+    
+    // Converter para ISO SEM mudar o horário (adiciona :00.000Z mas mantém os valores)
+    // Isso garante que 12:30 local seja salvo como 12:30, não convertido para UTC
+    const startDateISO = startDateValue + ':00';  // YYYY-MM-DDTHH:MM:00
+    const endDateISO = endDateValue + ':00';
+    
+    console.log('📅 Salvando campanha:');
+    console.log('  Input start:', startDateValue, '→ Enviando:', startDateISO);
+    console.log('  Input end:', endDateValue, '→ Enviando:', endDateISO);
+    
     const data = {
         name: document.getElementById('campaignName').value,
         description: document.getElementById('campaignDescription').value || null,
         discount_type: document.getElementById('campaignDiscountType').value,
         discount_value: parseFloat(document.getElementById('campaignDiscountValue').value),
-        start_date: new Date(document.getElementById('campaignStartDate').value).toISOString(),
-        end_date: new Date(document.getElementById('campaignEndDate').value).toISOString(),
+        start_date: startDateISO,
+        end_date: endDateISO,
         category: document.getElementById('campaignCategory').value || null
     };
     
     try {
         if (currentEditId) {
             await api.updateCampaign(currentEditId, data);
-            alert('✅ Campanha atualizada!');
+            showNotification('✅ Campanha atualizada!', 'success');
         } else {
             await api.createCampaign(data);
-            alert('✅ Campanha criada!');
+            showNotification('✅ Campanha criada!', 'success');
         }
         
         closeCampaignModal();
         await loadCampaigns();
     } catch (error) {
-        alert('❌ Erro: ' + error.message);
+        showNotification('❌ Erro: ' + error.message, 'error');
     }
 }
 
@@ -2230,8 +2530,34 @@ function formatDateTime(date) {
 }
 
 function formatDateTimeLocal(date) {
+    // Se for string, tentar extrair diretamente sem conversão de timezone
+    if (typeof date === 'string') {
+        // Se tem Z no final (UTC), converter para local
+        if (date.endsWith('Z')) {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        // Se não tem Z, extrair diretamente (já está em horário local)
+        // Formato esperado: "2025-12-14T12:30:00" ou "2025-12-14T12:30"
+        const match = date.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+        if (match) {
+            return match[1];
+        }
+    }
+    
+    // Fallback: usar conversão padrão
     const d = new Date(date);
-    return d.toISOString().slice(0, 16);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function formatRelativeTime(date) {
