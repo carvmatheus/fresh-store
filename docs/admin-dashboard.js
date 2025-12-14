@@ -1054,8 +1054,8 @@ async function applyCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`✅ ${result.message}`, 'success');
         
-        // FORÇAR refresh completo da seção de campanhas
-        await forceRefreshCampaigns();
+        // Atualizar status localmente e re-renderizar
+        updateCampaignStatusLocally(campaignId, 'active');
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao aplicar campanha: ' + error.message, 'error');
@@ -1108,8 +1108,8 @@ async function pauseCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`⏸️ ${result.message}`, 'success');
         
-        // FORÇAR refresh completo da seção de campanhas
-        await forceRefreshCampaigns();
+        // Atualizar status localmente e re-renderizar
+        updateCampaignStatusLocally(campaignId, 'paused');
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao pausar campanha: ' + error.message, 'error');
@@ -1125,8 +1125,8 @@ async function resumeCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`▶️ ${result.message}`, 'success');
         
-        // FORÇAR refresh completo da seção de campanhas
-        await forceRefreshCampaigns();
+        // Atualizar status localmente e re-renderizar
+        updateCampaignStatusLocally(campaignId, 'active');
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao resumir campanha: ' + error.message, 'error');
@@ -1142,12 +1142,49 @@ async function suspendCampaign(campaignId) {
         console.log('✅ Resultado:', result);
         showNotification(`⛔ ${result.message}`, 'warning');
         
-        // FORÇAR refresh completo da seção de campanhas
-        await forceRefreshCampaigns();
+        // Atualizar status localmente e re-renderizar
+        updateCampaignStatusLocally(campaignId, 'suspended');
     } catch (error) {
         console.error('❌ Erro:', error);
         showNotification('❌ Erro ao suspender campanha: ' + error.message, 'error');
     }
+}
+
+// Atualizar status da campanha localmente e re-renderizar com animação
+function updateCampaignStatusLocally(campaignId, newStatus) {
+    console.log(`🔄 Atualizando campanha ${campaignId} para status: ${newStatus}`);
+    
+    // 1. Encontrar a campanha no array local
+    const campaignIndex = campaigns.findIndex(c => c.id === campaignId);
+    if (campaignIndex === -1) {
+        console.error('❌ Campanha não encontrada no array local');
+        return;
+    }
+    
+    // 2. Atualizar o status localmente
+    campaigns[campaignIndex].status = newStatus;
+    campaigns[campaignIndex].is_active = newStatus !== 'suspended';
+    console.log('✅ Status atualizado localmente:', campaigns[campaignIndex]);
+    
+    // 3. Re-renderizar toda a lista com animação
+    const container = document.getElementById('campaignsList');
+    if (container) {
+        // Adicionar classe de fade-out
+        container.style.opacity = '0.5';
+        container.style.transition = 'opacity 0.2s ease';
+        
+        setTimeout(() => {
+            // Re-renderizar
+            renderCampaigns();
+            
+            // Fade-in
+            container.style.opacity = '1';
+            console.log('✅ Cards re-renderizados!');
+        }, 200);
+    }
+    
+    // 4. Atualizar produtos também
+    loadProducts();
 }
 
 // Função para forçar reload imediato das campanhas
