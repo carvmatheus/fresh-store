@@ -303,6 +303,9 @@ function loadProducts() {
     return;
   }
   
+  // Ordenar produtos em ordem alfabética
+  filtered.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  
   container.innerHTML = filtered.map(product => {
     // Verificar se tem preço promocional
     const hasPromo = product.isPromo && product.promoPrice;
