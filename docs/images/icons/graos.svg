@@ -1,0 +1,21 @@
+<svg viewBox="0 0 40 40" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ícone "Outros" - Grid de elementos diversos -->
+  <!-- Linha 1 -->
+  <rect x="8" y="8" width="6" height="6" rx="1"/>
+  <rect x="17" y="8" width="6" height="6" rx="1"/>
+  <rect x="26" y="8" width="6" height="6" rx="1"/>
+  
+  <!-- Linha 2 -->
+  <rect x="8" y="17" width="6" height="6" rx="1"/>
+  <rect x="17" y="17" width="6" height="6" rx="1"/>
+  <rect x="26" y="17" width="6" height="6" rx="1"/>
+  
+  <!-- Linha 3 -->
+  <rect x="8" y="26" width="6" height="6" rx="1"/>
+  <rect x="17" y="26" width="6" height="6" rx="1"/>
+  <!-- Último quadrado com "+" para indicar "mais/outros" -->
+  <rect x="26" y="26" width="6" height="6" rx="1"/>
+  <line x1="29" y1="27.5" x2="29" y2="30.5"/>
+  <line x1="27.5" y1="29" x2="30.5" y2="29"/>
+</svg>
+

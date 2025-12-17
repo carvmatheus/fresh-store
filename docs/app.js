@@ -93,7 +93,8 @@ const categories = [
   { id: "verduras", name: "Verduras", icon: "verduras" },
   { id: "exoticos", name: "Exóticos", icon: "exoticos" },
   { id: "granjeiro", name: "Granjeiro", icon: "granjeiro" },
-  { id: "processados", name: "Processados", icon: "processados" }
+  { id: "processados", name: "Processados", icon: "processados" },
+  { id: "outros", name: "Outros", icon: "graos" }
 ];
 
 // Caminho dos ícones SVG das categorias

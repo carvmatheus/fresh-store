@@ -1972,7 +1972,15 @@ body {
     }
     
     .search-container {
-        display: none;
+        display: flex;
+        flex: 1;
+        max-width: none;
+        min-width: 100px;
+    }
+    
+    .search-container input {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
     }
     
     .cart-btn {
