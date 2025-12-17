@@ -1,47 +1,67 @@
 #!/bin/bash
-
-# Deploy Frontend Da Horta
-# Execute: ./deploy.sh
+# ==============================================
+# Deploy Script - Da Horta Distribuidor
+# Cache Busting automático com versão timestamp
+# ==============================================
 
 set -e
 
-echo "🚀 Iniciando deploy do Frontend Da Horta..."
+# Configuração
+SITE_DIR="/root/dahorta/dev/front"
+DOCS_DIR="$SITE_DIR/docs"
 
-# Cores
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Gerar versão baseada no timestamp
+VERSION=$(date +%s)
+echo "🚀 Iniciando deploy..."
+echo "📦 Versão: $VERSION"
 
-# 1. Atualizar código
-echo -e "${YELLOW}📥 Atualizando código...${NC}"
-git fetch origin
-git reset --hard origin/main
+# 1. Pull das últimas alterações
+echo ""
+echo "📥 Baixando alterações do repositório..."
+cd $SITE_DIR
+git pull origin main
 
-# 2. Criar network se não existir
-echo -e "${YELLOW}🌐 Verificando network...${NC}"
-docker network inspect dahorta-network >/dev/null 2>&1 || docker network create dahorta-network
+# 2. Aplicar cache busting em todos os arquivos HTML
+echo ""
+echo "🔄 Aplicando cache busting nos arquivos..."
 
-# 3. Build da imagem
-echo -e "${YELLOW}🔨 Buildando imagem Docker...${NC}"
-docker compose build --no-cache
+for html_file in $DOCS_DIR/*.html; do
+    if [ -f "$html_file" ]; then
+        filename=$(basename "$html_file")
+        
+        # Remover versões antigas e adicionar nova versão
+        # CSS files
+        sed -i "s/\.css\"/\.css?v=$VERSION\"/g" "$html_file"
+        sed -i "s/\.css?v=[0-9]*/\.css?v=$VERSION/g" "$html_file"
+        
+        # JS files
+        sed -i "s/\.js\"/\.js?v=$VERSION\"/g" "$html_file"
+        sed -i "s/\.js?v=[0-9]*/\.js?v=$VERSION/g" "$html_file"
+        
+        echo "   ✓ $filename"
+    fi
+done
 
-# 4. Parar container antigo (se existir)
-echo -e "${YELLOW}🛑 Parando container antigo...${NC}"
-docker compose down 2>/dev/null || true
+# 3. Reiniciar Nginx para limpar cache do servidor
+echo ""
+echo "🔧 Recarregando Nginx..."
+if nginx -t 2>/dev/null; then
+    systemctl reload nginx
+    echo "   ✓ Nginx recarregado com sucesso"
+else
+    echo "   ⚠️ Erro na configuração do Nginx, verificando..."
+    nginx -t
+fi
 
-# 5. Iniciar novo container
-echo -e "${YELLOW}▶️ Iniciando container...${NC}"
-docker compose up -d
-
-# 6. Verificar status
-echo -e "${YELLOW}🔍 Verificando status...${NC}"
-sleep 3
-docker compose ps
-
-# 7. Health check
-echo -e "${YELLOW}❤️ Testando health check...${NC}"
-curl -s http://localhost:3000/health && echo ""
-
-echo -e "${GREEN}✅ Deploy concluído com sucesso!${NC}"
-echo -e "${GREEN}🌐 Frontend rodando em: http://localhost:3000${NC}"
-
+# 4. Exibir resumo
+echo ""
+echo "=============================================="
+echo "✅ DEPLOY COMPLETO!"
+echo "=============================================="
+echo "📦 Versão: $VERSION"
+echo "📅 Data: $(date '+%d/%m/%Y %H:%M:%S')"
+echo "🌐 Cache busting aplicado em todos os arquivos HTML"
+echo ""
+echo "Os navegadores dos usuários irão carregar"
+echo "automaticamente os arquivos CSS e JS atualizados."
+echo "=============================================="
