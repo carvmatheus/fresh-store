@@ -552,6 +552,7 @@ body {
     width: 100%;
     aspect-ratio: 1;
     object-fit: cover;
+    object-position: bottom right;
     background: var(--gray-100);
 }
 
@@ -1153,6 +1154,7 @@ body {
     width: 100%;
     aspect-ratio: 1;
     object-fit: cover;
+    object-position: bottom right;
     background: var(--gray-100);
 }
 
