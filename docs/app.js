@@ -623,7 +623,10 @@ function moveCarousel(direction, isAuto = false) {
   }
   
   const cardWidth = cards[0].offsetWidth + 24; // largura + gap
-  const moveAmount = cardWidth * 3; // Avançar 3 cards por vez
+  // No mobile (< 768px) avança 2 cards, senão 3
+  const isMobile = window.innerWidth < 768;
+  const itemsToScroll = isMobile ? 2 : 3;
+  const moveAmount = cardWidth * itemsToScroll;
   const currentScroll = carousel.scrollLeft;
   const maxScroll = carousel.scrollWidth - carousel.clientWidth;
   

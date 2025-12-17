@@ -71,7 +71,10 @@ body {
 
 @media (max-width: 768px) {
     .banner-image {
-        max-height: 200px;
+        max-height: none;
+        height: auto;
+        object-fit: cover;
+        object-position: center;
     }
 }
 
@@ -499,9 +502,10 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid rgba(34, 197, 94, 0.3);
     position: relative;
-    width: 300px;
-    min-width: 300px;
-    flex: 0 0 300px;
+    /* Ajustado para mostrar ~3 cards por vez em desktop */
+    width: calc(33.333% - 1rem);
+    min-width: 280px;
+    flex: 0 0 calc(33.333% - 1rem);
 }
 
 .promo-card:hover {
@@ -549,6 +553,13 @@ body {
     aspect-ratio: 1;
     object-fit: cover;
     background: var(--gray-100);
+}
+
+/* Tablet - promo-image */
+@media (max-width: 992px) {
+    .promo-image {
+        aspect-ratio: 1;
+    }
 }
 
 .promo-content {
@@ -658,6 +669,97 @@ body {
 
 .promo-btn:active {
     transform: translateY(0) scale(0.95);
+}
+
+/* ========== PROMO CARDS - RESPONSIVO ========== */
+@media (max-width: 992px) {
+    .promo-card {
+        width: calc(50% - 0.75rem);
+        min-width: 240px;
+        flex: 0 0 calc(50% - 0.75rem);
+    }
+}
+
+@media (max-width: 640px) {
+    .promo-card {
+        width: calc(50% - 0.5rem);
+        min-width: 140px;
+        flex: 0 0 calc(50% - 0.5rem);
+        border-radius: 0.75rem;
+    }
+    
+    .promo-badge-tag {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+    }
+    
+    .promo-image {
+        height: auto;
+        aspect-ratio: 3/4;
+    }
+    
+    .promo-content {
+        padding: 0.5rem;
+    }
+    
+    .promo-header {
+        margin-bottom: 0.25rem;
+    }
+    
+    .promo-name {
+        font-size: 0.75rem;
+        -webkit-line-clamp: 1;
+    }
+    
+    .promo-category {
+        font-size: 0.55rem;
+        padding: 0.1rem 0.35rem;
+    }
+    
+    .promo-description {
+        display: none;
+    }
+    
+    .promo-pricing {
+        gap: 0.25rem;
+    }
+    
+    .promo-original-price {
+        font-size: 0.6rem;
+    }
+    
+    .promo-current-price .promo-label {
+        font-size: 0.55rem;
+    }
+    
+    .promo-current-price .promo-value {
+        font-size: 0.9rem;
+    }
+    
+    .promo-current-price .promo-unit {
+        font-size: 0.55rem;
+    }
+    
+    .promo-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.65rem;
+        gap: 0.2rem;
+    }
+    
+    .promoted-grid {
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .promoted-header h2 {
+        font-size: 1.25rem;
+    }
+    
+    .carousel-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
 }
 
 /* ========== FEEDBACK TÁTIL - TOAST NOTIFICATION ========== */
@@ -867,7 +969,7 @@ body {
 .categories {
     display: flex;
     justify-content: space-between;
-    padding: 0 2rem;
+    padding: 0.5rem 2rem;
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -881,6 +983,7 @@ body {
     transition: all 0.3s ease;
     flex: 1;
     max-width: 140px;
+    padding: 6px; /* Espaço para o outline não ser cortado */
 }
 
 .category-item:hover {
@@ -931,8 +1034,9 @@ body {
     background: var(--primary-dark);
     border: 3px solid white;
     outline: 3px solid var(--gray-800);
+    outline-offset: 2px;
     box-shadow: 0 8px 28px rgba(34, 197, 94, 0.5);
-    transform: scale(1.08);
+    transform: scale(1.02);
 }
 
 .category-item.active .category-name {
@@ -964,13 +1068,25 @@ body {
 
 /* Mobile - scroll horizontal */
 @media (max-width: 768px) {
+    .categories-section {
+        padding: 1.5rem 0;
+    }
+    
+    .categories-section h3 {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        padding: 0 1rem;
+    }
+    
     .categories {
         justify-content: flex-start;
         overflow-x: auto;
+        overflow-y: visible;
         scrollbar-width: none;
         -ms-overflow-style: none;
-        padding: 0 1rem 1rem;
-        gap: 1rem;
+        padding: 0.5rem 1rem 1rem;
+        gap: 0.75rem;
+        flex-wrap: nowrap;
     }
     
     .categories::-webkit-scrollbar {
@@ -980,20 +1096,30 @@ body {
     .category-item {
         flex: 0 0 auto;
         min-width: 70px;
+        max-width: 80px;
+        gap: 0.5rem;
+        padding: 4px; /* Espaço para o outline */
     }
     
     .category-icon {
-        width: 65px;
-        height: 65px;
+        width: 60px;
+        height: 60px;
+        border-width: 2px;
     }
     
-    .category-icon svg {
-        width: 32px;
-        height: 32px;
+    .category-icon svg,
+    .category-icon .category-svg-icon {
+        width: 28px;
+        height: 28px;
     }
     
     .category-name {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
+    }
+    
+    .category-item.active .category-icon {
+        outline-width: 2px;
+        outline-offset: 2px;
     }
 }
 
@@ -1080,7 +1206,17 @@ body {
     gap: 0.5rem;
     font-size: 0.875rem;
     color: var(--gray-600);
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.product-min {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
 }
 
 .product-footer {
@@ -1842,9 +1978,86 @@ body {
     font-size: 0.875rem;
     }
     
+    /* Grid de produtos - 2 por linha no mobile */
     .products-grid {
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        padding: 0 0.5rem;
+    }
+    
+    .product-card {
+        border-radius: 0.75rem;
+    }
+    
+    .product-card .product-image {
+        aspect-ratio: 4/3;
+    }
+    
+    .product-card .product-content {
+        padding: 0.5rem;
+        gap: 0.25rem;
+    }
+    
+    .product-card .product-header {
+        margin-bottom: 0.25rem;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+    }
+    
+    .product-card .product-name {
+        font-size: 0.8rem;
+        line-height: 1.2;
+    }
+    
+    .product-card .product-badge {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.4rem;
+    }
+    
+    .product-card .product-description {
+        font-size: 0.7rem;
+        margin-bottom: 0.25rem;
+        -webkit-line-clamp: 1;
+    }
+    
+    .product-card .product-meta {
+        font-size: 0.65rem;
+        margin-bottom: 0.25rem;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+    }
+    
+    .product-card .product-min {
+        font-size: 0.65rem;
+        margin-bottom: 0.25rem;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+    }
+    
+    .product-card .product-footer {
+        padding-top: 0.4rem;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+    }
+    
+    .product-card .product-price {
+        font-size: 0.9rem;
+    }
+    
+    .product-card .product-unit {
+        font-size: 0.6rem;
+    }
+    
+    .product-card .btn-add-cart {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+        gap: 0.25rem;
+        border-radius: 0.4rem;
+    }
+    
+    .product-card .btn-add-cart svg {
+        width: 14px;
+        height: 14px;
     }
     
     .login-card {
