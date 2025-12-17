@@ -205,6 +205,7 @@
         .item-unit-price {
             font-size: 0.85rem;
             color: var(--gray-500);
+            white-space: nowrap;
         }
 
         .item-remove-btn {
@@ -295,6 +296,8 @@
             font-size: 1.25rem;
             font-weight: 700;
             color: var(--primary);
+            white-space: nowrap;
+            text-align: right;
         }
 
         /* Empty Cart */
@@ -371,6 +374,7 @@
             padding: 0.75rem 0;
             font-size: 0.95rem;
             color: var(--gray-600);
+            white-space: nowrap;
         }
 
         .summary-row.total {
@@ -379,6 +383,7 @@
             color: var(--gray-900);
             border-top: 2px dashed var(--gray-200);
             margin-top: 0.5rem;
+            white-space: nowrap;
             padding-top: 1rem;
         }
 
@@ -873,6 +878,27 @@
         // Carrinho (mesmo key usado no app.js)
         let cart = JSON.parse(localStorage.getItem('freshStoreCart') || '[]');
 
+        // ==================== FORMATAÇÃO DE MOEDA ====================
+        // Formata valor para moeda brasileira (R$ 999.999,99)
+        function formatCurrency(value) {
+            if (value === null || value === undefined || isNaN(value)) return 'R$ 0,00';
+            return value.toLocaleString('pt-BR', { 
+                style: 'currency', 
+                currency: 'BRL',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Formata apenas o valor numérico (999.999,99) sem o R$
+        function formatNumber(value) {
+            if (value === null || value === undefined || isNaN(value)) return '0,00';
+            return value.toLocaleString('pt-BR', { 
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
         // Funções de navegação
         function goToHome() {
             window.location.href = 'index.html';
@@ -1007,8 +1033,8 @@
                                         ${hasPromo ? '<span class="promo-tag">🔥 Promo</span>' : ''}
                                     </div>
                                     <div class="item-unit-price">
-                                        ${hasPromo ? `<s class="original-price">R$ ${item.price.toFixed(2)}</s> ` : ''}
-                                        <span class="${hasPromo ? 'promo-price' : ''}">R$ ${effectivePrice.toFixed(2)}</span> / ${item.unit}
+                                        ${hasPromo ? `<s class="original-price">${formatCurrency(item.price)}</s> ` : ''}
+                                        <span class="${hasPromo ? 'promo-price' : ''}">${formatCurrency(effectivePrice)}</span> / ${item.unit}
                                     </div>
                                 </div>
                                 <button class="item-remove-btn" onclick="removeItem('${item.id}')" title="Remover">🗑️</button>
@@ -1029,8 +1055,8 @@
                                     <button class="qty-btn" onclick="updateQty('${item.id}', 1)">+</button>
                                 </div>
                                 <div class="item-total-price ${hasPromo ? 'promo-total' : ''}">
-                                    ${hasPromo ? `<s class="original-total">R$ ${(item.price * item.quantity).toFixed(2)}</s><br>` : ''}
-                                    R$ ${(effectivePrice * item.quantity).toFixed(2)}
+                                    ${hasPromo ? `<s class="original-total">${formatCurrency(item.price * item.quantity)}</s><br>` : ''}
+                                    ${formatCurrency(effectivePrice * item.quantity)}
                             </div>
                         </div>
                     </div>
@@ -1039,13 +1065,13 @@
             }
 
             // Update totals
-            if (subtotalEl) subtotalEl.textContent = `R$ ${subtotal.toFixed(2)}`;
-            if (totalEl) totalEl.textContent = `R$ ${subtotal.toFixed(2)}`;
+            if (subtotalEl) subtotalEl.textContent = formatCurrency(subtotal);
+            if (totalEl) totalEl.textContent = formatCurrency(subtotal);
             
             // Mostrar economia se houver
             if (savingsEl) {
                 if (totalSavings > 0) {
-                    savingsEl.innerHTML = `🎉 Você economiza: <strong>R$ ${totalSavings.toFixed(2)}</strong>`;
+                    savingsEl.innerHTML = `🎉 Você economiza: <strong>${formatCurrency(totalSavings)}</strong>`;
                     savingsEl.style.display = 'block';
                 } else {
                     savingsEl.style.display = 'none';

@@ -672,6 +672,7 @@ body {
     font-size: 0.85rem;
     color: var(--gray-600);
     margin-bottom: 0.25rem;
+    white-space: nowrap;
 }
 
 .promo-original-price s {
@@ -683,6 +684,7 @@ body {
     display: flex;
     align-items: baseline;
     gap: 0.25rem;
+    white-space: nowrap;
 }
 
 .promo-label {
@@ -1313,6 +1315,10 @@ body {
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--primary);
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .product-unit {
@@ -1565,6 +1571,7 @@ body {
     color: var(--primary);
     font-weight: 700;
     font-size: 1rem;
+    white-space: nowrap;
 }
 
 .cart-item-controls {
@@ -3117,6 +3124,7 @@ body {
     font-weight: 400;
     height: 1.1rem;
     margin-bottom: 2px;
+    white-space: nowrap;
 }
 
 .product-price .price-original-line s {
@@ -3128,6 +3136,7 @@ body {
 .product-price .price-current {
     display: flex;
     align-items: baseline;
+    white-space: nowrap;
 }
 
 /* Preço promocional em destaque verde */
@@ -3170,6 +3179,7 @@ body {
 /* Preços no carrinho lateral */
 .cart-item-prices {
     margin-top: 2px;
+    white-space: nowrap;
 }
 
 .cart-price-original {
@@ -3177,12 +3187,14 @@ body {
     color: var(--gray-400);
     text-decoration: line-through;
     display: block;
+    white-space: nowrap;
 }
 
 .cart-price-current {
     font-size: 1rem;
     font-weight: 600;
     color: var(--gray-800);
+    white-space: nowrap;
 }
 
 .cart-price-current.promo {

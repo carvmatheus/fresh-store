@@ -1,6 +1,27 @@
 // ==================== SISTEMA DINÂMICO DE PRODUTOS (API) ====================
 // Todos os produtos vêm da API backend
 
+// ==================== FORMATAÇÃO DE MOEDA ====================
+// Formata valor para moeda brasileira (R$ 999.999,99)
+function formatCurrency(value) {
+  if (value === null || value === undefined || isNaN(value)) return 'R$ 0,00';
+  return value.toLocaleString('pt-BR', { 
+    style: 'currency', 
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+// Formata apenas o valor numérico (999.999,99) sem o R$
+function formatNumber(value) {
+  if (value === null || value === undefined || isNaN(value)) return '0,00';
+  return value.toLocaleString('pt-BR', { 
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
 // Carregar produtos da API
 async function loadProductsFromAPI() {
   try {
@@ -183,8 +204,8 @@ function loadPromotedProducts() {
   // Renderizar produtos em destaque com visual especial de promoção
   container.innerHTML = promoted.map(product => {
     // Usar preço promocional real ou calcular desconto fictício
-    const originalPrice = product.price.toFixed(2);
-    const promoPrice = product.promoPrice ? product.promoPrice.toFixed(2) : (product.price * 0.9).toFixed(2);
+    const originalPrice = formatNumber(product.price);
+    const promoPrice = product.promoPrice ? formatNumber(product.promoPrice) : formatNumber(product.price * 0.9);
     const discountPercent = product.promoPrice 
       ? Math.round((1 - product.promoPrice / product.price) * 100) 
       : 10;
@@ -332,10 +353,10 @@ function loadProducts() {
         ` : ''}
         <div class="product-footer">
           <div class="product-price">
-            <div class="price-original-line">${hasPromo ? `De: <s>${product.price.toFixed(2)}/${product.unit}</s>` : ''}</div>
+            <div class="price-original-line">${hasPromo ? `De: <s>${formatNumber(product.price)}/${product.unit}</s>` : ''}</div>
             <div class="price-current ${hasPromo ? 'promo-price' : ''}">
             <span class="price-label">R$</span>
-              <span class="price-value">${displayPrice.toFixed(2)}</span>
+              <span class="price-value">${formatNumber(displayPrice)}</span>
             <span class="price-unit">/${product.unit}</span>
             </div>
           </div>
@@ -377,7 +398,7 @@ function renderProducts(productsList = null) {
           <p class="product-description">${product.description}</p>
           <div class="product-footer">
             <div class="product-price">
-              <span>R$ ${product.price.toFixed(2)}/${product.unit}</span>
+              <span>${formatCurrency(product.price)}/${product.unit}</span>
             </div>
             <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product.id}')">
               🛒 Adicionar
@@ -853,8 +874,8 @@ function updateCartUI() {
         <div class="cart-item-details">
           <span class="cart-item-name">${item.name}${hasPromo ? `<span class="cart-item-promo-badge">🔥 Promo</span>` : ''}</span>
           <div class="cart-item-prices">
-            ${hasPromo ? `<span class="cart-price-original">R$ ${(item.price * item.quantity).toFixed(2)}</span>` : ''}
-            <span class="cart-price-current ${hasPromo ? 'promo' : ''}">R$ ${(effectivePrice * item.quantity).toFixed(2)}</span>
+            ${hasPromo ? `<span class="cart-price-original">${formatCurrency(item.price * item.quantity)}</span>` : ''}
+            <span class="cart-price-current ${hasPromo ? 'promo' : ''}">${formatCurrency(effectivePrice * item.quantity)}</span>
           </div>
           <div class="cart-item-controls">
             <div class="cart-item-quantity">
@@ -880,10 +901,10 @@ function updateCartUI() {
     const totalElement = document.getElementById('cartTotal');
     
     if (subtotalElement) {
-      subtotalElement.textContent = `R$ ${totalValue.toFixed(2)}`;
+      subtotalElement.textContent = formatCurrency(totalValue);
     }
     if (totalElement) {
-      totalElement.textContent = `R$ ${totalValue.toFixed(2)}`;
+      totalElement.textContent = formatCurrency(totalValue);
     }
   }
 }
@@ -1054,9 +1075,9 @@ function calculateDelivery() {
     if (distanceEl) distanceEl.textContent = `${distance.toFixed(1)} km`;
     if (timeEl) timeEl.textContent = estimatedTime;
     if (feeEl) {
-      feeEl.textContent = deliveryFee === 0 ? 'GRÁTIS' : `R$ ${deliveryFee.toFixed(2)}`;
+      feeEl.textContent = deliveryFee === 0 ? 'GRÁTIS' : formatCurrency(deliveryFee);
     }
-    if (minOrderEl) minOrderEl.textContent = `R$ ${minOrderValue.toFixed(2)}`;
+    if (minOrderEl) minOrderEl.textContent = formatCurrency(minOrderValue);
     
     // Mostrar/ocultar frete grátis
     if (freeShippingEl) {
