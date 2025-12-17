@@ -117,6 +117,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('🌐 Ambiente:', window.location.hostname);
   console.log('🔗 API URL:', API_CONFIG.BASE_URL);
   
+  // Verificar se há parâmetro de busca na URL (vindo de outras páginas)
+  const urlParams = new URLSearchParams(window.location.search);
+  const searchFromURL = urlParams.get('search');
+  if (searchFromURL) {
+    searchQuery = searchFromURL.toLowerCase().trim();
+    // Preencher o campo de busca com o termo
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.value = searchFromURL;
+    }
+    console.log('🔍 Busca da URL:', searchQuery);
+  }
+  
   // Mostrar loading
   const container = document.getElementById('productsGrid');
   if (container) {
@@ -227,6 +240,13 @@ function filterCategory(categoryId) {
 // Buscar produtos
 function handleSearch(query) {
   searchQuery = query.toLowerCase().trim();
+  
+  // Se há busca ativa, resetar categoria para "all" (busca é soberana)
+  if (searchQuery) {
+    selectedCategory = 'all';
+    loadCategories(); // Atualizar visual das categorias
+  }
+  
   loadProducts();
 }
 
@@ -249,25 +269,26 @@ function loadProducts() {
   
   let filtered;
   
-  // Filtrar por categoria
-  if (!selectedCategory || selectedCategory === 'all') {
-    filtered = products;
-  } else if (selectedCategory === 'ofertas') {
-    // Ofertas = produtos em promoção
-    filtered = products.filter(p => p.isPromo === true);
-  } else {
-    // Filtrar por categoria (comparar com a categoria do produto)
-    filtered = products.filter(p => 
-      p.category?.toLowerCase() === selectedCategory.toLowerCase()
-    );
-  }
-  
-  // Aplicar busca se houver
+  // Se há busca ativa, buscar em TODOS os produtos (busca é soberana)
   if (searchQuery) {
-    filtered = filtered.filter(p => 
+    filtered = products.filter(p => 
       p.name.toLowerCase().includes(searchQuery) ||
-      p.description.toLowerCase().includes(searchQuery)
+      p.description.toLowerCase().includes(searchQuery) ||
+      p.category?.toLowerCase().includes(searchQuery)
     );
+  } else {
+    // Sem busca, aplicar filtro por categoria normalmente
+    if (!selectedCategory || selectedCategory === 'all') {
+      filtered = products;
+    } else if (selectedCategory === 'ofertas') {
+      // Ofertas = produtos em promoção
+      filtered = products.filter(p => p.isPromo === true);
+    } else {
+      // Filtrar por categoria (comparar com a categoria do produto)
+      filtered = products.filter(p => 
+        p.category?.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
   }
   
   // Se não houver resultados após filtrar

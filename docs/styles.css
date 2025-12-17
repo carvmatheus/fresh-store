@@ -71,9 +71,10 @@ body {
 
 @media (max-width: 768px) {
     .banner-image {
-        max-height: 120px;
+        max-height: none;
         height: auto;
-        object-fit: cover;
+        width: 100%;
+        object-fit: contain;
         object-position: center;
     }
 }
