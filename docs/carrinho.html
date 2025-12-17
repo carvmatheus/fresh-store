@@ -535,7 +535,9 @@
 
         @media (max-width: 768px) {
             .cart-benefits {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+                margin-top: 1rem;
             }
         }
 
@@ -547,9 +549,23 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.04);
         }
 
+        @media (max-width: 768px) {
+            .benefit-card {
+                padding: 0.75rem 0.5rem;
+                border-radius: 0.75rem;
+            }
+        }
+
         .benefit-icon {
             font-size: 2rem;
             margin-bottom: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .benefit-icon {
+                font-size: 1.5rem;
+                margin-bottom: 0.35rem;
+            }
         }
 
         .benefit-title {
@@ -558,9 +574,22 @@
             margin-bottom: 0.25rem;
         }
 
+        @media (max-width: 768px) {
+            .benefit-title {
+                font-size: 0.65rem;
+                margin-bottom: 0.15rem;
+            }
+        }
+
         .benefit-text {
             font-size: 0.85rem;
             color: var(--gray-500);
+        }
+
+        @media (max-width: 768px) {
+            .benefit-text {
+                font-size: 0.55rem;
+            }
         }
 
         /* Promo styles for cart page */
@@ -637,7 +666,8 @@
     <!-- Navigation Header -->
     <header class="header">
         <div class="container">
-            <div class="header-content">
+            <!-- Estado Normal -->
+            <div class="header-content" id="headerNormal">
                 <div class="header-left">
                     <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Menu">
                         <span></span>
@@ -650,18 +680,33 @@
                 </div>
                 
                 <div class="header-actions">
-                    <div class="search-container">
-                        <input 
-                            type="text" 
-                            id="searchInput" 
-                            class="search-input" 
-                            placeholder="Buscar produtos..."
-                            onkeyup="handleSearch(this.value)">
-                        <span class="search-icon">🔍</span>
-                    </div>
+                    <button class="search-btn-icon" onclick="toggleSearchMode()" title="Buscar produtos">
+                        🔍
+                    </button>
                     <a href="carrinho.html" class="cart-btn active">
                         🛒 Carrinho <span class="cart-badge" id="cartBadge">0</span>
                     </a>
+                </div>
+            </div>
+            
+            <!-- Estado de Busca -->
+            <div class="header-content header-search-mode" id="headerSearch" style="display: none;">
+                <div class="header-left">
+                    <button class="back-btn" onclick="toggleSearchMode()" title="Voltar">
+                        ← Voltar
+                    </button>
+                </div>
+                
+                <div class="header-actions" style="flex: 1;">
+                    <div class="search-container" style="flex: 1; max-width: none;">
+                        <input 
+                            type="text" 
+                            id="searchInputCart" 
+                            class="search-input" 
+                            placeholder="Filtrar itens do carrinho..."
+                            oninput="handleSearchCart(event)">
+                        <span class="search-icon">🔍</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -841,6 +886,49 @@
             if (query && query.length > 2) {
                 window.location.href = `index.html?search=${encodeURIComponent(query)}`;
             }
+        }
+        
+        // Toggle modo de busca no header
+        function toggleSearchMode() {
+            const headerNormal = document.getElementById('headerNormal');
+            const headerSearch = document.getElementById('headerSearch');
+            const searchInput = document.getElementById('searchInputCart');
+            
+            if (headerNormal.style.display === 'none') {
+                // Voltar ao modo normal
+                headerNormal.style.display = 'flex';
+                headerSearch.style.display = 'none';
+                // Limpar busca e mostrar todos os itens
+                searchInput.value = '';
+                filterCartItems('');
+            } else {
+                // Entrar no modo de busca
+                headerNormal.style.display = 'none';
+                headerSearch.style.display = 'flex';
+                // Focar no input de busca
+                setTimeout(() => searchInput.focus(), 100);
+            }
+        }
+        
+        // Filtrar itens do carrinho pela busca
+        function filterCartItems(query) {
+            const items = document.querySelectorAll('.cart-page-item');
+            const searchTerm = query.toLowerCase().trim();
+            
+            items.forEach(item => {
+                const itemName = item.querySelector('.item-name')?.textContent.toLowerCase() || '';
+                if (!searchTerm || itemName.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        
+        // Handler de busca do carrinho (filtra itens em tempo real)
+        function handleSearchCart(event) {
+            const query = event.target.value;
+            filterCartItems(query);
         }
 
         function toggleMenu() {
