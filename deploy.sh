@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================
 # Deploy Script - Da Horta Distribuidor
-# Cache Busting automático com versão timestamp
+# Deploy para Container Docker + Cache Busting
 # ==============================================
 
 set -e
@@ -9,7 +9,8 @@ set -e
 # Configuração
 SITE_DIR="/root/dahorta/dev/front"
 DOCS_DIR="$SITE_DIR/docs"
-WEB_DIR="/var/www/html"  # Diretório onde o Nginx serve os arquivos
+CONTAINER_NAME="dahorta-frontend"
+CONTAINER_WEB_DIR="/usr/share/nginx/html"
 
 # Gerar versão baseada no timestamp
 VERSION=$(date +%s)
@@ -35,34 +36,37 @@ echo "   🔄 Garantindo estado limpo do repositório..."
 git reset --hard origin/main
 git clean -fd
 
-# 2. Copiar arquivos para o diretório web do Nginx
+# 2. Verificar se o container está rodando
 echo ""
-echo "📋 Copiando arquivos para o diretório web..."
-mkdir -p $WEB_DIR
-
-# Copiar todos os arquivos (HTML, CSS, JS, imagens, etc.)
-cp -r $DOCS_DIR/* $WEB_DIR/
-echo "   ✓ Arquivos copiados para $WEB_DIR"
-
-# 3. Aplicar cache busting APENAS nos arquivos HTML do diretório web
-# IMPORTANTE: NUNCA modificar os arquivos em $DOCS_DIR (repositório)
-# Apenas modificar as cópias em $WEB_DIR
-echo ""
-echo "🔄 Aplicando cache busting nos arquivos..."
-
-# Verificação de segurança: garantir que WEB_DIR não é o mesmo que DOCS_DIR
-if [ "$WEB_DIR" = "$DOCS_DIR" ]; then
-    echo "   ❌ ERRO: WEB_DIR não pode ser o mesmo que DOCS_DIR!"
+echo "🐳 Verificando container Docker..."
+if ! docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+    echo "   ❌ ERRO: Container '${CONTAINER_NAME}' não está rodando!"
+    echo "   Execute: docker ps"
     exit 1
 fi
+echo "   ✓ Container '${CONTAINER_NAME}' está rodando"
 
-for html_file in $WEB_DIR/*.html; do
+# 3. Criar diretório temporário para processar arquivos
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
+echo ""
+echo "📋 Preparando arquivos para deploy..."
+
+# Copiar todos os arquivos para diretório temporário
+cp -r $DOCS_DIR/* $TEMP_DIR/
+echo "   ✓ Arquivos copiados para diretório temporário"
+
+# 4. Aplicar cache busting APENAS nos arquivos HTML do diretório temporário
+# IMPORTANTE: NUNCA modificar os arquivos em $DOCS_DIR (repositório)
+echo ""
+echo "🔄 Aplicando cache busting nos arquivos HTML..."
+
+for html_file in $TEMP_DIR/*.html; do
     if [ -f "$html_file" ]; then
         filename=$(basename "$html_file")
         
         # Aplicar versão em links CSS e JS
         # Remove versões antigas e adiciona a nova
-        # Usar caminho absoluto para garantir que estamos no diretório correto
         sed -i -E "s/\.css(\?v=[0-9]+)?/\.css?v=$VERSION/g" "$html_file"
         sed -i -E "s/\.js(\?v=[0-9]+)?/\.js?v=$VERSION/g" "$html_file"
         
@@ -70,25 +74,30 @@ for html_file in $WEB_DIR/*.html; do
     fi
 done
 
-# Garantir permissões corretas
+# 5. Copiar arquivos para dentro do container Docker
 echo ""
-echo "🔐 Ajustando permissões..."
-chown -R nginx:nginx $WEB_DIR 2>/dev/null || chown -R www-data:www-data $WEB_DIR 2>/dev/null || true
-echo "   ✓ Permissões ajustadas"
+echo "📦 Copiando arquivos para o container Docker..."
 
-# 4. Recarregar Nginx para limpar cache do servidor
+# Copiar todos os arquivos para o container
+docker cp $TEMP_DIR/. ${CONTAINER_NAME}:${CONTAINER_WEB_DIR}/
+
+# Garantir permissões corretas dentro do container
+docker exec ${CONTAINER_NAME} chown -R nginx:nginx ${CONTAINER_WEB_DIR} 2>/dev/null || \
+docker exec ${CONTAINER_NAME} chown -R www-data:www-data ${CONTAINER_WEB_DIR} 2>/dev/null || true
+
+echo "   ✓ Arquivos copiados para o container"
+
+# 6. Recarregar Nginx dentro do container
 echo ""
-echo "🔧 Recarregando Nginx..."
-if nginx -t 2>/dev/null; then
-    systemctl reload nginx
-    echo "   ✓ Nginx recarregado com sucesso"
-else
-    echo "   ⚠️  Erro na configuração do Nginx:"
-    nginx -t
-    exit 1
-fi
+echo "🔧 Recarregando Nginx no container..."
+docker exec ${CONTAINER_NAME} nginx -s reload 2>/dev/null || {
+    echo "   ⚠️  Falha ao recarregar, tentando reiniciar container..."
+    docker restart ${CONTAINER_NAME}
+    echo "   ✓ Container reiniciado"
+}
+echo "   ✓ Nginx atualizado"
 
-# 5. Verificar e garantir que o repositório está limpo
+# 7. Verificar e garantir que o repositório está limpo
 echo ""
 echo "🔍 Verificando repositório..."
 cd $SITE_DIR
@@ -111,16 +120,26 @@ if [[ -n $(git status --porcelain) ]]; then
     exit 1
 fi
 
-# 6. Exibir resumo
+# 8. Verificar se o deploy funcionou
+echo ""
+echo "🧪 Verificando deploy..."
+sleep 2  # Aguardar container processar
+if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+    echo "   ✓ Container respondendo corretamente"
+else
+    echo "   ⚠️  Container pode estar inicializando, aguarde alguns segundos"
+fi
+
+# 9. Exibir resumo
 echo ""
 echo "=============================================="
 echo "✅ DEPLOY COMPLETO!"
 echo "=============================================="
 echo "📦 Versão: $VERSION"
 echo "📅 Data: $(date '+%d/%m/%Y %H:%M:%S')"
+echo "🐳 Container: ${CONTAINER_NAME}"
 echo "🌐 Cache busting aplicado em todos os arquivos HTML"
 echo "📁 Repositório: $SITE_DIR"
-echo "🌍 Diretório web: $WEB_DIR"
 echo ""
 echo "Os navegadores dos usuários irão carregar"
 echo "automaticamente os arquivos CSS e JS atualizados."
