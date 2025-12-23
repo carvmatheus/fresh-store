@@ -41,13 +41,18 @@
 
                 <div class="form-group">
                     <label for="loginPassword">Senha</label>
-                    <input 
-                        type="password" 
-                        id="loginPassword" 
-                        name="password" 
-                        placeholder="Digite sua senha"
-                        required
-                        autocomplete="current-password">
+                    <div class="password-input-wrapper">
+                        <input 
+                            type="password" 
+                            id="loginPassword" 
+                            name="password" 
+                            placeholder="Digite sua senha"
+                            required
+                            autocomplete="current-password">
+                        <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility()" title="Mostrar/Ocultar senha">
+                            <span id="eyeIcon">👁️</span>
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-primary btn-login">
@@ -135,6 +140,20 @@
                 errorMsg.textContent = message;
                 errorDiv.classList.remove('hidden');
                 setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+            }
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('loginPassword');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.textContent = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.textContent = '👁️';
             }
         }
     </script>
