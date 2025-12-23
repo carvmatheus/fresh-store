@@ -21,14 +21,19 @@ echo ""
 echo "📥 Baixando alterações do repositório..."
 cd $SITE_DIR
 
-# Limpar completamente o working tree
-echo "   🧹 Limpando working tree..."
+# Descartar TODAS as alterações locais primeiro
+echo "   🔄 Descartando alterações locais (cache busting será reaplicado)..."
 git reset --hard HEAD
 git clean -fd
 
 # Fazer pull das alterações do GitHub
 echo "   ⬇️  Baixando atualizações..."
 git pull origin main
+
+# Garantir que os arquivos do repositório estão limpos após o pull
+echo "   🔄 Garantindo estado limpo do repositório..."
+git reset --hard origin/main
+git clean -fd
 
 # 2. Copiar arquivos para o diretório web do Nginx
 echo ""
@@ -40,8 +45,16 @@ cp -r $DOCS_DIR/* $WEB_DIR/
 echo "   ✓ Arquivos copiados para $WEB_DIR"
 
 # 3. Aplicar cache busting APENAS nos arquivos HTML do diretório web
+# IMPORTANTE: NUNCA modificar os arquivos em $DOCS_DIR (repositório)
+# Apenas modificar as cópias em $WEB_DIR
 echo ""
-echo "🔄 Aplicando cache busting (v=$VERSION)..."
+echo "🔄 Aplicando cache busting nos arquivos..."
+
+# Verificação de segurança: garantir que WEB_DIR não é o mesmo que DOCS_DIR
+if [ "$WEB_DIR" = "$DOCS_DIR" ]; then
+    echo "   ❌ ERRO: WEB_DIR não pode ser o mesmo que DOCS_DIR!"
+    exit 1
+fi
 
 for html_file in $WEB_DIR/*.html; do
     if [ -f "$html_file" ]; then
@@ -49,6 +62,7 @@ for html_file in $WEB_DIR/*.html; do
         
         # Aplicar versão em links CSS e JS
         # Remove versões antigas e adiciona a nova
+        # Usar caminho absoluto para garantir que estamos no diretório correto
         sed -i -E "s/\.css(\?v=[0-9]+)?/\.css?v=$VERSION/g" "$html_file"
         sed -i -E "s/\.js(\?v=[0-9]+)?/\.js?v=$VERSION/g" "$html_file"
         
@@ -74,15 +88,27 @@ else
     exit 1
 fi
 
-# 5. Verificar status do repositório
+# 5. Verificar e garantir que o repositório está limpo
 echo ""
 echo "🔍 Verificando repositório..."
 cd $SITE_DIR
-if [[ -z $(git status --porcelain) ]]; then
-    echo "   ✓ Working tree limpo"
-else
-    echo "   ⚠️  Alterações detectadas no repositório:"
+
+# Se houver alterações, descartá-las (não devem existir se tudo funcionou corretamente)
+if [[ -n $(git status --porcelain) ]]; then
+    echo "   ⚠️  Alterações detectadas no repositório (descartando...):"
     git status --short
+    git reset --hard HEAD
+    git clean -fd
+    echo "   ✓ Alterações descartadas - repositório limpo"
+else
+    echo "   ✓ Working tree limpo"
+fi
+
+# Verificação final
+if [[ -n $(git status --porcelain) ]]; then
+    echo "   ❌ ERRO: Ainda há alterações após limpeza!"
+    echo "   Execute manualmente: cd $SITE_DIR && git reset --hard HEAD && git clean -fd"
+    exit 1
 fi
 
 # 6. Exibir resumo
