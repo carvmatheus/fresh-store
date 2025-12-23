@@ -20,6 +20,12 @@ echo "📦 Versão: $VERSION"
 echo ""
 echo "📥 Baixando alterações do repositório..."
 cd $SITE_DIR
+
+# Descartar alterações locais (cache busting será reaplicado)
+echo "   🔄 Descartando alterações locais (cache busting será reaplicado)..."
+git restore docs/*.html deploy.sh 2>/dev/null || true
+
+# Fazer pull das alterações do GitHub
 git pull origin main
 
 # 2. Aplicar cache busting em todos os arquivos HTML
