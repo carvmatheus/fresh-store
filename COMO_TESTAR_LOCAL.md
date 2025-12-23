@@ -30,20 +30,37 @@ Ou simplesmente:
 - Simula melhor o ambiente de produção
 - Mais profissional
 
-### Passo 1: Abrir terminal na pasta do projeto
+### ⚠️ IMPORTANTE: Os arquivos HTML estão em `docs/`
+
+Você precisa servir a partir do diretório `docs/` ou usar a opção `--directory docs`.
+
+### Opção A: Usando script (Mais fácil)
 
 ```bash
-cd /Users/carvmatheus/Documents/Repositories/fresh-store
+# Na raiz do projeto
+./serve-local.sh
+
+# Ou especificar porta diferente
+./serve-local.sh 3000
 ```
 
-### Passo 2: Iniciar servidor
+### Opção B: Comando direto (Recomendado)
 
 ```bash
-# Python 3 (recomendado)
+# Na raiz do projeto
 python3 -m http.server 8080 --directory docs
+```
 
-# Ou Python 2
-python -m SimpleHTTPServer 8080
+**⚠️ NÃO faça isso (vai dar erro 404):**
+```bash
+python3 -m http.server 8080  # ❌ Servindo da raiz, arquivos HTML não serão encontrados
+```
+
+### Opção C: Entrar no diretório docs primeiro
+
+```bash
+cd docs
+python3 -m http.server 8080
 ```
 
 ### Passo 3: Acessar no navegador
@@ -104,26 +121,23 @@ git push origin main
 
 ## ⚡ Script Rápido
 
-Crie um arquivo `test.sh` na raiz:
+Já existe o script `serve-local.sh` na raiz do projeto:
 
 ```bash
-#!/bin/bash
-echo "🚀 Iniciando servidor local..."
-echo "📱 Acesse: http://localhost:8080"
-echo "⏹️  Para parar: Ctrl+C"
-echo ""
-python3 -m http.server 8080 --directory docs
+# Tornar executável (só precisa fazer uma vez)
+chmod +x serve-local.sh
+
+# Usar
+./serve-local.sh
+
+# Ou com porta customizada
+./serve-local.sh 3000
 ```
 
-Torne executável:
-```bash
-chmod +x test.sh
-```
-
-Use:
-```bash
-./test.sh
-```
+O script automaticamente:
+- Entra no diretório `docs/`
+- Inicia o servidor na porta especificada (padrão: 8080)
+- Mostra a URL para acessar
 
 ---
 
