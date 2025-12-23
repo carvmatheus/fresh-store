@@ -47,7 +47,10 @@ done
 echo ""
 echo "📋 Copiando arquivos para o diretório web..."
 mkdir -p $WEB_DIR
-cp -r $DOCS_DIR/* $WEB_DIR/
+# Copiar todos os arquivos (HTML, CSS, JS, imagens, etc.)
+cp -r $DOCS_DIR/* $WEB_DIR/ 2>/dev/null || true
+# Garantir permissões corretas
+chown -R nginx:nginx $WEB_DIR 2>/dev/null || chown -R www-data:www-data $WEB_DIR 2>/dev/null || true
 echo "   ✓ Arquivos copiados para $WEB_DIR"
 
 # 4. Reiniciar Nginx para limpar cache do servidor
