@@ -843,6 +843,9 @@ async function loadDashboardData() {
         renderRecentOrders(orders.slice(0, 5));
         renderRecentUsers(await loadRecentUsers());
         
+        // Render summary cards
+        renderSummaryCards(metrics, orders);
+        
     } catch (error) {
         console.error('Erro ao carregar dashboard:', error);
     }
@@ -1841,6 +1844,14 @@ function renderPendingApprovals(pending) {
                 </div>
             </div>
             <div class="approval-details">
+                <div class="approval-detail-highlight">
+                    <strong>💳 Forma de Pagamento:</strong> ${getPaymentPreferenceLabel(user.payment_preference)}
+                </div>
+                ${user.payment_justification ? `
+                <div class="approval-detail-highlight">
+                    <strong>📝 Motivo/Justificativa:</strong> ${user.payment_justification}
+                </div>
+                ` : ''}
                 <div class="approval-detail"><strong>Empresa:</strong> ${user.company || '-'}</div>
                 <div class="approval-detail"><strong>CNPJ:</strong> ${user.cnpj || '-'}</div>
                 <div class="approval-detail"><strong>Tipo:</strong> ${getBusinessTypeLabel(user.business_type)}</div>
@@ -2625,6 +2636,308 @@ function getBusinessTypeLabel(type) {
         'outros': '📦 Outros'
     };
     return labels[type] || type || '-';
+}
+
+function getPaymentPreferenceLabel(preference) {
+    const labels = {
+        'pix': '💳 PIX',
+        'cartao_credito': '💳 Cartão de Crédito',
+        'boleto_7dias': '📄 Boleto (7 dias)',
+        'boleto_10dias': '📄 Boleto (10 dias)',
+        'faturamento': '📋 Faturamento'
+    };
+    return labels[preference] || preference || '-';
+}
+
+// ========== SUMMARY CARDS ==========
+function renderSummaryCards(metrics, orders) {
+    // Update customers summary
+    document.getElementById('summaryTotalCustomers').textContent = metrics.active_users || 0;
+    document.getElementById('summaryNewCustomers').textContent = metrics.new_users_week || 0;
+    
+    // Update orders summary
+    document.getElementById('summaryTotalOrders').textContent = orders.length;
+    const pendingOrders = orders.filter(o => o.status === 'pendente').length;
+    document.getElementById('summaryPendingOrders').textContent = pendingOrders;
+    
+    // Update requests summary (will be updated when approvals are loaded)
+    document.getElementById('summaryPendingRequests').textContent = metrics.pending_approval || 0;
+}
+
+let summaryModalType = null;
+
+async function openSummaryModal(type) {
+    summaryModalType = type;
+    const modal = document.getElementById('summaryModal');
+    const modalTitle = document.getElementById('summaryModalTitle');
+    const modalContent = document.getElementById('summaryModalContent');
+    
+    modal.classList.add('show');
+    document.getElementById('modalOverlay').classList.add('show');
+    
+    try {
+        if (type === 'customers') {
+            modalTitle.textContent = '👥 Detalhes dos Clientes';
+            await renderCustomersDetails(modalContent);
+        } else if (type === 'orders') {
+            modalTitle.textContent = '📦 Detalhes dos Pedidos';
+            await renderOrdersDetails(modalContent);
+        } else if (type === 'requests') {
+            modalTitle.textContent = '⏳ Solicitações de Cadastro';
+            await renderRequestsDetails(modalContent);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar detalhes:', error);
+        modalContent.innerHTML = '<p style="color: var(--accent-danger);">Erro ao carregar detalhes.</p>';
+    }
+}
+
+function closeSummaryModal() {
+    const modal = document.getElementById('summaryModal');
+    modal.classList.remove('show');
+    document.getElementById('modalOverlay').classList.remove('show');
+    summaryModalType = null;
+}
+
+async function renderCustomersDetails(container) {
+    try {
+        const users = await api.getUsers();
+        const metricsData = await api.getUserMetrics();
+        
+        // Group by business type
+        const byBusinessType = {};
+        users.forEach(user => {
+            const type = user.business_type || 'outros';
+            if (!byBusinessType[type]) byBusinessType[type] = [];
+            byBusinessType[type].push(user);
+        });
+        
+        // Group by status
+        const byStatus = { approved: 0, suspended: 0, pending: 0 };
+        users.forEach(user => {
+            const status = user.approval_status || 'approved';
+            if (byStatus.hasOwnProperty(status)) {
+                byStatus[status]++;
+            }
+        });
+        
+        container.innerHTML = `
+            <div class="summary-details">
+                <div class="summary-section">
+                    <h3>Resumo Geral</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Total de Clientes:</span>
+                            <span class="detail-value">${users.length}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Ativos:</span>
+                            <span class="detail-value">${byStatus.approved}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Suspensos:</span>
+                            <span class="detail-value">${byStatus.suspended}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Pendentes:</span>
+                            <span class="detail-value">${byStatus.pending}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Novos (semana):</span>
+                            <span class="detail-value">${metricsData.new_users_week || 0}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h3>Por Tipo de Negócio</h3>
+                    <div class="detail-list">
+                        ${Object.entries(byBusinessType).map(([type, list]) => `
+                            <div class="detail-row">
+                                <span class="detail-label">${getBusinessTypeLabel(type)}:</span>
+                                <span class="detail-value">${list.length}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h3>Top 10 Clientes</h3>
+                    <div class="detail-list">
+                        ${(metricsData.top_customers || []).slice(0, 10).map((customer, index) => `
+                            <div class="detail-row">
+                                <span class="detail-label">${index + 1}. ${customer.name}</span>
+                                <span class="detail-value">${formatCurrency(customer.total_spent)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        container.innerHTML = `<p style="color: var(--accent-danger);">Erro: ${error.message}</p>`;
+    }
+}
+
+async function renderOrdersDetails(container) {
+    try {
+        const ordersData = await api.getAllOrders();
+        
+        // Group by status
+        const byStatus = {};
+        ordersData.forEach(order => {
+            const status = order.status || 'pendente';
+            if (!byStatus[status]) byStatus[status] = [];
+            byStatus[status].push(order);
+        });
+        
+        // Calculate totals
+        const totalValue = ordersData.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+        const pendingValue = (byStatus.pendente || []).reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+        
+        container.innerHTML = `
+            <div class="summary-details">
+                <div class="summary-section">
+                    <h3>Resumo Geral</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Total de Pedidos:</span>
+                            <span class="detail-value">${ordersData.length}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Valor Total:</span>
+                            <span class="detail-value">${formatCurrency(totalValue)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Pendentes:</span>
+                            <span class="detail-value">${byStatus.pendente?.length || 0}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Valor Pendente:</span>
+                            <span class="detail-value">${formatCurrency(pendingValue)}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h3>Por Status</h3>
+                    <div class="detail-list">
+                        ${Object.entries(byStatus).map(([status, list]) => `
+                            <div class="detail-row">
+                                <span class="detail-label">${getStatusLabel(status)}:</span>
+                                <span class="detail-value">${list.length}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h3>Últimos 10 Pedidos</h3>
+                    <div class="orders-mini-list">
+                        ${ordersData.slice(0, 10).map(order => `
+                            <div class="order-mini-item">
+                                <div class="order-mini-info">
+                                    <span class="order-mini-number">${order.order_number}</span>
+                                    <span class="order-mini-date">${formatRelativeTime(order.created_at)}</span>
+                                </div>
+                                <div class="order-mini-footer">
+                                    <span class="order-mini-status ${order.status}">${getStatusLabel(order.status)}</span>
+                                    <span class="order-mini-total">${formatCurrency(order.total)}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        container.innerHTML = `<p style="color: var(--accent-danger);">Erro: ${error.message}</p>`;
+    }
+}
+
+async function renderRequestsDetails(container) {
+    try {
+        const pending = await api.getPendingUsers();
+        
+        if (pending.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <span class="empty-state-icon">✅</span>
+                    <p class="empty-state-text">Nenhuma solicitação pendente</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="summary-details">
+                <div class="summary-section">
+                    <h3>Total: ${pending.length} Solicitação(ões) Pendente(s)</h3>
+                    <div class="requests-list">
+                        ${pending.map(user => `
+                            <div class="request-card-expanded">
+                                <div class="request-header-expanded">
+                                    <div class="request-avatar">👤</div>
+                                    <div class="request-info-expanded">
+                                        <div class="request-name-expanded">${user.name}</div>
+                                        <div class="request-email-expanded">${user.email}</div>
+                                        <div class="request-date-expanded">${formatRelativeTime(user.created_at)}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="request-highlights">
+                                    <div class="request-highlight-item">
+                                        <span class="highlight-label">💳 Forma de Pagamento:</span>
+                                        <span class="highlight-value">${getPaymentPreferenceLabel(user.payment_preference)}</span>
+                                    </div>
+                                    ${user.payment_justification ? `
+                                    <div class="request-highlight-item">
+                                        <span class="highlight-label">📝 Motivo/Justificativa:</span>
+                                        <span class="highlight-value">${user.payment_justification}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="request-details-expanded">
+                                    <div class="detail-row">
+                                        <span class="detail-label">Empresa:</span>
+                                        <span class="detail-value">${user.company || '-'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">CNPJ:</span>
+                                        <span class="detail-value">${user.cnpj || '-'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Tipo de Negócio:</span>
+                                        <span class="detail-value">${getBusinessTypeLabel(user.business_type)}</span>
+                                    </div>
+                                    ${user.phone ? `
+                                    <div class="detail-row">
+                                        <span class="detail-label">Telefone:</span>
+                                        <span class="detail-value">${user.phone}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${user.address_city ? `
+                                    <div class="detail-row">
+                                        <span class="detail-label">Endereço:</span>
+                                        <span class="detail-value">${user.address_street || ''} ${user.address_number || ''}, ${user.address_city || ''} - ${user.address_state || ''}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="request-actions-expanded">
+                                    <button class="btn-primary btn-sm" onclick="approveUser('${user.id}'); closeSummaryModal();">✅ Aprovar</button>
+                                    <button class="btn-danger btn-sm" onclick="rejectUser('${user.id}'); closeSummaryModal();">❌ Recusar</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        container.innerHTML = `<p style="color: var(--accent-danger);">Erro: ${error.message}</p>`;
+    }
 }
 
 function getApprovalLabel(status) {
