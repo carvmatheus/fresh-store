@@ -9,6 +9,7 @@ set -e
 # Configuração
 SITE_DIR="/root/dahorta/dev/front"
 DOCS_DIR="$SITE_DIR/docs"
+WEB_DIR="/var/www/html"  # Diretório onde o Nginx serve os arquivos
 
 # Gerar versão baseada no timestamp
 VERSION=$(date +%s)
@@ -42,7 +43,14 @@ for html_file in $DOCS_DIR/*.html; do
     fi
 done
 
-# 3. Reiniciar Nginx para limpar cache do servidor
+# 3. Copiar arquivos para o diretório web do Nginx
+echo ""
+echo "📋 Copiando arquivos para o diretório web..."
+mkdir -p $WEB_DIR
+cp -r $DOCS_DIR/* $WEB_DIR/
+echo "   ✓ Arquivos copiados para $WEB_DIR"
+
+# 4. Reiniciar Nginx para limpar cache do servidor
 echo ""
 echo "🔧 Recarregando Nginx..."
 if nginx -t 2>/dev/null; then
@@ -53,7 +61,7 @@ else
     nginx -t
 fi
 
-# 4. Exibir resumo
+# 5. Exibir resumo
 echo ""
 echo "=============================================="
 echo "✅ DEPLOY COMPLETO!"
