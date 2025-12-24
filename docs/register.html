@@ -299,18 +299,63 @@
             e.target.value = value;
         });
 
-        // Toggle password visibility
-        function togglePasswordVisibility(fieldId) {
+        // Toggle password visibility - função global
+        window.togglePasswordVisibility = function(fieldId) {
             const passwordInput = document.getElementById(fieldId);
             const eyeIcon = document.getElementById(fieldId === 'password' ? 'eyeIconPassword' : 'eyeIconPasswordConfirm');
             
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                eyeIcon.textContent = '🙈';
-            } else {
-                passwordInput.type = 'password';
-                eyeIcon.textContent = '👁️';
+            if (passwordInput && eyeIcon) {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    eyeIcon.textContent = '🙈';
+                } else {
+                    passwordInput.type = 'password';
+                    eyeIcon.textContent = '👁️';
+                }
+                
+                // Validar senhas após toggle
+                validatePasswords();
             }
+        }
+        
+        // Validação em tempo real das senhas
+        function validatePasswords() {
+            const password = document.getElementById('password');
+            const passwordConfirm = document.getElementById('passwordConfirm');
+            
+            if (!password || !passwordConfirm) return;
+            
+            const passwordValue = password.value;
+            const passwordConfirmValue = passwordConfirm.value;
+            
+            // Remover classes anteriores
+            password.classList.remove('password-match', 'password-mismatch');
+            passwordConfirm.classList.remove('password-match', 'password-mismatch');
+            
+            // Validar apenas se ambos os campos tiverem valor
+            if (passwordValue && passwordConfirmValue) {
+                if (passwordValue === passwordConfirmValue) {
+                    // Senhas iguais - borda verde
+                    password.classList.add('password-match');
+                    passwordConfirm.classList.add('password-match');
+                } else {
+                    // Senhas diferentes - borda vermelha
+                    password.classList.add('password-mismatch');
+                    passwordConfirm.classList.add('password-mismatch');
+                }
+            }
+        }
+        
+        // Adicionar listeners para validação em tempo real
+        const passwordInput = document.getElementById('password');
+        const passwordConfirmInput = document.getElementById('passwordConfirm');
+        
+        if (passwordInput) {
+            passwordInput.addEventListener('input', validatePasswords);
+        }
+        
+        if (passwordConfirmInput) {
+            passwordConfirmInput.addEventListener('input', validatePasswords);
         }
 
         // Toggle Justificativa para Faturamento

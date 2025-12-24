@@ -45,6 +45,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="#transport" class="nav-link" data-section="transport">
+                        <span class="nav-icon">🚚</span>
+                        <span class="nav-text">Transporte</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="#users" class="nav-link" data-section="users">
                         <span class="nav-icon">👥</span>
                         <span class="nav-text">Clientes</span>
@@ -121,6 +127,10 @@
                 <a href="#orders" class="mobile-menu-link" data-section="orders" onclick="toggleMobileMenu(); showSection('orders');">
                     <span class="mobile-menu-icon">🛒</span>
                     <span>Pedidos</span>
+                </a>
+                <a href="#transport" class="mobile-menu-link" data-section="transport" onclick="toggleMobileMenu(); showSection('transport');">
+                    <span class="mobile-menu-icon">🚚</span>
+                    <span>Transporte</span>
                 </a>
                 <a href="#users" class="mobile-menu-link" data-section="users" onclick="toggleMobileMenu(); showSection('users');">
                     <span class="mobile-menu-icon">👥</span>
@@ -432,6 +442,14 @@
             <section class="content-section" id="sectionOrders">
                 <div class="section-header">
                     <div class="section-actions">
+                        <div class="order-view-toggle">
+                            <button class="btn-secondary btn-sm" id="ordersViewBtn" onclick="toggleOrdersView('list')">
+                                📋 Visualização
+                            </button>
+                            <button class="btn-secondary btn-sm" id="ordersSeparationBtn" onclick="toggleOrdersView('separation')">
+                                📦 Separação
+                            </button>
+                        </div>
                         <select id="orderStatusFilter" class="filter-select" onchange="filterOrders()">
                             <option value="">Todos os Status</option>
                             <option value="pendente">Pendente</option>
@@ -447,7 +465,27 @@
                     </div>
                     <div class="orders-summary" id="ordersSummary"></div>
                 </div>
-                <div class="orders-list" id="ordersListContainer"></div>
+                <!-- Visualização Normal -->
+                <div class="orders-view" id="ordersListView">
+                    <div class="orders-list" id="ordersListContainer"></div>
+                </div>
+                <!-- Tela de Separação -->
+                <div class="orders-view" id="ordersSeparationView" style="display: none;">
+                    <div class="separation-orders-list" id="separationOrdersContainer"></div>
+                </div>
+            </section>
+
+            <!-- Transport Section -->
+            <section class="content-section" id="sectionTransport">
+                <div class="section-header">
+                    <div class="section-actions">
+                        <button class="btn-secondary" onclick="refreshTransport()">
+                            🔄 Atualizar
+                        </button>
+                    </div>
+                    <div class="transport-summary" id="transportSummary"></div>
+                </div>
+                <div class="transport-list" id="transportListContainer"></div>
             </section>
 
             <!-- Users Section -->

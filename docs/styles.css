@@ -483,7 +483,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
     padding: 0 1rem;
 }
 
@@ -526,8 +526,8 @@ body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: var(--primary) var(--gray-200);
-    padding: 1rem 0 1.5rem;
-    margin-bottom: 2rem;
+    padding: 0.75rem 0 1rem;
+    margin-bottom: 1rem;
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.04) 50%, rgba(255, 255, 255, 0) 100%);
     border-radius: 1.5rem;
     border: 2px solid rgba(34, 197, 94, 0.15);
@@ -1035,14 +1035,14 @@ body {
 
 /* ========== CATEGORIES ========== */
 .categories-section {
-    margin: 2rem 0;
-    padding: 2rem 1rem;
+    margin: 1rem 0;
+    padding: 1rem 1rem;
 }
 
 .categories-section h3 {
     font-size: 1.25rem;
     font-weight: 600;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     color: var(--gray-600);
     text-align: center;
     text-transform: uppercase;
@@ -1847,6 +1847,29 @@ body {
 .toggle-password-btn span {
     display: inline-block;
     line-height: 1;
+}
+
+/* Validação de senha - bordas coloridas */
+.password-input-wrapper input.password-match {
+    border-color: var(--success) !important;
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.password-input-wrapper input.password-mismatch {
+    border-color: var(--error) !important;
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.password-input-wrapper input.password-match:focus {
+    border-color: var(--success) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.password-input-wrapper input.password-mismatch:focus {
+    border-color: var(--error) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
 .btn-login {

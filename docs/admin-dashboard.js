@@ -369,7 +369,15 @@ async function loadSectionData(section) {
             await loadCampaigns();
             break;
         case 'orders':
+            // Carregar produtos primeiro para validar min_order
+            if (products.length === 0) {
+                await loadProducts();
+            }
             await loadOrders();
+            // Se estiver em modo separação, renderizar separação
+            if (ordersViewMode === 'separation') {
+                renderSeparationOrders();
+            }
             break;
         case 'users':
             await loadUsers();
@@ -1586,13 +1594,72 @@ async function loadOrders() {
     try {
         const status = document.getElementById('orderStatusFilter')?.value || '';
         orders = await api.getAllOrders(status || null);
-        renderOrders();
+        
+        // Inicializar progresso de separação para novos pedidos (por item)
+        orders.forEach(order => {
+            (order.items || []).forEach(item => {
+                const itemKey = `${order.id}_${item.product_id}`;
+                if (!orderSeparationProgress[itemKey]) {
+                    orderSeparationProgress[itemKey] = {
+                        selected: 0,
+                        total: item.quantity
+                    };
+                } else {
+                    // Atualizar total caso tenha mudado
+                    orderSeparationProgress[itemKey].total = item.quantity;
+                    if (orderSeparationProgress[itemKey].selected > item.quantity) {
+                        orderSeparationProgress[itemKey].selected = item.quantity;
+                    }
+                }
+            });
+        });
+        
+        // Salvar progresso atualizado
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('orderSeparationProgress', JSON.stringify(orderSeparationProgress));
+        }
+        
+        if (ordersViewMode === 'separation') {
+            renderSeparationOrders();
+        } else {
+            renderOrders();
+        }
     } catch (error) {
         console.error('Erro ao carregar pedidos:', error);
         orders = [];
-        renderOrders();
+        if (ordersViewMode === 'separation') {
+            renderSeparationOrders();
+        } else {
+            renderOrders();
+        }
     }
 }
+
+let ordersViewMode = 'list'; // 'list' ou 'separation'
+let orderSeparationProgress = {}; // {orderId: {selected: 0, total: 0}}
+
+function toggleOrdersView(mode) {
+    ordersViewMode = mode;
+    const listView = document.getElementById('ordersListView');
+    const separationView = document.getElementById('ordersSeparationView');
+    const viewBtn = document.getElementById('ordersViewBtn');
+    const separationBtn = document.getElementById('ordersSeparationBtn');
+    
+    if (mode === 'list') {
+        listView.style.display = 'block';
+        separationView.style.display = 'none';
+        viewBtn.classList.add('active');
+        separationBtn.classList.remove('active');
+        renderOrders();
+    } else {
+        listView.style.display = 'none';
+        separationView.style.display = 'block';
+        viewBtn.classList.remove('active');
+        separationBtn.classList.add('active');
+        renderSeparationOrders();
+    }
+}
+window.toggleOrdersView = toggleOrdersView;
 
 function renderOrders() {
     const container = document.getElementById('ordersListContainer');
@@ -1626,6 +1693,24 @@ function renderOrders() {
     container.innerHTML = orders.map(order => {
         const items = order.items || [];
         const totalItems = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+        const user = users.find(u => u.id === order.user_id) || {};
+        const clientName = user.name || 'Cliente não identificado';
+        const clientCompany = user.company || '';
+        const clientPhone = user.phone || '';
+        const clientEmail = user.email || '';
+        
+        // Parse notes para extrair informações de contato
+        const notes = order.notes || '';
+        const contactMatch = notes.match(/Contato:\s*(.+?)(?:\n|$)/);
+        const phoneMatch = notes.match(/Telefone:\s*(.+?)(?:\n|$)/);
+        const emailMatch = notes.match(/Email:\s*(.+?)(?:\n|$)/);
+        
+        const contactName = contactMatch ? contactMatch[1].trim() : clientName;
+        const contactPhone = phoneMatch ? phoneMatch[1].trim() : clientPhone;
+        const contactEmail = emailMatch ? emailMatch[1].trim() : clientEmail;
+        
+        const deliveryDate = order.delivery_date ? formatDate(order.delivery_date) : null;
+        const deliveryAddress = order.delivery_address || 'Endereço não informado';
         
         return `
             <div class="order-card" data-order-id="${order.id}">
@@ -1633,6 +1718,7 @@ function renderOrders() {
                     <div class="order-card-info">
                         <h4>${order.order_number}</h4>
                         <p class="order-meta">${formatDateTime(order.created_at)}</p>
+                        <p class="order-client-name">👤 ${clientName}${clientCompany ? ` • ${clientCompany}` : ''}</p>
                     </div>
                     <div class="order-card-status">
                         <span class="status-badge ${order.status}">${getStatusLabel(order.status)}</span>
@@ -1640,9 +1726,16 @@ function renderOrders() {
                     </div>
                 </div>
                 <div class="order-card-body">
-                    <p><strong>${totalItems}</strong> itens • ${order.delivery_address || 'Endereço não informado'}</p>
+                    <div class="order-summary">
+                        <span class="order-summary-item">📦 <strong>${totalItems}</strong> itens</span>
+                        <span class="order-summary-item">${items.length} produtos</span>
+                        <span class="order-summary-item">📍 ${deliveryAddress.split(',')[0] || deliveryAddress}</span>
+                    </div>
                 </div>
                 <div class="order-card-footer">
+                    <button class="btn-secondary btn-sm order-expand-btn" onclick="toggleOrderDetails('${order.id}')" data-expanded="false">
+                        <span class="expand-icon">▼</span> Ver Detalhes
+                    </button>
                     <select class="filter-select order-status-select" data-order-id="${order.id}">
                         ${getStatusOptions(order.status)}
                     </select>
@@ -1650,9 +1743,290 @@ function renderOrders() {
                         Atualizar
                     </button>
                 </div>
+                <!-- Versão Expandida -->
+                <div class="order-card-expanded" id="orderExpanded_${order.id}" style="display: none;">
+                    <div class="order-details-grid">
+                        <div class="order-detail-section">
+                            <h5 class="order-detail-title">👤 Cliente</h5>
+                            <div class="order-detail-content">
+                                <p class="order-detail-item"><strong>Nome:</strong> ${contactName}</p>
+                                ${clientCompany ? `<p class="order-detail-item"><strong>Empresa:</strong> ${clientCompany}</p>` : ''}
+                                ${contactPhone ? `<p class="order-detail-item"><strong>Telefone:</strong> <a href="tel:${contactPhone}">${contactPhone}</a></p>` : ''}
+                                ${contactEmail ? `<p class="order-detail-item"><strong>Email:</strong> <a href="mailto:${contactEmail}">${contactEmail}</a></p>` : ''}
+                            </div>
+                        </div>
+                        <div class="order-detail-section">
+                            <h5 class="order-detail-title">📍 Entrega</h5>
+                            <div class="order-detail-content">
+                                <p class="order-detail-item"><strong>Endereço:</strong> ${deliveryAddress}</p>
+                                ${deliveryDate ? `<p class="order-detail-item"><strong>Data prevista:</strong> ${deliveryDate}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="order-detail-section">
+                            <h5 class="order-detail-title">📦 Itens do Pedido</h5>
+                            <div class="order-items-list">
+                                ${items.map((item, index) => {
+                                    return `
+                                    <div class="order-item-card" data-item-index="${index}" data-order-id="${order.id}">
+                                        <div class="order-item-image-wrapper">
+                                            ${item.image ? `<img src="${item.image}" alt="${item.name}" class="order-item-image">` : '<div class="order-item-image-placeholder">📦</div>'}
+                                        </div>
+                                        <div class="order-item-name">${item.name}</div>
+                                        <div class="order-item-bottom">
+                                            <div class="order-item-quantity-group">
+                                                <span class="order-item-quantity-badge">${item.quantity}x</span>
+                                                <span class="order-item-unit">${item.unit.toUpperCase()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        <div class="order-detail-section">
+                            <h5 class="order-detail-title">💰 Resumo Financeiro</h5>
+                            <div class="order-financial-summary">
+                                ${(() => {
+                                    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                                    const deliveryFee = order.total - subtotal;
+                                    return `
+                                        <div class="financial-row">
+                                            <span>Subtotal:</span>
+                                            <span>${formatCurrency(subtotal)}</span>
+                                        </div>
+                                        ${deliveryFee > 0 ? `
+                                        <div class="financial-row">
+                                            <span>Taxa de entrega:</span>
+                                            <span>${formatCurrency(deliveryFee)}</span>
+                                        </div>
+                                        ` : ''}
+                                        <div class="financial-row financial-total">
+                                            <span><strong>Total:</strong></span>
+                                            <span><strong>${formatCurrency(order.total)}</strong></span>
+                                        </div>
+                                    `;
+                                })()}
+                            </div>
+                        </div>
+                        ${notes && notes.trim() ? `
+                        <div class="order-detail-section">
+                            <h5 class="order-detail-title">📝 Observações</h5>
+                            <div class="order-detail-content">
+                                <p class="order-notes">${notes.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <!-- Status no final do card expandido -->
+                    <div class="order-expanded-footer">
+                        <select class="filter-select order-status-select" data-order-id="${order.id}">
+                            ${getStatusOptions(order.status)}
+                        </select>
+                        <button class="btn-primary btn-sm" onclick="updateOrderStatus('${order.id}')">
+                            Atualizar Status
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
     }).join('');
+}
+
+// Renderizar tela de separação
+function renderSeparationOrders() {
+    const container = document.getElementById('separationOrdersContainer');
+    if (!container) return;
+    
+    // Filtrar apenas pedidos que NÃO estão concluídos e NÃO estão em transporte
+    const separationOrders = orders.filter(o => 
+        o.status !== 'concluido' && 
+        o.status !== 'cancelado' && 
+        o.status !== 'reembolsado' &&
+        o.status !== 'em_transporte'
+    );
+    
+    if (separationOrders.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
+                <span class="empty-state-icon">📦</span>
+                <p class="empty-state-text" style="color: #94a3b8;">Nenhum pedido para separação</p>
+                <p style="color: #64748b; font-size: 13px; margin-top: 8px;">Apenas pedidos não concluídos aparecem aqui</p>
+            </div>`;
+        return;
+    }
+    
+    container.innerHTML = separationOrders.map(order => {
+        const items = order.items || [];
+        const totalItems = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+        const user = users.find(u => u.id === order.user_id) || {};
+        const clientName = user.name || 'Cliente não identificado';
+        const clientCompany = user.company || '';
+        
+        // Calcular total separado somando todos os itens
+        const totalSelected = items.reduce((sum, item) => {
+            const itemKey = `${order.id}_${item.product_id}`;
+            return sum + (orderSeparationProgress[itemKey]?.selected || 0);
+        }, 0);
+        
+        const meetsRequirement = totalSelected >= totalItems;
+        
+        return `
+            <div class="separation-order-card ${meetsRequirement ? 'requirement-met' : ''}" data-order-id="${order.id}">
+                <div class="separation-order-header">
+                    <div class="separation-order-info">
+                        <h3>${order.order_number}</h3>
+                        <p class="separation-client">👤 ${clientName}${clientCompany ? ` • ${clientCompany}` : ''}</p>
+                    </div>
+                    <div class="separation-order-status">
+                        <span class="status-badge ${order.status}">${getStatusLabel(order.status)}</span>
+                    </div>
+                </div>
+                
+                <div class="separation-counter-section">
+                    <div class="separation-counter-wrapper">
+                        <span class="separation-counter-label">Total Separado:</span>
+                        <div class="separation-counter">
+                            <span class="counter-value-large" id="selectedItems_${order.id}">${(() => {
+                                // Calcular total separado somando todos os itens
+                                return items.reduce((sum, item) => {
+                                    const itemKey = `${order.id}_${item.product_id}`;
+                                    return sum + (orderSeparationProgress[itemKey]?.selected || 0);
+                                }, 0);
+                            })()}</span>
+                        </div>
+                        <span class="separation-counter-total">de ${totalItems} itens</span>
+                    </div>
+                </div>
+                
+                <div class="separation-items-grid">
+                    ${items.map((item, index) => {
+                        // Inicializar contador individual se não existir
+                        const itemKey = `${order.id}_${item.product_id}`;
+                        if (!orderSeparationProgress[itemKey]) {
+                            orderSeparationProgress[itemKey] = {
+                                selected: 0,
+                                total: item.quantity
+                            };
+                        }
+                        const itemProgress = orderSeparationProgress[itemKey];
+                        const itemMeetsRequirement = itemProgress.selected >= itemProgress.total;
+                        
+                        return `
+                        <div class="separation-item-card ${itemMeetsRequirement ? 'item-requirement-met' : ''}" data-order-id="${order.id}" data-product-id="${item.product_id}">
+                            <div class="separation-item-image">
+                                ${item.image ? `<img src="${item.image}" alt="${item.name}">` : '<div class="separation-item-placeholder">📦</div>'}
+                            </div>
+                            <div class="separation-item-name">${item.name}</div>
+                            <div class="separation-item-quantity-large">
+                                <span class="separation-quantity-number">${item.quantity}</span>
+                                <span class="separation-quantity-unit">${item.unit.toUpperCase()}</span>
+                            </div>
+                            <div class="separation-item-counter">
+                                <button class="counter-btn counter-minus" onclick="updateItemSeparationCount('${order.id}', '${item.product_id}', -1)" title="Diminuir">−</button>
+                                <span class="counter-value" id="itemSelected_${order.id}_${item.product_id}">${itemProgress.selected}</span>
+                                <button class="counter-btn counter-plus" onclick="updateItemSeparationCount('${order.id}', '${item.product_id}', 1)" title="Aumentar">+</button>
+                            </div>
+                            <div class="separation-item-progress">de ${item.quantity}</div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                <div class="separation-order-footer">
+                    <select class="filter-select order-status-select" data-order-id="${order.id}">
+                        ${getStatusOptions(order.status)}
+                    </select>
+                    <button class="btn-primary" onclick="updateOrderStatus('${order.id}')">
+                        Atualizar Status
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateItemSeparationCount(orderId, productId, delta) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    
+    const item = order.items.find(i => i.product_id === productId);
+    if (!item) return;
+    
+    const itemKey = `${orderId}_${productId}`;
+    
+    // Inicializar se não existir
+    if (!orderSeparationProgress[itemKey]) {
+        orderSeparationProgress[itemKey] = {
+            selected: 0,
+            total: item.quantity
+        };
+    }
+    
+    const progress = orderSeparationProgress[itemKey];
+    const newSelected = Math.max(0, Math.min(progress.total, progress.selected + delta));
+    progress.selected = newSelected;
+    
+    // Atualizar UI do item
+    const selectedElement = document.getElementById(`itemSelected_${orderId}_${productId}`);
+    if (selectedElement) {
+        selectedElement.textContent = newSelected;
+    }
+    
+    // Verificar se item completou
+    const itemMeetsRequirement = newSelected >= progress.total;
+    const itemCard = document.querySelector(`.separation-item-card[data-order-id="${orderId}"][data-product-id="${productId}"]`);
+    if (itemCard) {
+        if (itemMeetsRequirement) {
+            itemCard.classList.add('item-requirement-met');
+        } else {
+            itemCard.classList.remove('item-requirement-met');
+        }
+    }
+    
+    // Calcular total geral do pedido
+    const totalSelected = order.items.reduce((sum, i) => {
+        const key = `${orderId}_${i.product_id}`;
+        return sum + (orderSeparationProgress[key]?.selected || 0);
+    }, 0);
+    
+    const totalItems = order.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    
+    // Atualizar contador geral
+    const generalCounter = document.getElementById(`selectedItems_${orderId}`);
+    if (generalCounter) {
+        generalCounter.textContent = totalSelected;
+    }
+    
+    // Verificar se pedido completo
+    const orderMeetsRequirement = totalSelected >= totalItems;
+    const orderCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
+    if (orderCard) {
+        if (orderMeetsRequirement) {
+            orderCard.classList.add('requirement-met');
+        } else {
+            orderCard.classList.remove('requirement-met');
+        }
+    }
+    
+    // Salvar no localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('orderSeparationProgress', JSON.stringify(orderSeparationProgress));
+    }
+}
+window.updateItemSeparationCount = updateItemSeparationCount;
+
+// Carregar progresso salvo
+function loadSeparationProgress() {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('orderSeparationProgress');
+        if (saved) {
+            try {
+                orderSeparationProgress = JSON.parse(saved);
+            } catch (e) {
+                orderSeparationProgress = {};
+            }
+        }
+    }
 }
 
 function filterOrders() {
@@ -1664,18 +2038,365 @@ function refreshOrders() {
 }
 
 async function updateOrderStatus(orderId) {
-    const select = document.querySelector(`.order-status-select[data-order-id="${orderId}"]`);
-    if (!select) return;
+    // Procurar o select que foi clicado - pode estar na visualização ou separação
+    let select = null;
+    
+    // Primeiro, tentar encontrar o select que está visível na tela atual
+    if (ordersViewMode === 'separation') {
+        // Na tela de separação, procurar dentro do card de separação
+        const separationCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
+        if (separationCard) {
+            select = separationCard.querySelector(`.order-status-select[data-order-id="${orderId}"]`);
+        }
+    }
+    
+    // Se não encontrou, tentar o seletor geral
+    if (!select) {
+        select = document.querySelector(`.order-status-select[data-order-id="${orderId}"]`);
+    }
+    
+    if (!select) {
+        console.error('❌ Select não encontrado para pedido:', orderId);
+        return;
+    }
     
     const newStatus = select.value;
+    console.log('🔄 Atualizando status do pedido:', orderId, 'para:', newStatus, 'select encontrado:', select);
+    
+    // Obter o status antigo antes de atualizar
+    const order = orders.find(o => o.id === orderId);
+    const oldStatus = order ? order.status : null;
+    
+    // Função para atualizar o DOM imediatamente
+    const updateDOM = () => {
+        // Atualizar o status no objeto order local PRIMEIRO
+        if (order) {
+            order.status = newStatus;
+        }
+        
+        // Atualizar badge de status no card (visualização) - IMEDIATAMENTE
+        const orderCard = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+        if (orderCard) {
+            const statusBadge = orderCard.querySelector('.status-badge');
+            if (statusBadge) {
+                const newLabel = getStatusLabel(newStatus);
+                statusBadge.textContent = newLabel;
+                statusBadge.className = 'status-badge ' + newStatus;
+                // Forçar reflow
+                void statusBadge.offsetHeight;
+            }
+        }
+        
+        // Atualizar badge de status na tela de separação - IMEDIATAMENTE
+        const separationCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
+        if (separationCard) {
+            // Procurar o badge dentro do header - usar seletor mais específico
+            let separationStatusBadge = separationCard.querySelector('.separation-order-status .status-badge');
+            if (!separationStatusBadge) {
+                separationStatusBadge = separationCard.querySelector('.status-badge');
+            }
+            
+            if (separationStatusBadge) {
+                const newLabel = getStatusLabel(newStatus);
+                console.log('🔄 Atualizando badge de separação:', orderId, 'para:', newStatus, 'label:', newLabel);
+                
+                // Atualizar texto
+                separationStatusBadge.textContent = newLabel;
+                separationStatusBadge.innerText = newLabel;
+                
+                // Remover todas as classes de status antigas
+                const statusClasses = ['pendente', 'confirmado', 'em_preparacao', 'em_transporte', 'concluido', 'cancelado', 'reembolsado'];
+                statusClasses.forEach(cls => separationStatusBadge.classList.remove(cls));
+                
+                // Adicionar nova classe
+                separationStatusBadge.classList.add(newStatus);
+                separationStatusBadge.className = 'status-badge ' + newStatus;
+                
+                // Forçar reflow e repaint
+                void separationStatusBadge.offsetHeight;
+                separationStatusBadge.style.transform = 'scale(1)';
+                void separationStatusBadge.offsetHeight;
+            } else {
+                console.error('❌ Badge de status não encontrado na tela de separação para pedido:', orderId);
+                console.log('🔍 Card encontrado:', separationCard);
+                console.log('🔍 Tentando encontrar badge...');
+                const allBadges = separationCard.querySelectorAll('.status-badge');
+                console.log('🔍 Badges encontrados:', allBadges.length);
+            }
+        } else {
+            console.warn('⚠️ Card de separação não encontrado para pedido:', orderId);
+        }
+        
+        // Atualizar todos os selects do mesmo pedido
+        document.querySelectorAll(`.order-status-select[data-order-id="${orderId}"]`).forEach(sel => {
+            sel.value = newStatus;
+        });
+        
+        // Atualizar summary se necessário
+        const summary = document.getElementById('ordersSummary');
+        if (summary && ordersViewMode === 'list') {
+            const pending = orders.filter(o => o.status === 'pendente').length;
+            const confirmed = orders.filter(o => o.status === 'confirmado').length;
+            const preparing = orders.filter(o => o.status === 'em_preparacao').length;
+            
+            summary.innerHTML = `
+                <span>Total: <strong>${orders.length}</strong></span>
+                <span>Pendentes: <strong>${pending}</strong></span>
+                <span>Confirmados: <strong>${confirmed}</strong></span>
+                <span>Em Preparação: <strong>${preparing}</strong></span>
+            `;
+        }
+    };
     
     try {
+        // Atualizar DOM ANTES de fazer a requisição (otimista)
+        updateDOM();
+        
+        // Fazer a requisição
         await api.updateOrderStatus(orderId, newStatus);
+        
+        // Se chegou aqui, a API retornou sucesso - garantir que está tudo atualizado
+        updateDOM();
+        
+        // Se o status foi atualizado para "em_transporte" na tela de separação, animar
+        if (newStatus === 'em_transporte' && ordersViewMode === 'separation') {
+            // Animação de arraste para direita antes de remover
+            const separationCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
+            if (separationCard) {
+                // Adicionar classe de animação
+                separationCard.classList.add('slide-to-transport');
+                
+                // Remover após a animação completar (800ms)
+                setTimeout(() => {
+                    separationCard.remove();
+                    // Re-renderizar para atualizar contadores
+                    renderSeparationOrders();
+                }, 800);
+            } else {
+                // Se não encontrou o card, apenas re-renderizar
+                setTimeout(() => {
+                    renderSeparationOrders();
+                }, 100);
+            }
+        } else if (newStatus === 'concluido' && ordersViewMode === 'separation') {
+            // Remover da tela de separação
+            setTimeout(() => {
+                renderSeparationOrders();
+            }, 100);
+        }
+        
+        // Se o status mudou para "em_transporte" e estamos na tela de transporte, recarregar
+        if (newStatus === 'em_transporte' && currentSection === 'transport') {
+            setTimeout(() => {
+                renderTransport();
+            }, 100);
+        }
+        
+        // Se o status mudou de "em_transporte" para outro, remover da tela de transporte
+        if (oldStatus === 'em_transporte' && newStatus !== 'em_transporte' && currentSection === 'transport') {
+            setTimeout(() => {
+                renderTransport();
+            }, 100);
+        }
+        
         showNotification('✅ Status atualizado!', 'success');
-        await loadOrders();
+        
     } catch (error) {
+        // Reverter em caso de erro
+        if (order && oldStatus) {
+            order.status = oldStatus;
+        }
+        
+        // Reverter badges
+        const orderCard = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+        if (orderCard && oldStatus) {
+            const statusBadge = orderCard.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.textContent = getStatusLabel(oldStatus);
+                statusBadge.className = 'status-badge ' + oldStatus;
+            }
+        }
+        
+        const separationCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
+        if (separationCard && oldStatus) {
+            const separationStatusBadge = separationCard.querySelector('.separation-order-status .status-badge') || 
+                                         separationCard.querySelector('.status-badge');
+            if (separationStatusBadge) {
+                separationStatusBadge.textContent = getStatusLabel(oldStatus);
+                separationStatusBadge.innerText = getStatusLabel(oldStatus);
+                separationStatusBadge.className = 'status-badge ' + oldStatus;
+            }
+        }
+        
+        // Reverter selects
+        if (oldStatus) {
+            select.value = oldStatus;
+            document.querySelectorAll(`.order-status-select[data-order-id="${orderId}"]`).forEach(sel => {
+                sel.value = oldStatus;
+            });
+        }
+        
         showNotification('❌ Erro ao atualizar: ' + error.message, 'error');
     }
+}
+
+function toggleOrderDetails(orderId) {
+    const expanded = document.getElementById(`orderExpanded_${orderId}`);
+    const button = document.querySelector(`.order-expand-btn[onclick="toggleOrderDetails('${orderId}')"]`);
+    
+    if (!expanded || !button) return;
+    
+    const isExpanded = expanded.style.display !== 'none';
+    
+    if (isExpanded) {
+        expanded.style.display = 'none';
+        button.setAttribute('data-expanded', 'false');
+        button.innerHTML = '<span class="expand-icon">▼</span> Ver Detalhes';
+    } else {
+        expanded.style.display = 'block';
+        button.setAttribute('data-expanded', 'true');
+        button.innerHTML = '<span class="expand-icon">▲</span> Ocultar Detalhes';
+    }
+}
+window.toggleOrderDetails = toggleOrderDetails;
+
+// ========== TRANSPORT ==========
+async function loadTransport() {
+    try {
+        // Usar os pedidos já carregados
+        renderTransport();
+    } catch (error) {
+        console.error('Erro ao carregar transporte:', error);
+        renderTransport();
+    }
+}
+
+function renderTransport() {
+    const container = document.getElementById('transportListContainer');
+    const summary = document.getElementById('transportSummary');
+    
+    if (!container) return;
+    
+    // Filtrar apenas pedidos em transporte
+    const transportOrders = orders.filter(o => o.status === 'em_transporte');
+    
+    // Summary
+    if (summary) {
+        summary.innerHTML = `
+            <span>Total: <strong>${transportOrders.length}</strong> pedidos em transporte</span>
+        `;
+    }
+    
+    if (transportOrders.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
+                <span class="empty-state-icon">🚚</span>
+                <p class="empty-state-text" style="color: #94a3b8;">Nenhum pedido em transporte</p>
+            </div>`;
+        return;
+    }
+    
+    container.innerHTML = transportOrders.map(order => {
+        const items = order.items || [];
+        const totalItems = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+        const user = users.find(u => u.id === order.user_id) || {};
+        const clientName = user.name || 'Cliente não identificado';
+        const clientCompany = user.company || '';
+        const clientPhone = user.phone || '';
+        const clientEmail = user.email || '';
+        
+        // Parse notes para extrair informações de contato
+        const notes = order.notes || '';
+        const contactMatch = notes.match(/Contato:\s*(.+?)(?:\n|$)/);
+        const contactName = contactMatch ? contactMatch[1].trim() : clientName;
+        
+        const deliveryDate = order.delivery_date ? formatDate(order.delivery_date) : null;
+        const deliveryAddress = order.delivery_address || 'Endereço não informado';
+        
+        return `
+            <div class="transport-card" data-order-id="${order.id}">
+                <div class="transport-card-header">
+                    <div class="transport-order-info">
+                        <h3 class="transport-order-number">${order.order_number}</h3>
+                        <p class="transport-meta">${formatDateTime(order.created_at)}</p>
+                    </div>
+                    <div class="transport-status">
+                        <span class="status-badge ${order.status}">${getStatusLabel(order.status)}</span>
+                    </div>
+                </div>
+                
+                <div class="transport-card-body">
+                    <div class="transport-info-grid">
+                        <div class="transport-info-item">
+                            <span class="transport-label">👤 Comprador:</span>
+                            <span class="transport-value">${contactName}</span>
+                        </div>
+                        <div class="transport-info-item">
+                            <span class="transport-label">🏢 Cliente:</span>
+                            <span class="transport-value">${clientName}${clientCompany ? ` • ${clientCompany}` : ''}</span>
+                        </div>
+                        <div class="transport-info-item">
+                            <span class="transport-label">📦 Quantidade:</span>
+                            <span class="transport-value"><strong>${totalItems}</strong> itens</span>
+                        </div>
+                        <div class="transport-info-item">
+                            <span class="transport-label">📍 Endereço:</span>
+                            <span class="transport-value">${deliveryAddress}</span>
+                        </div>
+                        ${deliveryDate ? `
+                        <div class="transport-info-item">
+                            <span class="transport-label">📅 Data prevista:</span>
+                            <span class="transport-value">${deliveryDate}</span>
+                        </div>
+                        ` : ''}
+                        ${clientPhone ? `
+                        <div class="transport-info-item">
+                            <span class="transport-label">📞 Telefone:</span>
+                            <span class="transport-value"><a href="tel:${clientPhone}">${clientPhone}</a></span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="transport-items-section">
+                        <h4 class="transport-items-title">📦 Itens do Pedido</h4>
+                        <table class="transport-items-table">
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Quantidade</th>
+                                    <th>Unidade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${items.map((item, index) => {
+                                    return `
+                                    <tr>
+                                        <td class="transport-item-name">${item.name}</td>
+                                        <td class="transport-item-qty">${item.quantity}</td>
+                                        <td class="transport-item-unit">${item.unit.toUpperCase()}</td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="transport-card-footer">
+                    <select class="filter-select order-status-select" data-order-id="${order.id}">
+                        ${getStatusOptions(order.status)}
+                    </select>
+                    <button class="btn-primary" onclick="updateOrderStatus('${order.id}')">
+                        Atualizar Status
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function refreshTransport() {
+    loadTransport();
 }
 
 // ========== USERS ==========
@@ -2504,7 +3225,10 @@ function renderPromoOrderList() {
              ondragover="handleDragOver(event)"
              ondragleave="handleDragLeave(event)"
              ondrop="handleDrop(event)"
-             ondragend="handleDragEnd(event)">
+             ondragend="handleDragEnd(event)"
+             ontouchstart="handleTouchStart(event)"
+             ontouchmove="handleTouchMove(event)"
+             ontouchend="handleTouchEnd(event)">
             <span class="promo-order-handle">☰</span>
             <span class="promo-order-position">${index + 1}</span>
             <img class="promo-order-image" src="${product.image_url || 'images/placeholder.png'}" alt="${product.name}">
@@ -2583,6 +3307,158 @@ function handleDragEnd(e) {
     });
     
     draggedItem = null;
+}
+
+// ========== TOUCH EVENTS PARA MOBILE ==========
+let touchStartY = 0;
+let touchStartElement = null;
+let touchCurrentElement = null;
+
+function handleTouchStart(e) {
+    touchStartElement = e.target.closest('.promo-order-item');
+    if (!touchStartElement) return;
+    
+    touchStartY = e.touches[0].clientY;
+    touchStartElement.classList.add('dragging');
+    
+    // Adicionar estilo visual de arraste
+    touchStartElement.style.transform = 'scale(1.05)';
+    touchStartElement.style.zIndex = '1000';
+    touchStartElement.style.boxShadow = '0 8px 24px rgba(34, 197, 94, 0.3)';
+    
+    e.preventDefault();
+}
+
+function handleTouchMove(e) {
+    if (!touchStartElement) return;
+    
+    e.preventDefault();
+    const touchY = e.touches[0].clientY;
+    
+    // Mover visualmente o elemento sendo arrastado
+    const deltaY = touchY - touchStartY;
+    touchStartElement.style.transform = `translateY(${deltaY}px) scale(1.05)`;
+    
+    // Encontrar o item de destino baseado na posição Y
+    const container = document.getElementById('promoOrderList');
+    if (!container) return;
+    
+    const allItems = Array.from(container.querySelectorAll('.promo-order-item'));
+    let targetItem = null;
+    
+    // Encontrar qual item está na posição do toque
+    for (const item of allItems) {
+        if (item === touchStartElement) continue;
+        
+        const rect = item.getBoundingClientRect();
+        const itemCenterY = rect.top + rect.height / 2;
+        
+        // Se o toque está sobre este item
+        if (touchY >= rect.top && touchY <= rect.bottom) {
+            targetItem = item;
+            break;
+        }
+    }
+    
+    // Remover drag-over de todos os itens
+    allItems.forEach(item => {
+        if (item !== touchStartElement) {
+            item.classList.remove('drag-over');
+        }
+    });
+    
+    // Adicionar drag-over no item atual (amarelo)
+    if (targetItem && targetItem !== touchStartElement) {
+        targetItem.classList.add('drag-over');
+        touchCurrentElement = targetItem;
+    } else {
+        touchCurrentElement = null;
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!touchStartElement) return;
+    
+    e.preventDefault();
+    
+    const touchY = e.changedTouches[0].clientY;
+    const container = document.getElementById('promoOrderList');
+    
+    if (!container) {
+        // Limpar se não houver container
+        touchStartElement.classList.remove('dragging');
+        touchStartElement.style.transform = '';
+        touchStartElement.style.zIndex = '';
+        touchStartElement.style.boxShadow = '';
+        touchStartElement = null;
+        touchCurrentElement = null;
+        touchStartY = 0;
+        return;
+    }
+    
+    // Encontrar o item de destino baseado na posição Y final
+    const allItems = Array.from(container.querySelectorAll('.promo-order-item'));
+    let targetItem = null;
+    
+    for (const item of allItems) {
+        if (item === touchStartElement) continue;
+        
+        const rect = item.getBoundingClientRect();
+        
+        // Se o toque está sobre este item
+        if (touchY >= rect.top && touchY <= rect.bottom) {
+            targetItem = item;
+            break;
+        }
+    }
+    
+    // Se não encontrou pelo toque, usar o touchCurrentElement
+    if (!targetItem && touchCurrentElement) {
+        targetItem = touchCurrentElement;
+    }
+    
+    if (targetItem && targetItem !== touchStartElement) {
+        targetItem.classList.remove('drag-over');
+        
+        const draggedIndex = allItems.indexOf(touchStartElement);
+        const targetIndex = allItems.indexOf(targetItem);
+        
+        // Reordenar no DOM apenas se os índices forem diferentes
+        if (draggedIndex !== targetIndex) {
+            // Remover o elemento da posição atual
+            touchStartElement.remove();
+            
+            // Inserir na nova posição
+            if (draggedIndex < targetIndex) {
+                // Movendo para baixo
+                if (targetItem.nextSibling) {
+                    container.insertBefore(touchStartElement, targetItem.nextSibling);
+                } else {
+                    container.appendChild(touchStartElement);
+                }
+            } else {
+                // Movendo para cima
+                container.insertBefore(touchStartElement, targetItem);
+            }
+            
+            // Atualizar números de posição
+            updatePositionNumbers();
+        }
+    }
+    
+    // Limpar estilos visuais
+    touchStartElement.classList.remove('dragging');
+    touchStartElement.style.transform = '';
+    touchStartElement.style.zIndex = '';
+    touchStartElement.style.boxShadow = '';
+    
+    document.querySelectorAll('.promo-order-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
+    
+    touchStartElement = null;
+    touchCurrentElement = null;
+    touchStartY = 0;
 }
 
 function updatePositionNumbers() {
@@ -2976,16 +3852,33 @@ function getPaymentPreferenceLabel(preference) {
 // ========== SUMMARY CARDS ==========
 function renderSummaryCards(metrics, orders) {
     // Update customers summary
-    document.getElementById('summaryTotalCustomers').textContent = metrics.active_users || 0;
-    document.getElementById('summaryNewCustomers').textContent = metrics.new_users_week || 0;
+    const summaryTotalCustomers = document.getElementById('summaryTotalCustomers');
+    if (summaryTotalCustomers) {
+        summaryTotalCustomers.textContent = metrics.active_users || 0;
+    }
+    
+    const summaryNewCustomers = document.getElementById('summaryNewCustomers');
+    if (summaryNewCustomers) {
+        summaryNewCustomers.textContent = metrics.new_users_week || 0;
+    }
     
     // Update orders summary
-    document.getElementById('summaryTotalOrders').textContent = orders.length;
-    const pendingOrders = orders.filter(o => o.status === 'pendente').length;
-    document.getElementById('summaryPendingOrders').textContent = pendingOrders;
+    const summaryTotalOrders = document.getElementById('summaryTotalOrders');
+    if (summaryTotalOrders) {
+        summaryTotalOrders.textContent = orders ? orders.length : 0;
+    }
+    
+    const pendingOrders = orders ? orders.filter(o => o.status === 'pendente').length : 0;
+    const summaryPendingOrders = document.getElementById('summaryPendingOrders');
+    if (summaryPendingOrders) {
+        summaryPendingOrders.textContent = pendingOrders;
+    }
     
     // Update requests summary (will be updated when approvals are loaded)
-    document.getElementById('summaryPendingRequests').textContent = metrics.pending_approval || 0;
+    const summaryPendingRequests = document.getElementById('summaryPendingRequests');
+    if (summaryPendingRequests) {
+        summaryPendingRequests.textContent = metrics.pending_approval || 0;
+    }
 }
 
 let summaryModalType = null;

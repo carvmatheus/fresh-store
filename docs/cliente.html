@@ -281,7 +281,7 @@
             const emptyState = document.getElementById('emptyState');
             
             try {
-                const response = await api.getMyOrders();
+                const response = await api.getOrders();
                 allOrders = response || [];
                 filteredOrders = [...allOrders];
                 
