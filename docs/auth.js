@@ -74,6 +74,26 @@ async function login(usernameOrEmail, password) {
     console.log('🔀 Redirecionando para:', redirectUrl);
     console.log('📋 Status de aprovação:', result.user.approval_status);
     
+    // Carregar carrinho após login bem-sucedido (antes de redirecionar)
+    try {
+      // Aguardar um pouco para garantir que o token foi salvo
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Tentar carregar carrinho do backend ou localStorage
+      // A função pode estar em window.loadCartFromStorage ou globalmente
+      const loadCartFn = window.loadCartFromStorage || (typeof loadCartFromStorage !== 'undefined' ? loadCartFromStorage : null);
+      
+      if (loadCartFn && typeof loadCartFn === 'function') {
+        await loadCartFn();
+        console.log('📦 Carrinho carregado após login');
+      } else {
+        console.log('ℹ️ Função loadCartFromStorage não disponível ainda (será carregada na página)');
+      }
+    } catch (error) {
+      console.warn('⚠️ Erro ao carregar carrinho após login:', error);
+      // Continuar mesmo se houver erro ao carregar carrinho
+    }
+    
     // Usar setTimeout para garantir que o redirecionamento aconteça
     setTimeout(() => {
       window.location.replace(redirectUrl);
@@ -110,9 +130,38 @@ if (typeof window !== 'undefined') {
 }
 
 // Logout
-function logout() {
-  api.logout();
+async function logout() {
+  // Salvar carrinho no localStorage antes de fazer logout (para preservar entre sessões)
+  try {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (currentUser) {
+      // Tentar obter carrinho do backend antes de fazer logout
+      try {
+        const cartResponse = await api.getCart();
+        if (cartResponse && cartResponse.items && cartResponse.items.length > 0) {
+          // Salvar carrinho no localStorage vinculado ao usuário
+          const cartKey = `user_cart_${currentUser.id}`;
+          localStorage.setItem(cartKey, JSON.stringify(cartResponse.items));
+          console.log('💾 Carrinho salvo no localStorage antes do logout:', cartResponse.items.length, 'itens');
+        }
+      } catch (error) {
+        console.warn('⚠️ Não foi possível obter carrinho do backend antes do logout:', error);
+        // Tentar salvar do sessionStorage como fallback
+        const sessionCart = sessionStorage.getItem('freshStoreCart');
+        if (sessionCart) {
+          const cartKey = `user_cart_${currentUser.id}`;
+          localStorage.setItem(cartKey, sessionCart);
+          console.log('💾 Carrinho salvo do sessionStorage antes do logout');
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Erro ao salvar carrinho antes do logout:', error);
+  }
+  
+  await api.logout();
   localStorage.removeItem('currentUser');
+  sessionStorage.removeItem('freshStoreCart'); // Limpar carrinho da sessão ao fazer logout
   window.location.href = 'index.html';
 }
 

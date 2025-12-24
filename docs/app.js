@@ -173,8 +173,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadPromotedProducts();
   initCarousel(); // Inicializar carrossel de promoções
   loadProducts();
-  loadCartFromStorage();
-  updateCartUI();
+  
+  // Carregar carrinho (já atualiza a UI internamente)
+  await loadCartFromStorage();
+  
   setupCEPMask();
   
   console.log('✅ Aplicação inicializada com sucesso!');
@@ -968,16 +970,113 @@ function goToHome() {
   }
 }
 
-// LocalStorage
-function saveCartToStorage() {
-  localStorage.setItem('freshStoreCart', JSON.stringify(cart));
+// Salvar carrinho no backend (sessão)
+async function saveCartToStorage() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (!currentUser) {
+    console.warn('⚠️ Tentativa de salvar carrinho sem usuário logado');
+    return; // Sem usuário, não salvar
+  }
+  
+  try {
+    await api.saveCart(cart);
+    console.log('💾 Carrinho salvo no backend (sessão):', cart.length, 'itens');
+    
+    // Salvar em múltiplos lugares para garantir persistência
+    sessionStorage.setItem('freshStoreCart', JSON.stringify(cart));
+    
+    // Salvar no localStorage vinculado ao usuário (para preservar entre sessões)
+    const cartKey = `user_cart_${currentUser.id}`;
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+  } catch (error) {
+    console.error('❌ Erro ao salvar carrinho no backend:', error);
+    // Fallback: salvar localmente
+    try {
+      sessionStorage.setItem('freshStoreCart', JSON.stringify(cart));
+      const cartKey = `user_cart_${currentUser.id}`;
+      localStorage.setItem(cartKey, JSON.stringify(cart));
+      console.log('💾 Carrinho salvo localmente (fallback)');
+    } catch (e) {
+      console.error('❌ Erro ao salvar carrinho localmente:', e);
+    }
+  }
 }
 
-function loadCartFromStorage() {
-  const saved = localStorage.getItem('freshStoreCart');
-  if (saved) {
-    cart = JSON.parse(saved);
+async function loadCartFromStorage() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (!currentUser) {
+    console.warn('⚠️ Tentativa de carregar carrinho sem usuário logado');
+    cart = []; // Sem usuário, sem carrinho
+    return;
   }
+  
+  try {
+    // Tentar carregar do backend primeiro (sessão atual)
+    const response = await api.getCart();
+    if (response && response.items && response.items.length > 0) {
+      cart = response.items;
+      console.log('📦 Carrinho carregado do backend (sessão):', cart.length, 'itens');
+      
+      // Também salvar localmente como backup
+      sessionStorage.setItem('freshStoreCart', JSON.stringify(cart));
+      
+      // Salvar no localStorage vinculado ao usuário (para preservar entre sessões)
+      const cartKey = `user_cart_${currentUser.id}`;
+      localStorage.setItem(cartKey, JSON.stringify(cart));
+    } else {
+      // Se não há carrinho no backend, tentar carregar do localStorage (carrinho salvo antes do logout)
+      const cartKey = `user_cart_${currentUser.id}`;
+      const savedCart = localStorage.getItem(cartKey);
+      
+      if (savedCart) {
+        cart = JSON.parse(savedCart);
+        console.log('📦 Carrinho restaurado do localStorage (sessão anterior):', cart.length, 'itens');
+        
+        // Sincronizar com backend (nova sessão)
+        await saveCartToStorage();
+      } else {
+        cart = [];
+        console.log('🛒 Carrinho vazio - iniciando novo carrinho');
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Erro ao carregar carrinho do backend, tentando localStorage:', error);
+    
+    // Fallback: carregar do localStorage (carrinho salvo antes do logout)
+    try {
+      const cartKey = `user_cart_${currentUser.id}`;
+      const savedCart = localStorage.getItem(cartKey);
+      
+      if (savedCart) {
+        cart = JSON.parse(savedCart);
+        console.log('📦 Carrinho carregado do localStorage (fallback):', cart.length, 'itens');
+        
+        // Tentar sincronizar com backend
+        await saveCartToStorage();
+      } else {
+        // Último fallback: sessionStorage
+        const saved = sessionStorage.getItem('freshStoreCart');
+        if (saved) {
+          cart = JSON.parse(saved);
+          console.log('📦 Carrinho carregado do sessionStorage (fallback):', cart.length, 'itens');
+        } else {
+          cart = [];
+          console.log('🛒 Carrinho vazio - iniciando novo carrinho');
+        }
+      }
+    } catch (e) {
+      console.error('❌ Erro ao carregar carrinho localmente:', e);
+      cart = [];
+    }
+  }
+  
+  // Sempre atualizar a UI após carregar o carrinho
+  updateCartUI();
+}
+
+// Tornar função global para ser chamada após login
+if (typeof window !== 'undefined') {
+  window.loadCartFromStorage = loadCartFromStorage;
 }
 
 // Simulador de entrega

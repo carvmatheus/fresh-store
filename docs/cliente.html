@@ -265,9 +265,9 @@
             }
         }
         
-        // Atualizar badge do carrinho
+        // Atualizar badge do carrinho (vinculado à sessão)
         function updateCartBadge() {
-        const cart = JSON.parse(localStorage.getItem('freshStoreCart')) || [];
+        const cart = JSON.parse(sessionStorage.getItem('freshStoreCart') || '[]');
         const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
             const badge = document.getElementById('cartBadge');
             if (badge) {

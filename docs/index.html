@@ -217,43 +217,72 @@
     
     <!-- Verificar autenticação e aprovação -->
     <script>
-        // Verificar se usuário está logado
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-        if (!currentUser) {
-            // Redirecionar para login se não estiver logado
-            window.location.replace('login.html');
-        } else {
+        // Função para verificar e aplicar seções baseado no status do usuário
+        function checkUserSections() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
+            if (!currentUser) {
+                // Redirecionar para login se não estiver logado
+                window.location.replace('login.html');
+                return;
+            }
+            
             // Verificar status de aprovação
             const approvalStatus = currentUser.approval_status;
             const userRole = currentUser.role;
             
+            // Obter elementos
+            const catalogContent = document.getElementById('catalogContent');
+            const pendingSection = document.getElementById('pendingApprovalSection');
+            const suspendedSection = document.getElementById('suspendedAccountSection');
+            const headerActions = document.querySelector('.header-actions');
+            const cartSidebar = document.querySelector('.cart-sidebar');
+            
             // Admins e consultores sempre têm acesso
             if (userRole === 'admin' || userRole === 'consultor') {
-                // Acesso completo - não faz nada, catálogo será exibido
+                // Acesso completo - mostrar catálogo
                 console.log('👑 Acesso admin/consultor autorizado');
+                if (catalogContent) catalogContent.classList.remove('hidden');
+                if (pendingSection) pendingSection.classList.add('hidden');
+                if (suspendedSection) suspendedSection.classList.add('hidden');
+                if (headerActions) headerActions.style.display = '';
+                if (cartSidebar) cartSidebar.style.display = '';
             } else if (approvalStatus === 'pending') {
                 // Usuário pendente - mostrar mensagem de aguardando aprovação
                 console.log('⏳ Usuário pendente de aprovação');
-                document.getElementById('catalogContent').classList.add('hidden');
-                document.getElementById('pendingApprovalSection').classList.remove('hidden');
+                if (catalogContent) catalogContent.classList.add('hidden');
+                if (pendingSection) pendingSection.classList.remove('hidden');
+                if (suspendedSection) suspendedSection.classList.add('hidden');
                 
                 // Esconder carrinho e header actions para pendentes
-                document.querySelector('.header-actions').style.display = 'none';
-                document.querySelector('.cart-sidebar').style.display = 'none';
+                if (headerActions) headerActions.style.display = 'none';
+                if (cartSidebar) cartSidebar.style.display = 'none';
             } else if (approvalStatus === 'suspended') {
                 // Usuário suspenso
                 console.log('🚫 Usuário suspenso');
-                document.getElementById('catalogContent').classList.add('hidden');
-                document.getElementById('suspendedAccountSection').classList.remove('hidden');
+                if (catalogContent) catalogContent.classList.add('hidden');
+                if (pendingSection) pendingSection.classList.add('hidden');
+                if (suspendedSection) suspendedSection.classList.remove('hidden');
                 
                 // Esconder carrinho e header actions
-                document.querySelector('.header-actions').style.display = 'none';
-                document.querySelector('.cart-sidebar').style.display = 'none';
+                if (headerActions) headerActions.style.display = 'none';
+                if (cartSidebar) cartSidebar.style.display = 'none';
             } else {
                 // Usuário aprovado - acesso normal
                 console.log('✅ Usuário aprovado - acesso ao catálogo');
+                if (catalogContent) catalogContent.classList.remove('hidden');
+                if (pendingSection) pendingSection.classList.add('hidden');
+                if (suspendedSection) suspendedSection.classList.add('hidden');
+                if (headerActions) headerActions.style.display = '';
+                if (cartSidebar) cartSidebar.style.display = '';
             }
         }
+        
+        // Verificar quando a página carregar
+        checkUserSections();
+        
+        // Verificar novamente após um pequeno delay (para garantir que elementos foram carregados)
+        setTimeout(checkUserSections, 100);
     </script>
 </body>
 </html>

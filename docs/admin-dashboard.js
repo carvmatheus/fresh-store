@@ -327,13 +327,34 @@ function showSection(sectionName) {
         users: 'Clientes',
         approvals: 'Aprovações'
     };
-    document.getElementById('pageTitle').textContent = titles[sectionName] || sectionName;
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) {
+        pageTitle.textContent = titles[sectionName] || sectionName;
+    }
+    
+    // Show/hide back to dashboard button
+    const backBtn = document.getElementById('backToDashboardBtn');
+    if (backBtn) {
+        if (sectionName === 'dashboard') {
+            backBtn.style.display = 'none';
+        } else {
+            backBtn.style.display = 'flex';
+        }
+    }
+    
+    // Update mobile menu active state
+    document.querySelectorAll('.mobile-menu-link').forEach(link => {
+        link.classList.toggle('active', link.dataset.section === sectionName);
+    });
     
     // Load section data
     loadSectionData(sectionName);
     
-    // Close mobile menu
-    document.getElementById('adminSidebar').classList.remove('open');
+    // Close mobile menu if open
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (mobileMenu && mobileMenu.classList.contains('open')) {
+        toggleMobileMenu();
+    }
 }
 
 async function loadSectionData(section) {
@@ -360,11 +381,58 @@ async function loadSectionData(section) {
 }
 
 function setupMobileMenu() {
-    // Menu mobile removido - sidebar sempre visível
-    // Função mantida para compatibilidade
+    // Mobile menu toggle function
 }
 
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    const overlay = document.getElementById('mobileMenuOverlay');
+    const toggle = document.getElementById('mobileMenuToggle');
+    
+    if (menu && overlay && toggle) {
+        const isOpen = menu.classList.contains('open');
+        
+        if (isOpen) {
+            menu.classList.remove('open');
+            overlay.classList.remove('active');
+            toggle.classList.remove('active');
+            document.body.style.overflow = '';
+        } else {
+            menu.classList.add('open');
+            overlay.classList.add('active');
+            toggle.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+}
+
+// Expor função globalmente
+window.toggleMobileMenu = toggleMobileMenu;
+
 // ========== GLOBAL FILTERS ==========
+function toggleFilters() {
+    const filtersBar = document.getElementById('globalFiltersBar');
+    const toggleBtn = document.getElementById('filterToggleBtn');
+    const filterArrow = document.getElementById('filterArrow');
+    
+    if (filtersBar && toggleBtn) {
+        const isExpanded = filtersBar.classList.contains('expanded');
+        
+        if (isExpanded) {
+            filtersBar.classList.remove('expanded');
+            filtersBar.style.display = 'none';
+            toggleBtn.classList.remove('active');
+        } else {
+            filtersBar.style.display = 'flex';
+            // Pequeno delay para garantir que o display está aplicado antes da animação
+            setTimeout(() => {
+                filtersBar.classList.add('expanded');
+                toggleBtn.classList.add('active');
+            }, 10);
+        }
+    }
+}
+
 function setupGlobalFilters() {
     // Debounce para filtros de texto
     let filterTimeout;
@@ -817,7 +885,17 @@ async function loadDashboardData() {
         document.getElementById('totalUsers').textContent = metrics.active_users || 0;
         document.getElementById('newUsersWeek').textContent = `+${metrics.new_users_week || 0} esta semana`;
         document.getElementById('pendingApprovals').textContent = metrics.pending_approval || 0;
-        document.getElementById('pendingBadge').textContent = metrics.pending_approval || 0;
+        const pendingCount = metrics.pending_approval || 0;
+        const pendingBadge = document.getElementById('pendingBadge');
+        const mobilePendingBadge = document.getElementById('mobilePendingBadge');
+        
+        if (pendingBadge) {
+            pendingBadge.textContent = pendingCount;
+        }
+        
+        if (mobilePendingBadge) {
+            mobilePendingBadge.textContent = pendingCount;
+        }
         
         // Load orders for count
         const ordersData = await api.getAllOrders();
@@ -1834,7 +1912,7 @@ function renderPendingApprovals(pending) {
     }
     
     container.innerHTML = pending.map(user => `
-        <div class="approval-card pending">
+        <div class="approval-card pending" data-user-id="${user.id}">
             <div class="approval-date">${formatRelativeTime(user.created_at)}</div>
             <div class="approval-header">
                 <div class="approval-avatar">👤</div>
@@ -1844,24 +1922,270 @@ function renderPendingApprovals(pending) {
                 </div>
             </div>
             <div class="approval-details">
-                <div class="approval-detail-highlight">
-                    <strong>💳 Forma de Pagamento:</strong> ${getPaymentPreferenceLabel(user.payment_preference)}
+                <div class="approval-summary">
+                    <div class="approval-summary-item">
+                        <span class="summary-label">Empresa</span>
+                        <span class="summary-value">${user.company || '-'}</span>
+                    </div>
+                    <div class="approval-summary-item">
+                        <span class="summary-label">CNPJ</span>
+                        <span class="summary-value">${user.cnpj || '-'}</span>
+                    </div>
+                    <div class="approval-summary-item">
+                        <span class="summary-label">Tipo de Negócio</span>
+                        <span class="summary-value">${getBusinessTypeLabel(user.business_type)}</span>
+                    </div>
+                    <div class="approval-summary-item">
+                        <span class="summary-label">Forma de Pagamento</span>
+                        <span class="summary-value">${getPaymentPreferenceLabel(user.payment_preference)}</span>
+                    </div>
+                    <div class="approval-summary-item">
+                        <span class="summary-label">Telefone</span>
+                        <span class="summary-value">${user.phone || '-'}</span>
+                    </div>
+                    <div class="approval-summary-item">
+                        <span class="summary-label">Data de Cadastro</span>
+                        <span class="summary-value">${formatDateTime(user.created_at)}</span>
+                    </div>
                 </div>
-                ${user.payment_justification ? `
-                <div class="approval-detail-highlight">
-                    <strong>📝 Motivo/Justificativa:</strong> ${user.payment_justification}
+                <div class="approval-expanded-details" id="expanded-${user.id}" style="display: none;">
+                    ${user.address_city ? `
+                    <div class="approval-detail-section">
+                        <div class="approval-detail-item">
+                            <span class="detail-label">Endereço:</span>
+                            <span class="detail-value">${user.address_street || ''} ${user.address_number || ''}, ${user.address_neighborhood || ''} - ${user.address_city || ''}/${user.address_state || ''} - CEP: ${user.address_cep || ''}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${user.payment_justification ? `
+                    <div class="approval-detail-section">
+                        <div class="approval-detail-item">
+                            <span class="detail-label">Justificativa de Pagamento:</span>
+                            <span class="detail-value">${user.payment_justification}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${user.razao_social ? `
+                    <div class="approval-detail-section">
+                        <div class="approval-detail-item">
+                            <span class="detail-label">Razão Social:</span>
+                            <span class="detail-value">${user.razao_social}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${user.ie ? `
+                    <div class="approval-detail-section">
+                        <div class="approval-detail-item">
+                            <span class="detail-label">Inscrição Estadual:</span>
+                            <span class="detail-value">${user.ie}</span>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
-                ` : ''}
-                <div class="approval-detail"><strong>Empresa:</strong> ${user.company || '-'}</div>
-                <div class="approval-detail"><strong>CNPJ:</strong> ${user.cnpj || '-'}</div>
-                <div class="approval-detail"><strong>Tipo:</strong> ${getBusinessTypeLabel(user.business_type)}</div>
             </div>
             <div class="approval-actions">
+                <button class="btn-secondary btn-toggle-details" onclick="toggleUserDetails('${user.id}')" data-expanded="false">
+                    <span class="toggle-icon">▼</span> Mais
+                </button>
                 <button class="btn-primary" onclick="approveUser('${user.id}')">✅ Aprovar</button>
                 <button class="btn-danger" onclick="rejectUser('${user.id}')">❌ Recusar</button>
             </div>
         </div>
     `).join('');
+}
+
+// Função para expandir/colapsar detalhes do usuário
+function toggleUserDetails(userId) {
+    const expandedSection = document.getElementById(`expanded-${userId}`);
+    const button = document.querySelector(`[onclick="toggleUserDetails('${userId}')"]`);
+    const icon = button.querySelector('.toggle-icon');
+    
+    if (expandedSection.style.display === 'none') {
+        expandedSection.style.display = 'block';
+        icon.textContent = '▲';
+        button.setAttribute('data-expanded', 'true');
+    } else {
+        expandedSection.style.display = 'none';
+        icon.textContent = '▼';
+        button.setAttribute('data-expanded', 'false');
+    }
+}
+
+// Função para mostrar detalhes completos do usuário (mantida para compatibilidade)
+async function showUserDetails(userId) {
+    try {
+        // Buscar dados completos do usuário
+        const users = await api.getPendingUsers();
+        const user = users.find(u => u.id === userId || String(u.id) === String(userId));
+        
+        if (!user) {
+            alert('Usuário não encontrado');
+            return;
+        }
+        
+        // Criar modal com todas as informações
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'userDetailsModal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h2>📋 Detalhes Completos do Cadastro</h2>
+                    <button class="modal-close" onclick="closeUserDetailsModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="user-details-section">
+                        <h3>👤 Dados Pessoais</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Nome Completo:</span>
+                                <span class="detail-value">${user.name || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">E-mail:</span>
+                                <span class="detail-value">${user.email || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Telefone:</span>
+                                <span class="detail-value">${user.phone || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Username:</span>
+                                <span class="detail-value">${user.username || '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="user-details-section">
+                        <h3>🏢 Dados da Empresa</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Nome Fantasia:</span>
+                                <span class="detail-value">${user.company || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">CNPJ:</span>
+                                <span class="detail-value">${user.cnpj || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Tipo de Estabelecimento:</span>
+                                <span class="detail-value">${getBusinessTypeLabel(user.business_type)}</span>
+                            </div>
+                            ${user.razao_social ? `
+                            <div class="detail-item">
+                                <span class="detail-label">Razão Social:</span>
+                                <span class="detail-value">${user.razao_social}</span>
+                            </div>
+                            ` : ''}
+                            ${user.ie ? `
+                            <div class="detail-item">
+                                <span class="detail-label">Inscrição Estadual:</span>
+                                <span class="detail-value">${user.ie}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="user-details-section">
+                        <h3>📍 Endereço</h3>
+                        <div class="detail-grid">
+                            ${user.address ? `
+                            <div class="detail-item">
+                                <span class="detail-label">CEP:</span>
+                                <span class="detail-value">${user.address.cep || '-'}</span>
+                            </div>
+                            <div class="detail-item full-width">
+                                <span class="detail-label">Endereço:</span>
+                                <span class="detail-value">${user.address.street || ''} ${user.address.number || ''} ${user.address.complement || ''}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Bairro:</span>
+                                <span class="detail-value">${user.address.neighborhood || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Cidade/Estado:</span>
+                                <span class="detail-value">${user.address.city || '-'} / ${user.address.state || '-'}</span>
+                            </div>
+                            ` : `
+                            <div class="detail-item full-width">
+                                <span class="detail-value">Endereço não informado</span>
+                            </div>
+                            `}
+                        </div>
+                    </div>
+                    
+                    <div class="user-details-section">
+                        <h3>💳 Dados de Pagamento</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Forma de Pagamento:</span>
+                                <span class="detail-value">${getPaymentPreferenceLabel(user.payment_preference)}</span>
+                            </div>
+                            ${user.payment_justification ? `
+                            <div class="detail-item full-width">
+                                <span class="detail-label">Justificativa/Motivo:</span>
+                                <span class="detail-value">${user.payment_justification}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="user-details-section">
+                        <h3>📅 Informações do Cadastro</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Data de Cadastro:</span>
+                                <span class="detail-value">${formatDate(user.created_at)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value">${getApprovalLabel(user.approval_status || 'pending')}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeUserDetailsModal()">Fechar</button>
+                    <button class="btn-danger" onclick="rejectUser('${user.id}'); closeUserDetailsModal();">❌ Recusar</button>
+                    <button class="btn-primary" onclick="approveUser('${user.id}'); closeUserDetailsModal();">✅ Aprovar</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        modal.classList.add('show');
+        
+        // Adicionar overlay se não existir
+        let overlay = document.getElementById('modalOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'modalOverlay';
+            overlay.className = 'modal-overlay';
+            document.body.appendChild(overlay);
+        }
+        overlay.classList.add('show');
+        
+        // Fechar ao clicar fora
+        overlay.addEventListener('click', function() {
+            closeUserDetailsModal();
+        });
+        
+    } catch (error) {
+        console.error('Erro ao carregar detalhes:', error);
+        alert('Erro ao carregar detalhes do usuário');
+    }
+}
+
+function closeUserDetailsModal() {
+    const modal = document.getElementById('userDetailsModal');
+    const overlay = document.getElementById('modalOverlay');
+    if (modal) {
+        modal.classList.remove('show');
+        if (overlay) overlay.classList.remove('show');
+        setTimeout(() => {
+            if (modal) modal.remove();
+        }, 300);
+    }
 }
 
 function renderSuspendedUsers(suspended) {
@@ -2885,6 +3209,33 @@ async function renderRequestsDetails(container) {
                                     </div>
                                 </div>
                                 
+                                <div class="request-summary-box">
+                                    <div class="request-summary-row">
+                                        <span class="summary-label">Empresa:</span>
+                                        <span class="summary-value">${user.company || '-'}</span>
+                                    </div>
+                                    <div class="request-summary-row">
+                                        <span class="summary-label">CNPJ:</span>
+                                        <span class="summary-value">${user.cnpj || '-'}</span>
+                                    </div>
+                                    <div class="request-summary-row">
+                                        <span class="summary-label">TIPO:</span>
+                                        <span class="summary-value">${getBusinessTypeLabel(user.business_type)}</span>
+                                    </div>
+                                    <div class="request-summary-row">
+                                        <span class="summary-label">Nome Comprador:</span>
+                                        <span class="summary-value">${user.name || '-'}</span>
+                                    </div>
+                                    <div class="request-summary-row">
+                                        <span class="summary-label">Tipo Pagamento:</span>
+                                        <span class="summary-value">${getPaymentPreferenceLabel(user.payment_preference)}</span>
+                                    </div>
+                                    <div class="request-summary-row">
+                                        <span class="summary-label">Telefone:</span>
+                                        <span class="summary-value">${user.phone || '-'}</span>
+                                    </div>
+                                </div>
+                                
                                 <div class="request-highlights">
                                     <div class="request-highlight-item">
                                         <span class="highlight-label">💳 Forma de Pagamento:</span>
@@ -2926,6 +3277,7 @@ async function renderRequestsDetails(container) {
                                 </div>
                                 
                                 <div class="request-actions-expanded">
+                                    <button class="btn-secondary btn-sm" onclick="showUserDetails('${user.id}'); closeSummaryModal();">👁️ Ver Detalhes</button>
                                     <button class="btn-primary btn-sm" onclick="approveUser('${user.id}'); closeSummaryModal();">✅ Aprovar</button>
                                     <button class="btn-danger btn-sm" onclick="rejectUser('${user.id}'); closeSummaryModal();">❌ Recusar</button>
                                 </div>

@@ -201,11 +201,71 @@ class ApiClient {
     /**
      * Logout
      */
-    logout() {
+    async logout() {
+        // Salvar carrinho antes de fazer logout
+        try {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (currentUser) {
+                // Tentar obter carrinho do backend antes de fazer logout
+                try {
+                    const cartResponse = await this.getCart();
+                    if (cartResponse && cartResponse.items && cartResponse.items.length > 0) {
+                        // Salvar carrinho no localStorage vinculado ao usuário
+                        const cartKey = `user_cart_${currentUser.id}`;
+                        localStorage.setItem(cartKey, JSON.stringify(cartResponse.items));
+                        console.log('💾 Carrinho salvo no localStorage antes do logout:', cartResponse.items.length, 'itens');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Não foi possível obter carrinho do backend antes do logout:', error);
+                    // Tentar salvar do sessionStorage como fallback
+                    const sessionCart = sessionStorage.getItem('freshStoreCart');
+                    if (sessionCart) {
+                        const cartKey = `user_cart_${currentUser.id}`;
+                        localStorage.setItem(cartKey, sessionCart);
+                        console.log('💾 Carrinho salvo do sessionStorage antes do logout');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erro ao salvar carrinho antes do logout:', error);
+        }
+        
         this.token = null;
         localStorage.removeItem('auth_token');
         localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('freshStoreCart'); // Limpar carrinho da sessão ao fazer logout
         console.log('✅ Logout realizado');
+    }
+
+    // =============================
+    // CARRINHO
+    // =============================
+
+    /**
+     * Obter carrinho da sessão
+     */
+    async getCart() {
+        return await this.request('/cart/');
+    }
+
+    /**
+     * Salvar carrinho na sessão
+     */
+    async saveCart(items) {
+        return await this.request('/cart/', {
+            method: 'POST',
+            body: JSON.stringify(items)
+        });
+    }
+
+    /**
+     * Limpar carrinho da sessão
+     */
+    async clearCart() {
+        await this.request('/cart/', {
+            method: 'DELETE'
+        });
+        console.log('✅ Carrinho limpo');
     }
 
     // =============================

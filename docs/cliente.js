@@ -229,8 +229,8 @@ function reorder(orderId) {
   const order = [...DEMO_ORDERS, ...DEMO_HISTORY].find(o => o.id === orderId);
   if (!order) return;
   
-  // Limpar carrinho atual
-  localStorage.removeItem('freshStoreCart');
+  // Limpar carrinho da sessão atual
+  sessionStorage.removeItem('freshStoreCart');
   
   // Adicionar itens ao carrinho (simulado - precisaria dos IDs dos produtos reais)
   alert(`Funcionalidade de "Pedir Novamente" será implementada em breve!\n\nPedido: ${orderId}`);
