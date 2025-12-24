@@ -374,10 +374,36 @@ async function loadSectionData(section) {
                 await loadProducts();
             }
             await loadOrders();
-            // Se estiver em modo separação, renderizar separação
-            if (ordersViewMode === 'separation') {
-                renderSeparationOrders();
+            // Renderizar apenas a lista de pedidos (sem separação)
+            renderOrders();
+            break;
+        case 'separation':
+            // Carregar produtos primeiro para validar min_order
+            if (products.length === 0) {
+                await loadProducts();
             }
+            // Carregar pedidos se ainda não foram carregados
+            if (orders.length === 0) {
+                await loadOrders();
+            }
+            // Carregar usuários para obter informações dos clientes
+            if (users.length === 0) {
+                await loadUsers();
+            }
+            // Renderizar tela de separação
+            renderSeparationOrders();
+            break;
+        case 'transport':
+            // Carregar pedidos primeiro se ainda não foram carregados
+            if (orders.length === 0) {
+                await loadOrders();
+            }
+            // Carregar usuários para obter informações dos clientes
+            if (users.length === 0) {
+                await loadUsers();
+            }
+            // Renderizar pedidos em transporte
+            loadTransport();
             break;
         case 'users':
             await loadUsers();
@@ -1619,47 +1645,15 @@ async function loadOrders() {
             localStorage.setItem('orderSeparationProgress', JSON.stringify(orderSeparationProgress));
         }
         
-        if (ordersViewMode === 'separation') {
-            renderSeparationOrders();
-        } else {
-            renderOrders();
-        }
+        renderOrders();
     } catch (error) {
         console.error('Erro ao carregar pedidos:', error);
         orders = [];
-        if (ordersViewMode === 'separation') {
-            renderSeparationOrders();
-        } else {
-            renderOrders();
-        }
-    }
-}
-
-let ordersViewMode = 'list'; // 'list' ou 'separation'
-let orderSeparationProgress = {}; // {orderId: {selected: 0, total: 0}}
-
-function toggleOrdersView(mode) {
-    ordersViewMode = mode;
-    const listView = document.getElementById('ordersListView');
-    const separationView = document.getElementById('ordersSeparationView');
-    const viewBtn = document.getElementById('ordersViewBtn');
-    const separationBtn = document.getElementById('ordersSeparationBtn');
-    
-    if (mode === 'list') {
-        listView.style.display = 'block';
-        separationView.style.display = 'none';
-        viewBtn.classList.add('active');
-        separationBtn.classList.remove('active');
         renderOrders();
-    } else {
-        listView.style.display = 'none';
-        separationView.style.display = 'block';
-        viewBtn.classList.remove('active');
-        separationBtn.classList.add('active');
-        renderSeparationOrders();
     }
 }
-window.toggleOrdersView = toggleOrdersView;
+
+let orderSeparationProgress = {}; // {orderId: {selected: 0, total: 0}}
 
 function renderOrders() {
     const container = document.getElementById('ordersListContainer');
@@ -1837,12 +1831,9 @@ function renderSeparationOrders() {
     const container = document.getElementById('separationOrdersContainer');
     if (!container) return;
     
-    // Filtrar apenas pedidos que NÃO estão concluídos e NÃO estão em transporte
+    // Filtrar apenas pedidos com status: confirmado ou em_preparacao (não em_transporte)
     const separationOrders = orders.filter(o => 
-        o.status !== 'concluido' && 
-        o.status !== 'cancelado' && 
-        o.status !== 'reembolsado' &&
-        o.status !== 'em_transporte'
+        o.status === 'confirmado' || o.status === 'em_preparacao'
     );
     
     if (separationOrders.length === 0) {
@@ -1850,7 +1841,7 @@ function renderSeparationOrders() {
             <div class="empty-state" style="background: #1a1f26; border: 1px solid #2d3640; color: #94a3b8;">
                 <span class="empty-state-icon">📦</span>
                 <p class="empty-state-text" style="color: #94a3b8;">Nenhum pedido para separação</p>
-                <p style="color: #64748b; font-size: 13px; margin-top: 8px;">Apenas pedidos não concluídos aparecem aqui</p>
+                <p style="color: #64748b; font-size: 13px; margin-top: 8px;">Apenas pedidos confirmados ou em preparação aparecem aqui</p>
             </div>`;
         return;
     }
@@ -1933,11 +1924,8 @@ function renderSeparationOrders() {
                 </div>
                 
                 <div class="separation-order-footer">
-                    <select class="filter-select order-status-select" data-order-id="${order.id}">
-                        ${getStatusOptions(order.status)}
-                    </select>
-                    <button class="btn-primary" onclick="updateOrderStatus('${order.id}')">
-                        Atualizar Status
+                    <button class="btn-primary" onclick="markOrderAsSeparated('${order.id}')">
+                        ✅ Separado
                     </button>
                 </div>
             </div>
@@ -1945,7 +1933,7 @@ function renderSeparationOrders() {
     }).join('');
 }
 
-function updateItemSeparationCount(orderId, productId, delta) {
+async function updateItemSeparationCount(orderId, productId, delta) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     
@@ -1963,8 +1951,47 @@ function updateItemSeparationCount(orderId, productId, delta) {
     }
     
     const progress = orderSeparationProgress[itemKey];
+    const previousSelected = progress.selected;
     const newSelected = Math.max(0, Math.min(progress.total, progress.selected + delta));
     progress.selected = newSelected;
+    
+    // Calcular total geral do pedido ANTES e DEPOIS da atualização
+    const totalSelectedBefore = order.items.reduce((sum, i) => {
+        const key = `${orderId}_${i.product_id}`;
+        if (key === itemKey) {
+            return sum + previousSelected;
+        }
+        return sum + (orderSeparationProgress[key]?.selected || 0);
+    }, 0);
+    
+    const totalSelectedAfter = order.items.reduce((sum, i) => {
+        const key = `${orderId}_${i.product_id}`;
+        return sum + (orderSeparationProgress[key]?.selected || 0);
+    }, 0);
+    
+    // Se estava em 0 e agora passou para 1 ou mais, mudar status para "em_preparacao"
+    if (totalSelectedBefore === 0 && totalSelectedAfter > 0 && order.status === 'confirmado') {
+        try {
+            console.log('🔄 Mudando status automaticamente para "em_preparacao" após primeira separação');
+            await api.updateOrderStatus(orderId, 'em_preparacao');
+            order.status = 'em_preparacao';
+            
+            // Atualizar badge de status
+            const orderCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
+            if (orderCard) {
+                const statusBadge = orderCard.querySelector('.status-badge');
+                if (statusBadge) {
+                    statusBadge.textContent = 'Em Preparação';
+                    statusBadge.className = 'status-badge em_preparacao';
+                }
+            }
+            
+            showNotification('✅ Status alterado automaticamente para "Em Preparação"', 'success');
+        } catch (error) {
+            console.error('❌ Erro ao atualizar status automaticamente:', error);
+            showNotification('⚠️ Erro ao atualizar status automaticamente', 'error');
+        }
+    }
     
     // Atualizar UI do item
     const selectedElement = document.getElementById(`itemSelected_${orderId}_${productId}`);
@@ -1983,22 +2010,16 @@ function updateItemSeparationCount(orderId, productId, delta) {
         }
     }
     
-    // Calcular total geral do pedido
-    const totalSelected = order.items.reduce((sum, i) => {
-        const key = `${orderId}_${i.product_id}`;
-        return sum + (orderSeparationProgress[key]?.selected || 0);
-    }, 0);
-    
     const totalItems = order.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
     
     // Atualizar contador geral
     const generalCounter = document.getElementById(`selectedItems_${orderId}`);
     if (generalCounter) {
-        generalCounter.textContent = totalSelected;
+        generalCounter.textContent = totalSelectedAfter;
     }
     
     // Verificar se pedido completo
-    const orderMeetsRequirement = totalSelected >= totalItems;
+    const orderMeetsRequirement = totalSelectedAfter >= totalItems;
     const orderCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
     if (orderCard) {
         if (orderMeetsRequirement) {
@@ -2014,6 +2035,78 @@ function updateItemSeparationCount(orderId, productId, delta) {
     }
 }
 window.updateItemSeparationCount = updateItemSeparationCount;
+
+// Marcar pedido como separado (mudar para em_transporte)
+async function markOrderAsSeparated(orderId) {
+    try {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) {
+            showNotification('❌ Pedido não encontrado', 'error');
+            return;
+        }
+        
+        console.log('🔄 Marcando pedido como separado:', orderId);
+        
+        // Atualizar status para em_transporte
+        await api.updateOrderStatus(orderId, 'em_transporte');
+        order.status = 'em_transporte';
+        
+        // Remover o card da tela de separação com animação
+        if (currentSection === 'separation') {
+            const separationCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
+            if (separationCard) {
+                separationCard.classList.add('slide-out-right');
+                setTimeout(() => {
+                    renderSeparationOrders();
+                }, 300);
+            } else {
+                renderSeparationOrders();
+            }
+        }
+        
+        showNotification('✅ Pedido marcado como separado e movido para transporte!', 'success');
+    } catch (error) {
+        console.error('❌ Erro ao marcar pedido como separado:', error);
+        showNotification('❌ Erro ao marcar pedido como separado: ' + (error.message || 'Erro desconhecido'), 'error');
+    }
+}
+window.markOrderAsSeparated = markOrderAsSeparated;
+
+// Marcar pedido como concluído (mudar status para concluido)
+async function markOrderAsCompleted(orderId) {
+    try {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) {
+            showNotification('❌ Pedido não encontrado', 'error');
+            return;
+        }
+        
+        console.log('🔄 Marcando pedido como concluído:', orderId);
+        
+        // Atualizar status para concluido
+        await api.updateOrderStatus(orderId, 'concluido');
+        order.status = 'concluido';
+        
+        // Remover o card da tela de transporte (pedidos concluídos não aparecem)
+        if (currentSection === 'transport') {
+            const transportCard = document.querySelector(`.transport-card[data-order-id="${orderId}"]`);
+            if (transportCard) {
+                transportCard.classList.add('slide-out-right');
+                setTimeout(() => {
+                    renderTransport();
+                }, 300);
+            } else {
+                renderTransport();
+            }
+        }
+        
+        showNotification('✅ Pedido marcado como concluído!', 'success');
+    } catch (error) {
+        console.error('❌ Erro ao marcar pedido como concluído:', error);
+        showNotification('❌ Erro ao marcar pedido como concluído: ' + (error.message || 'Erro desconhecido'), 'error');
+    }
+}
+window.markOrderAsCompleted = markOrderAsCompleted;
 
 // Carregar progresso salvo
 function loadSeparationProgress() {
@@ -2038,15 +2131,23 @@ function refreshOrders() {
 }
 
 async function updateOrderStatus(orderId) {
-    // Procurar o select que foi clicado - pode estar na visualização ou separação
+    // Procurar o select que foi clicado - pode estar em qualquer seção
     let select = null;
     
-    // Primeiro, tentar encontrar o select que está visível na tela atual
-    if (ordersViewMode === 'separation') {
-        // Na tela de separação, procurar dentro do card de separação
+    // Tentar encontrar o select - pode estar em qualquer seção
+    // Primeiro, tentar na seção de separação
+    if (currentSection === 'separation') {
         const separationCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
         if (separationCard) {
             select = separationCard.querySelector(`.order-status-select[data-order-id="${orderId}"]`);
+        }
+    }
+    
+    // Se não encontrou, tentar na seção de transporte
+    if (!select && currentSection === 'transport') {
+        const transportCard = document.querySelector(`.transport-card[data-order-id="${orderId}"]`);
+        if (transportCard) {
+            select = transportCard.querySelector(`.order-status-select[data-order-id="${orderId}"]`);
         }
     }
     
@@ -2134,7 +2235,7 @@ async function updateOrderStatus(orderId) {
         
         // Atualizar summary se necessário
         const summary = document.getElementById('ordersSummary');
-        if (summary && ordersViewMode === 'list') {
+        if (summary && currentSection === 'orders') {
             const pending = orders.filter(o => o.status === 'pendente').length;
             const confirmed = orders.filter(o => o.status === 'confirmado').length;
             const preparing = orders.filter(o => o.status === 'em_preparacao').length;
@@ -2158,45 +2259,31 @@ async function updateOrderStatus(orderId) {
         // Se chegou aqui, a API retornou sucesso - garantir que está tudo atualizado
         updateDOM();
         
-        // Se o status foi atualizado para "em_transporte" na tela de separação, animar
-        if (newStatus === 'em_transporte' && ordersViewMode === 'separation') {
-            // Animação de arraste para direita antes de remover
-            const separationCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
-            if (separationCard) {
-                // Adicionar classe de animação
-                separationCard.classList.add('slide-to-transport');
-                
-                // Remover após a animação completar (800ms)
-                setTimeout(() => {
-                    separationCard.remove();
-                    // Re-renderizar para atualizar contadores
+        // Se estamos na tela de separação, atualizar imediatamente após mudança de status
+        if (currentSection === 'separation') {
+            // Se o status mudou para "em_transporte", remover da lista de separação
+            if (newStatus === 'em_transporte') {
+                // Remover o card da tela imediatamente com animação
+                const separationCard = document.querySelector(`.separation-order-card[data-order-id="${orderId}"]`);
+                if (separationCard) {
+                    separationCard.classList.add('slide-out-right');
+                    setTimeout(() => {
+                        renderSeparationOrders();
+                    }, 300);
+                } else {
                     renderSeparationOrders();
-                }, 800);
+                }
             } else {
-                // Se não encontrou o card, apenas re-renderizar
-                setTimeout(() => {
-                    renderSeparationOrders();
-                }, 100);
-            }
-        } else if (newStatus === 'concluido' && ordersViewMode === 'separation') {
-            // Remover da tela de separação
-            setTimeout(() => {
+                // Para outros status (em_preparacao), apenas atualizar a lista
                 renderSeparationOrders();
-            }, 100);
+            }
         }
         
-        // Se o status mudou para "em_transporte" e estamos na tela de transporte, recarregar
-        if (newStatus === 'em_transporte' && currentSection === 'transport') {
-            setTimeout(() => {
-                renderTransport();
-            }, 100);
-        }
-        
-        // Se o status mudou de "em_transporte" para outro, remover da tela de transporte
-        if (oldStatus === 'em_transporte' && newStatus !== 'em_transporte' && currentSection === 'transport') {
-            setTimeout(() => {
-                renderTransport();
-            }, 100);
+        // Se estamos na tela de transporte, atualizar imediatamente após mudança de status
+        if (currentSection === 'transport') {
+            // Se o status mudou para "concluido", remover da lista (não aparece mais)
+            // Se o status mudou para "em_transporte", adicionar à lista
+            renderTransport();
         }
         
         showNotification('✅ Status atualizado!', 'success');
@@ -2263,7 +2350,15 @@ window.toggleOrderDetails = toggleOrderDetails;
 // ========== TRANSPORT ==========
 async function loadTransport() {
     try {
-        // Usar os pedidos já carregados
+        // Garantir que os pedidos estão carregados
+        if (orders.length === 0) {
+            await loadOrders();
+        }
+        // Garantir que os usuários estão carregados (para informações do cliente)
+        if (users.length === 0) {
+            await loadUsers();
+        }
+        // Renderizar pedidos em transporte
         renderTransport();
     } catch (error) {
         console.error('Erro ao carregar transporte:', error);
@@ -2383,11 +2478,8 @@ function renderTransport() {
                 </div>
                 
                 <div class="transport-card-footer">
-                    <select class="filter-select order-status-select" data-order-id="${order.id}">
-                        ${getStatusOptions(order.status)}
-                    </select>
-                    <button class="btn-primary" onclick="updateOrderStatus('${order.id}')">
-                        Atualizar Status
+                    <button class="btn-primary" onclick="markOrderAsCompleted('${order.id}')">
+                        ✅ Concluído
                     </button>
                 </div>
             </div>
@@ -2397,6 +2489,13 @@ function renderTransport() {
 
 function refreshTransport() {
     loadTransport();
+}
+
+function refreshSeparation() {
+    // Recarregar pedidos e renderizar separação
+    loadOrders().then(() => {
+        renderSeparationOrders();
+    });
 }
 
 // ========== USERS ==========
@@ -3812,16 +3911,37 @@ function getStatusLabel(status) {
     return labels[status] || status;
 }
 
-function getStatusOptions(currentStatus) {
-    const options = [
-        { value: 'pendente', label: 'Pendente' },
-        { value: 'confirmado', label: 'Confirmado' },
-        { value: 'em_preparacao', label: 'Em Preparação' },
-        { value: 'em_transporte', label: 'Em Transporte' },
-        { value: 'concluido', label: 'Concluído' },
-        { value: 'cancelado', label: 'Cancelado' },
-        { value: 'reembolsado', label: 'Reembolsado' }
-    ];
+function getStatusOptions(currentStatus, context = 'default') {
+    let options = [];
+    
+    // Definir opções baseadas no contexto
+    switch (context) {
+        case 'transport':
+            // Na aba de transporte, apenas em_transporte e concluido
+            options = [
+                { value: 'em_transporte', label: 'Em Transporte' },
+                { value: 'concluido', label: 'Concluído' }
+            ];
+            break;
+        case 'separation':
+            // Na aba de separação, apenas em_preparacao e em_transporte
+            options = [
+                { value: 'em_preparacao', label: 'Em Preparação' },
+                { value: 'em_transporte', label: 'Em Transporte' }
+            ];
+            break;
+        default:
+            // Contexto padrão: todas as opções
+            options = [
+                { value: 'pendente', label: 'Pendente' },
+                { value: 'confirmado', label: 'Confirmado' },
+                { value: 'em_preparacao', label: 'Em Preparação' },
+                { value: 'em_transporte', label: 'Em Transporte' },
+                { value: 'concluido', label: 'Concluído' },
+                { value: 'cancelado', label: 'Cancelado' },
+                { value: 'reembolsado', label: 'Reembolsado' }
+            ];
+    }
     
     return options.map(opt => 
         `<option value="${opt.value}" ${opt.value === currentStatus ? 'selected' : ''}>${opt.label}</option>`

@@ -45,6 +45,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="#separation" class="nav-link" data-section="separation">
+                        <span class="nav-icon">📦</span>
+                        <span class="nav-text">Separação</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="#transport" class="nav-link" data-section="transport">
                         <span class="nav-icon">🚚</span>
                         <span class="nav-text">Transporte</span>
@@ -127,6 +133,10 @@
                 <a href="#orders" class="mobile-menu-link" data-section="orders" onclick="toggleMobileMenu(); showSection('orders');">
                     <span class="mobile-menu-icon">🛒</span>
                     <span>Pedidos</span>
+                </a>
+                <a href="#separation" class="mobile-menu-link" data-section="separation" onclick="toggleMobileMenu(); showSection('separation');">
+                    <span class="mobile-menu-icon">📦</span>
+                    <span>Separação</span>
                 </a>
                 <a href="#transport" class="mobile-menu-link" data-section="transport" onclick="toggleMobileMenu(); showSection('transport');">
                     <span class="mobile-menu-icon">🚚</span>
@@ -439,17 +449,10 @@
             </section>
 
             <!-- Orders Section -->
+            <!-- Orders Section -->
             <section class="content-section" id="sectionOrders">
                 <div class="section-header">
                     <div class="section-actions">
-                        <div class="order-view-toggle">
-                            <button class="btn-secondary btn-sm" id="ordersViewBtn" onclick="toggleOrdersView('list')">
-                                📋 Visualização
-                            </button>
-                            <button class="btn-secondary btn-sm" id="ordersSeparationBtn" onclick="toggleOrdersView('separation')">
-                                📦 Separação
-                            </button>
-                        </div>
                         <select id="orderStatusFilter" class="filter-select" onchange="filterOrders()">
                             <option value="">Todos os Status</option>
                             <option value="pendente">Pendente</option>
@@ -465,14 +468,20 @@
                     </div>
                     <div class="orders-summary" id="ordersSummary"></div>
                 </div>
-                <!-- Visualização Normal -->
-                <div class="orders-view" id="ordersListView">
-                    <div class="orders-list" id="ordersListContainer"></div>
+                <div class="orders-list" id="ordersListContainer"></div>
+            </section>
+
+            <!-- Separation Section -->
+            <section class="content-section" id="sectionSeparation">
+                <div class="section-header">
+                    <h2 class="section-title">📦 Separação de Pedidos</h2>
+                    <div class="section-actions">
+                        <button class="btn-secondary" onclick="refreshSeparation()">
+                            🔄 Atualizar
+                        </button>
+                    </div>
                 </div>
-                <!-- Tela de Separação -->
-                <div class="orders-view" id="ordersSeparationView" style="display: none;">
-                    <div class="separation-orders-list" id="separationOrdersContainer"></div>
-                </div>
+                <div class="separation-orders-list" id="separationOrdersContainer"></div>
             </section>
 
             <!-- Transport Section -->

@@ -4411,6 +4411,143 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     padding-right: 40px !important;
 }
 
+/* ========== TRANSPORT CARDS ========== */
+.transport-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.transport-card {
+    background: var(--admin-surface) !important;
+    border: 1px solid var(--admin-border) !important;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    transition: all var(--transition-fast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.transport-card:hover {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.transport-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--admin-border);
+}
+
+.transport-order-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.transport-order-number {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary) !important;
+    margin: 0;
+}
+
+.transport-meta {
+    font-size: 13px;
+    color: var(--text-secondary) !important;
+    margin: 0;
+}
+
+.transport-status {
+    display: flex;
+    align-items: center;
+}
+
+.transport-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.transport-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.transport-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm);
+    background: var(--admin-bg) !important;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--admin-border);
+}
+
+.transport-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.transport-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary) !important;
+}
+
+.transport-value a {
+    color: var(--accent-primary) !important;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.transport-value a:hover {
+    color: var(--accent-primary-hover) !important;
+    text-decoration: underline;
+}
+
+.transport-card-footer {
+    display: flex;
+    justify-content: center;
+    padding-top: var(--spacing-md);
+    border-top: 2px solid var(--admin-border);
+}
+
+.transport-card-footer .btn-primary {
+    width: 100%;
+    max-width: 300px;
+}
+
+.transport-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--admin-bg) !important;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--admin-border);
+    margin-top: var(--spacing-md);
+}
+
+.transport-summary span {
+    font-size: 14px;
+    color: var(--text-primary) !important;
+}
+
+.transport-summary strong {
+    color: var(--accent-primary) !important;
+    font-weight: 700;
+}
+
 /* ========== TRANSPORT ITEMS TABLE ========== */
 .transport-items-section {
     margin-top: var(--spacing-xl);
@@ -4507,8 +4644,39 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
         font-size: 14px;
     }
     
-    .transport-item-unit {
-        font-size: 11px;
+.transport-item-unit {
+    font-size: 11px;
+}
+
+/* Mobile styles for transport cards */
+@media (max-width: 768px) {
+    .transport-list {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
     }
+    
+    .transport-card {
+        padding: var(--spacing-md);
+    }
+    
+    .transport-card-header {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .transport-info-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+    
+    .transport-card-footer {
+        flex-direction: column;
+    }
+    
+    .transport-card-footer .btn-primary {
+        width: 100%;
+        max-width: 100%;
+    }
+}
 }
 
