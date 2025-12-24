@@ -2611,6 +2611,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-lg);
+    max-width: 100%;
 }
 
 .separation-order-card {
@@ -2619,6 +2620,9 @@
     border-radius: var(--border-radius);
     padding: var(--spacing-lg);
     transition: all var(--transition-fast);
+    width: 100%;
+    max-width: 1400px; /* Cards mais largos no PC */
+    margin: 0 auto;
 }
 
 .separation-order-card.requirement-met {
@@ -2720,7 +2724,7 @@
 
 .separation-items-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Aumentado de 150px para 180px */
     gap: var(--spacing-md);
     margin: var(--spacing-lg) 0;
 }
@@ -2729,11 +2733,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
     background: var(--admin-bg) !important;
     border: 1px solid var(--admin-border) !important;
     border-radius: var(--border-radius-sm);
     padding: var(--spacing-md);
     text-align: center;
+    min-height: 320px; /* Altura mínima para alinhar elementos */
+    height: 100%;
 }
 
 .separation-item-image {
@@ -2768,6 +2775,13 @@
     color: var(--text-primary) !important;
     margin-bottom: var(--spacing-xs);
     line-height: 1.3;
+    min-height: 36px; /* Altura mínima para alinhar nomes de diferentes tamanhos */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    word-break: break-word;
+    width: 100%;
 }
 
 .separation-item-quantity-large {
@@ -2776,6 +2790,8 @@
     align-items: center;
     gap: 4px;
     margin: var(--spacing-sm) 0;
+    min-height: 60px; /* Altura mínima para alinhar quantidades */
+    justify-content: center;
 }
 
 .separation-quantity-number {
@@ -2804,6 +2820,8 @@
     background: var(--admin-surface) !important;
     border: 1px solid var(--admin-border) !important;
     border-radius: var(--border-radius-sm);
+    min-height: 50px; /* Altura mínima para alinhar contadores */
+    width: 100%;
 }
 
 .separation-item-counter .counter-value {
@@ -2819,7 +2837,11 @@
     font-size: 12px;
     color: var(--text-muted) !important;
     text-align: center;
-    margin-top: var(--spacing-xs);
+    margin-top: auto; /* Empurrar para baixo se necessário */
+    min-height: 20px; /* Altura mínima para alinhar progresso */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .separation-item-card.item-requirement-met {
