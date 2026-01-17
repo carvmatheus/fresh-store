@@ -2438,6 +2438,288 @@
     gap: var(--spacing-md);
 }
 
+/* Nova tabela de itens do pedido */
+.order-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--admin-bg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.order-items-table thead {
+    background: var(--admin-surface);
+}
+
+.order-items-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.order-items-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--admin-border);
+    color: var(--text-primary);
+}
+
+.order-items-table tbody tr:hover {
+    background: var(--admin-surface-hover);
+}
+
+.order-items-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.order-items-table .text-center {
+    text-align: center;
+}
+
+.order-items-table .text-right {
+    text-align: right;
+}
+
+.order-items-table .item-name-cell {
+    max-width: 200px;
+}
+
+.order-items-table .qty-badge {
+    display: inline-block;
+    background: var(--accent-primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.order-items-table .stock-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.order-items-table .stock-badge.stock-ok {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.order-items-table .stock-badge.stock-low {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.order-items-table .stock-badge.stock-empty {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* ========== RESPONSIVO - TABELA DE ITENS ========== */
+@media (max-width: 992px) {
+    .order-items-table {
+        font-size: 12px;
+    }
+    
+    .order-items-table th,
+    .order-items-table td {
+        padding: 8px 10px;
+    }
+    
+    .order-items-table .qty-badge,
+    .order-items-table .stock-badge {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Tabela de itens - formato mobile */
+    .order-items-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .order-items-table thead {
+        display: none;
+    }
+    
+    .order-items-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .order-items-table tbody tr {
+        display: flex;
+        flex-wrap: wrap;
+        background: var(--admin-surface);
+        border: 1px solid var(--admin-border);
+        border-radius: 8px;
+        padding: 12px;
+        gap: 8px;
+    }
+    
+    .order-items-table tbody tr:hover {
+        background: var(--admin-surface-hover);
+    }
+    
+    .order-items-table td {
+        border: none;
+        padding: 0;
+    }
+    
+    .order-items-table td.item-name-cell {
+        width: 100%;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+    
+    .order-items-table td:nth-child(2),
+    .order-items-table td:nth-child(3) {
+        flex: 1;
+    }
+    
+    .order-items-table td:nth-child(4),
+    .order-items-table td:nth-child(5) {
+        flex: 1;
+        text-align: right;
+    }
+    
+    .order-items-table td:nth-child(2)::before {
+        content: "Qtd: ";
+        font-size: 10px;
+        color: var(--text-secondary);
+        display: block;
+        margin-bottom: 2px;
+    }
+    
+    .order-items-table td:nth-child(3)::before {
+        content: "Estoque: ";
+        font-size: 10px;
+        color: var(--text-secondary);
+        display: block;
+        margin-bottom: 2px;
+    }
+    
+    .order-items-table td:nth-child(4)::before {
+        content: "Unit.: ";
+        font-size: 10px;
+        color: var(--text-secondary);
+    }
+    
+    .order-items-table td:nth-child(5)::before {
+        content: "Total: ";
+        font-size: 10px;
+        color: var(--text-secondary);
+    }
+
+    /* Detalhes do pedido - mobile */
+    .order-details-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+    
+    .order-detail-section {
+        padding: 12px !important;
+    }
+    
+    .order-detail-title {
+        font-size: 14px !important;
+    }
+    
+    /* Expandido do pedido */
+    .order-expanded {
+        padding: 12px !important;
+    }
+    
+    .order-details-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    /* Cards de pedido */
+    .order-card {
+        padding: 12px !important;
+    }
+    
+    .order-card-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .order-header-left,
+    .order-header-right {
+        width: 100%;
+    }
+    
+    .order-header-right {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* Resumo financeiro */
+    .order-financial-summary {
+        font-size: 13px;
+    }
+    
+    .financial-row {
+        padding: 8px 0;
+    }
+    
+    /* Footer do pedido expandido */
+    .order-expanded-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .order-expanded-footer select,
+    .order-expanded-footer button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small devices */
+    .order-items-table tbody tr {
+        padding: 10px;
+    }
+    
+    .order-items-table td.item-name-cell {
+        font-size: 13px;
+    }
+    
+    .order-items-table .qty-badge,
+    .order-items-table .stock-badge {
+        padding: 2px 6px;
+        font-size: 10px;
+    }
+    
+    .order-card {
+        margin: 0 -8px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+    
+    .order-total-value {
+        font-size: 16px !important;
+    }
+    
+    .order-number {
+        font-size: 14px !important;
+    }
+}
+
 .order-item-card {
     display: flex;
     flex-direction: column;
@@ -4702,7 +4984,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 }
 
-
 /* ========================================
    STOCK MANAGEMENT SECTION
    ======================================== */
@@ -4807,7 +5088,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     background: var(--admin-surface);
     border-radius: var(--border-radius);
     border: 1px solid var(--admin-border);
-    overflow-x: auto;
+    overflow: hidden;
 }
 
 .stock-table {
@@ -5123,70 +5404,5 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     .stock-quantity-cell {
         flex-wrap: wrap;
         justify-content: center;
-    }
-}
-
-/* Form hint text */
-.form-hint {
-    display: block;
-    margin-top: 6px;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-}
-
-/* Stock quantity buttons with labels */
-.stock-qty-btn {
-    min-width: 36px;
-    height: 32px;
-    padding: 0 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.stock-quantity-cell {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: nowrap;
-}
-
-.stock-quantity-value {
-    min-width: 45px;
-    padding: 6px 10px;
-    font-size: 1rem;
-}
-
-/* Make table responsive for stock buttons */
-@media (max-width: 1200px) {
-    .stock-quantity-cell {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 4px;
-    }
-    
-    .stock-qty-btn {
-        min-width: 32px;
-        height: 28px;
-        padding: 0 6px;
-        font-size: 0.75rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .stock-quantity-cell {
-        gap: 3px;
-    }
-    
-    .stock-qty-btn {
-        min-width: 28px;
-        height: 26px;
-        padding: 0 4px;
-        font-size: 0.7rem;
-    }
-    
-    .stock-quantity-value {
-        min-width: 35px;
-        padding: 4px 6px;
-        font-size: 0.9rem;
     }
 }

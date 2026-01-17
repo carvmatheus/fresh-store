@@ -35,6 +35,13 @@ let metrics = null;
 let currentSection = 'dashboard';
 let currentEditId = null;
 
+// ========== HELPERS ==========
+function getProductStock(productId) {
+    if (!productId) return -1;
+    const product = products.find(p => String(p.id) === String(productId));
+    return product ? (product.stock || 0) : -1;
+}
+
 // ========== NOTIFICATIONS ==========
 function showNotification(message, type = 'info') {
     // Criar elemento de notificação
@@ -1760,25 +1767,39 @@ function renderOrders() {
                             </div>
                         </div>
                         <div class="order-detail-section">
-                            <h5 class="order-detail-title">📦 Itens do Pedido</h5>
-                            <div class="order-items-list">
-                                ${items.map((item, index) => {
-                                    return `
-                                    <div class="order-item-card" data-item-index="${index}" data-order-id="${order.id}">
-                                        <div class="order-item-image-wrapper">
-                                            ${item.image ? `<img src="${item.image}" alt="${item.name}" class="order-item-image">` : '<div class="order-item-image-placeholder">📦</div>'}
-                                        </div>
-                                        <div class="order-item-name">${item.name}</div>
-                                        <div class="order-item-bottom">
-                                            <div class="order-item-quantity-group">
-                                                <span class="order-item-quantity-badge">${item.quantity}x</span>
-                                                <span class="order-item-unit">${item.unit.toUpperCase()}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                                }).join('')}
-                            </div>
+                            <h5 class="order-detail-title">📦 Itens do Pedido (${items.length} produtos)</h5>
+                            <table class="order-items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th class="text-center">Qtd Pedida</th>
+                                        <th class="text-center">Estoque</th>
+                                        <th class="text-right">Preço Unit.</th>
+                                        <th class="text-right">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${items.map((item) => {
+                                        const productStock = getProductStock(item.product_id || item.id);
+                                        const stockClass = productStock <= 0 ? 'stock-empty' : productStock < item.quantity ? 'stock-low' : 'stock-ok';
+                                        return `
+                                        <tr>
+                                            <td class="item-name-cell">
+                                                <strong>${item.name}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="qty-badge">${item.quantity} ${(item.unit || 'un').toUpperCase()}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="stock-badge ${stockClass}">${productStock >= 0 ? productStock : '?'}</span>
+                                            </td>
+                                            <td class="text-right">${formatCurrency(item.price)}</td>
+                                            <td class="text-right"><strong>${formatCurrency(item.price * item.quantity)}</strong></td>
+                                        </tr>
+                                    `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
                         </div>
                         <div class="order-detail-section">
                             <h5 class="order-detail-title">💰 Resumo Financeiro</h5>

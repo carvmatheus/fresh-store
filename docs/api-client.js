@@ -192,6 +192,31 @@ class ApiClient {
     }
 
     /**
+     * Obter perfil completo do usuário (com endereço)
+     */
+    async getMyProfile() {
+        return await this.request('/auth/me/profile');
+    }
+
+    /**
+     * Atualizar perfil do usuário (nome, telefone, endereço)
+     */
+    async updateMyProfile(profileData) {
+        const updated = await this.request('/auth/me/profile', {
+            method: 'PUT',
+            body: JSON.stringify(profileData)
+        });
+        
+        // Atualizar dados no localStorage
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const mergedUser = { ...currentUser, ...updated };
+        localStorage.setItem('currentUser', JSON.stringify(mergedUser));
+        
+        console.log('✅ Perfil atualizado:', updated.name);
+        return updated;
+    }
+
+    /**
      * Obter informações do usuário atual
      */
     async getCurrentUser() {
@@ -390,6 +415,16 @@ class ApiClient {
      */
     async getOrder(id) {
         return await this.request(`/orders/${id}`);
+    }
+
+    /**
+     * Calcular frete/entrega
+     */
+    async calculateDelivery(cep, cartTotal) {
+        return await this.request('/orders/calculate-delivery', {
+            method: 'POST',
+            body: JSON.stringify({ cep, cart_total: cartTotal })
+        });
     }
 
     /**

@@ -203,9 +203,14 @@ function loadPromotedProducts() {
   const section = container.closest('.promoted-section');
   if (section) section.style.display = 'block';
   
-  // Renderizar produtos em destaque com visual especial de promoção
+  // Atualizar subtítulo com quantidade
+  const subtitle = section.querySelector('.promoted-subtitle');
+  if (subtitle) {
+    subtitle.textContent = `${promoted.length} ofertas especiais`;
+  }
+  
+  // Renderizar produtos em destaque - design limpo igual Next.js
   container.innerHTML = promoted.map(product => {
-    // Usar preço promocional real ou calcular desconto fictício
     const originalPrice = formatNumber(product.price);
     const promoPrice = product.promoPrice ? formatNumber(product.promoPrice) : formatNumber(product.price * 0.9);
     const discountPercent = product.promoPrice 
@@ -213,22 +218,15 @@ function loadPromotedProducts() {
       : 10;
     
     return `
-    <div class="promo-card" onclick="addToCart('${product.id}', event)" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
-      <div class="promo-badge-tag">🔥 Oferta</div>
+    <div class="promo-card" onclick="addToCart('${product.id}', event)" title="Clique para adicionar ao carrinho">
+      <div class="promo-badge-tag">🔥 -${discountPercent}%</div>
       <img src="${product.image}" alt="${product.name}" class="promo-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
       <div class="promo-content">
-        <div class="promo-header">
-          <h3 class="promo-name">${product.name}</h3>
-          <span class="promo-category">${getCategoryName(product.category)}</span>
-        </div>
-        <p class="promo-description">${product.description}</p>
+        <h3 class="promo-name">${product.name}</h3>
         <div class="promo-pricing">
-          <div class="promo-original-price">De: <s>R$ ${originalPrice}/${product.unit}</s></div>
-          <div class="promo-current-price">
-            <span class="promo-label">Por:</span>
-            <span class="promo-value">R$ ${promoPrice}</span>
-            <span class="promo-unit">/${product.unit}</span>
-          </div>
+          <span class="promo-original-price">R$ ${originalPrice}</span>
+          <span class="promo-current-price">R$ ${promoPrice}</span>
+          <span class="promo-unit">/${product.unit}</span>
         </div>
         <button class="promo-btn" onclick="event.stopPropagation(); addToCart('${product.id}', event)">
           🛒 Adicionar
@@ -334,36 +332,41 @@ function loadProducts() {
     const hasPromo = product.isPromo && product.promoPrice;
     const displayPrice = hasPromo ? product.promoPrice : product.price;
     const discountPercent = hasPromo ? Math.round((1 - product.promoPrice / product.price) * 100) : 0;
+    const isAvailable = product.stock > 0;
     
     return `
-    <div class="product-card ${hasPromo ? 'has-promo' : ''}" data-product-id="${product.id}" style="cursor: pointer;" title="Clique para adicionar ao carrinho">
-      ${hasPromo ? `<div class="product-promo-badge">🔥 Oferta</div>` : ''}
+    <div class="product-card ${hasPromo ? 'has-promo' : ''} ${!isAvailable ? 'out-of-stock' : ''}" 
+         data-product-id="${product.id}" 
+         ${isAvailable ? 'style="cursor: pointer;" title="Clique para adicionar ao carrinho"' : 'title="Produto indisponível"'}>
+      
+      ${!isAvailable ? `
+        <div class="product-unavailable-overlay">
+          <span class="product-unavailable-badge">Indisponível</span>
+        </div>
+      ` : ''}
+      
+      ${hasPromo && isAvailable ? `<div class="product-promo-badge">🔥 -${discountPercent}%</div>` : ''}
+      
       <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400?text=${encodeURIComponent(product.name)}'">
+      
       <div class="product-content">
-        <div class="product-header">
-          <h4 class="product-name">${product.name}</h4>
-          <span class="product-badge">${getCategoryName(product.category)}</span>
+        <div class="product-category-row">
+          <span class="product-category-label">${getCategoryName(product.category)}</span>
+          ${isAvailable ? `<span class="product-available-badge">● Disponível</span>` : ''}
         </div>
-        <p class="product-description">${product.description}</p>
-        <div class="product-meta">
-          📦 Estoque: ${product.stock} ${product.unit}
-        </div>
-        ${product.minOrder > 1 ? `
-          <div class="product-min">
-            Pedido mínimo: ${product.minOrder} ${product.unit}
-          </div>
-        ` : ''}
+        
+        <h4 class="product-name">${product.name}</h4>
+        
         <div class="product-footer">
           <div class="product-price">
-            <div class="price-original-line">${hasPromo ? `De: <s>${formatNumber(product.price)}/${product.unit}</s>` : ''}</div>
+            ${hasPromo ? `<span class="price-original">R$ ${formatNumber(product.price)}</span>` : ''}
             <div class="price-current ${hasPromo ? 'promo-price' : ''}">
-            <span class="price-label">R$</span>
-              <span class="price-value">${formatNumber(displayPrice)}</span>
-            <span class="price-unit">/${product.unit}</span>
+              <span class="price-value">R$ ${formatNumber(displayPrice)}</span>
+              <span class="price-unit">/${product.unit}</span>
             </div>
           </div>
-          <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart('${product.id}', event)">
-            🛒 <span>Adicionar</span>
+          <button class="btn-add-cart" ${!isAvailable ? 'disabled' : ''} onclick="event.stopPropagation(); ${isAvailable ? `addToCart('${product.id}', event)` : ''}">
+            ${isAvailable ? '🛒 Adicionar' : 'Esgotado'}
           </button>
         </div>
       </div>
@@ -373,7 +376,8 @@ function loadProducts() {
   // Adicionar event listeners aos cards após renderizar
   container.querySelectorAll('.product-card').forEach(card => {
     const productId = card.getAttribute('data-product-id');
-    if (productId) {
+    const isOutOfStock = card.classList.contains('out-of-stock');
+    if (productId && !isOutOfStock) {
       card.addEventListener('click', function(e) {
         // Não adicionar se clicou no botão (já tem stopPropagation)
         if (e.target.closest('.btn-add-cart')) {
