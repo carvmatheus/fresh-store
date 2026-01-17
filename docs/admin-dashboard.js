@@ -322,8 +322,11 @@ function showSection(sectionName) {
     const titles = {
         dashboard: 'Dashboard',
         products: 'Produtos',
+        stock: '🏬 Gestão de Estoque',
         campaigns: 'Campanhas',
         orders: 'Pedidos',
+        separation: 'Separação',
+        transport: 'Transporte',
         users: 'Clientes',
         approvals: 'Aprovações'
     };
@@ -4411,3 +4414,367 @@ if (typeof api !== 'undefined') {
     };
 }
 
+
+// ========== STOCK MANAGEMENT ==========
+
+const STOCK_THRESHOLDS = {
+    CRITICAL: 5,
+    LOW: 15,
+    NORMAL: 50
+};
+
+const CATEGORY_LABELS = {
+    'frutas': 'Frutas',
+    'verduras': 'Verduras',
+    'legumes': 'Legumes',
+    'vegetais': 'Vegetais',
+    'temperos': 'Temperos',
+    'ovos': 'Ovos',
+    'processados': 'Processados',
+    'exoticos': 'Exóticos',
+    'granjeiro': 'Granjeiro',
+    'outros': 'Outros'
+};
+
+let stockProducts = [];
+let currentStockProduct = null;
+let stockAdjustment = 0;
+
+// Load stock data
+async function loadStockData() {
+    try {
+        const productsData = await api.getProducts();
+        stockProducts = productsData || [];
+        renderStockStats();
+        renderStockTable();
+        updateStockAlertBadge();
+    } catch (error) {
+        console.error('Erro ao carregar estoque:', error);
+        showNotification('Erro ao carregar dados de estoque', 'error');
+    }
+}
+
+// Refresh stock
+async function refreshStock() {
+    showNotification('Atualizando estoque...', 'info');
+    await loadStockData();
+    showNotification('Estoque atualizado!', 'success');
+}
+
+// Render stock statistics
+function renderStockStats() {
+    const stats = {
+        total: stockProducts.length,
+        outOfStock: stockProducts.filter(p => p.stock <= 0).length,
+        critical: stockProducts.filter(p => p.stock > 0 && p.stock <= STOCK_THRESHOLDS.CRITICAL).length,
+        low: stockProducts.filter(p => p.stock > STOCK_THRESHOLDS.CRITICAL && p.stock <= STOCK_THRESHOLDS.LOW).length,
+        normal: stockProducts.filter(p => p.stock > STOCK_THRESHOLDS.LOW).length
+    };
+    
+    document.getElementById('stockTotalProducts').textContent = stats.total;
+    document.getElementById('stockOutOfStock').textContent = stats.outOfStock;
+    document.getElementById('stockCritical').textContent = stats.critical;
+    document.getElementById('stockLow').textContent = stats.low;
+    document.getElementById('stockNormal').textContent = stats.normal;
+}
+
+// Update stock alert badge in sidebar
+function updateStockAlertBadge() {
+    const alertCount = stockProducts.filter(p => p.stock <= STOCK_THRESHOLDS.CRITICAL).length;
+    const badge = document.getElementById('stockAlertBadge');
+    if (badge) {
+        if (alertCount > 0) {
+            badge.textContent = alertCount;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// Get stock status class
+function getStockStatusClass(stock) {
+    if (stock <= 0) return 'stock-status-out';
+    if (stock <= STOCK_THRESHOLDS.CRITICAL) return 'stock-status-critical';
+    if (stock <= STOCK_THRESHOLDS.LOW) return 'stock-status-low';
+    if (stock <= STOCK_THRESHOLDS.NORMAL) return 'stock-status-normal';
+    return 'stock-status-high';
+}
+
+// Get stock status label
+function getStockStatusLabel(stock) {
+    if (stock <= 0) return 'Sem estoque';
+    if (stock <= STOCK_THRESHOLDS.CRITICAL) return 'Crítico';
+    if (stock <= STOCK_THRESHOLDS.LOW) return 'Baixo';
+    if (stock <= STOCK_THRESHOLDS.NORMAL) return 'Normal';
+    return 'Alto';
+}
+
+// Get quantity value class
+function getQuantityClass(stock) {
+    if (stock <= 0) return 'stock-status-out';
+    if (stock <= STOCK_THRESHOLDS.CRITICAL) return 'stock-status-critical';
+    if (stock <= STOCK_THRESHOLDS.LOW) return 'stock-status-low';
+    return 'stock-status-high';
+}
+
+// Filter and sort stock table
+function filterStockTable() {
+    const search = document.getElementById('stockSearch').value.toLowerCase();
+    const category = document.getElementById('stockCategoryFilter').value;
+    const status = document.getElementById('stockStatusFilter').value;
+    const sortBy = document.getElementById('stockSortBy').value;
+    
+    let filtered = stockProducts.filter(product => {
+        // Search filter
+        if (search && !product.name.toLowerCase().includes(search)) return false;
+        
+        // Category filter
+        if (category && product.category !== category) return false;
+        
+        // Status filter
+        if (status === 'out' && product.stock > 0) return false;
+        if (status === 'critical' && (product.stock <= 0 || product.stock > STOCK_THRESHOLDS.CRITICAL)) return false;
+        if (status === 'low' && (product.stock <= STOCK_THRESHOLDS.CRITICAL || product.stock > STOCK_THRESHOLDS.LOW)) return false;
+        if (status === 'normal' && product.stock <= STOCK_THRESHOLDS.LOW) return false;
+        
+        return true;
+    });
+    
+    // Sort
+    filtered.sort((a, b) => {
+        switch (sortBy) {
+            case 'stock_asc': return a.stock - b.stock;
+            case 'stock_desc': return b.stock - a.stock;
+            case 'name_asc': return a.name.localeCompare(b.name);
+            case 'name_desc': return b.name.localeCompare(a.name);
+            case 'category': return a.category.localeCompare(b.category);
+            default: return a.stock - b.stock;
+        }
+    });
+    
+    renderStockTableRows(filtered);
+}
+
+// Render stock table
+function renderStockTable() {
+    filterStockTable();
+}
+
+// Render stock table rows
+function renderStockTableRows(productsToRender) {
+    const tbody = document.getElementById('stockTableBody');
+    
+    if (!productsToRender || productsToRender.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="stock-empty-state">
+                    <div class="empty-icon">📦</div>
+                    <p>Nenhum produto encontrado</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = productsToRender.map(product => {
+        const statusClass = getStockStatusClass(product.stock);
+        const statusLabel = getStockStatusLabel(product.stock);
+        const quantityClass = getQuantityClass(product.stock);
+        const rowClass = product.stock <= 0 ? 'stock-row-danger' : '';
+        const categoryLabel = CATEGORY_LABELS[product.category] || product.category;
+        const imageUrl = product.image_url || product.image || 'images/placeholder.png';
+        
+        return `
+            <tr class="${rowClass}">
+                <td>
+                    <div class="stock-product-info">
+                        <img src="${imageUrl}" alt="${product.name}" class="stock-product-image" 
+                             onerror="this.src='https://via.placeholder.com/48?text=?'">
+                        <div>
+                            <span class="stock-product-name">${product.name}</span>
+                            <span class="stock-product-unit">${product.unit}</span>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="stock-category-badge">${categoryLabel}</span>
+                </td>
+                <td>R$ ${parseFloat(product.price).toFixed(2).replace('.', ',')}</td>
+                <td>
+                    <div class="stock-quantity-cell">
+                        <button class="stock-qty-btn minus" onclick="quickUpdateStock('${product.id}', -10)" 
+                                ${product.stock < 10 ? 'disabled' : ''} title="-10">-10</button>
+                        <button class="stock-qty-btn minus" onclick="quickUpdateStock('${product.id}', -5)" 
+                                ${product.stock < 5 ? 'disabled' : ''} title="-5">-5</button>
+                        <button class="stock-qty-btn minus" onclick="quickUpdateStock('${product.id}', -1)" 
+                                ${product.stock <= 0 ? 'disabled' : ''} title="-1">−</button>
+                        <span class="stock-quantity-value ${quantityClass}" id="stock-qty-${product.id}">${product.stock}</span>
+                        <button class="stock-qty-btn plus" onclick="quickUpdateStock('${product.id}', 1)" title="+1">+</button>
+                        <button class="stock-qty-btn plus" onclick="quickUpdateStock('${product.id}', 5)" title="+5">+5</button>
+                        <button class="stock-qty-btn plus" onclick="quickUpdateStock('${product.id}', 10)" title="+10">+10</button>
+                    </div>
+                </td>
+                <td>
+                    <span class="stock-status-badge ${statusClass}">${statusLabel}</span>
+                </td>
+                <td>
+                    <div class="stock-actions">
+                        <button class="stock-btn-edit" onclick="openStockModal('${product.id}')">
+                            ✏️ Editar
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Quick update stock (+1 or -1)
+async function quickUpdateStock(productId, delta) {
+    const product = stockProducts.find(p => p.id === productId);
+    if (!product) return;
+    
+    const newStock = Math.max(0, product.stock + delta);
+    
+    try {
+        const formData = new FormData();
+        formData.append('stock', newStock);
+        
+        await api.updateProduct(productId, formData);
+        
+        // Update local data
+        product.stock = newStock;
+        renderStockStats();
+        renderStockTable();
+        updateStockAlertBadge();
+        
+        showNotification(`Estoque de "${product.name}" atualizado para ${newStock}`, 'success');
+    } catch (error) {
+        console.error('Erro ao atualizar estoque:', error);
+        showNotification('Erro ao atualizar estoque', 'error');
+    }
+}
+
+// Open stock edit modal
+function openStockModal(productId) {
+    const product = stockProducts.find(p => p.id === productId);
+    if (!product) return;
+    
+    currentStockProduct = product;
+    stockAdjustment = 0;
+    
+    document.getElementById('stockProductId').value = product.id;
+    document.getElementById('stockProductImage').src = product.image_url || product.image || 'images/placeholder.png';
+    document.getElementById('stockProductName').textContent = product.name;
+    document.getElementById('stockProductCategory').textContent = CATEGORY_LABELS[product.category] || product.category;
+    document.getElementById('stockCurrentValue').textContent = product.stock + ' ' + product.unit;
+    document.getElementById('stockNewValue').value = '';
+    document.getElementById('stockAdjPreview').textContent = product.stock;
+    document.getElementById('stockReason').value = '';
+    
+    document.getElementById('stockModal').classList.add('show');
+    document.getElementById('modalOverlay').classList.add('show');
+}
+
+// Close stock modal
+function closeStockModal() {
+    document.getElementById('stockModal').classList.remove('show');
+    document.getElementById('modalOverlay').classList.remove('show');
+    currentStockProduct = null;
+    stockAdjustment = 0;
+}
+
+// Adjust stock value in modal
+function adjustStockValue(delta) {
+    if (!currentStockProduct) return;
+    
+    stockAdjustment += delta;
+    const newValue = Math.max(0, currentStockProduct.stock + stockAdjustment);
+    document.getElementById('stockAdjPreview').textContent = newValue;
+    document.getElementById('stockNewValue').value = '';
+}
+
+// Update preview when typing directly in input
+function updateStockPreviewFromInput() {
+    const inputValue = document.getElementById('stockNewValue').value;
+    if (inputValue !== '') {
+        const newValue = Math.max(0, parseInt(inputValue) || 0);
+        document.getElementById('stockAdjPreview').textContent = newValue;
+        stockAdjustment = 0; // Reset adjustment when typing directly
+    } else if (currentStockProduct) {
+        // If empty, show current stock
+        document.getElementById('stockAdjPreview').textContent = currentStockProduct.stock;
+        stockAdjustment = 0;
+    }
+}
+
+// Save stock change
+async function saveStockChange() {
+    if (!currentStockProduct) return;
+    
+    let newStock;
+    const directValue = document.getElementById('stockNewValue').value;
+    
+    if (directValue !== '') {
+        newStock = parseInt(directValue) || 0;
+    } else {
+        newStock = Math.max(0, currentStockProduct.stock + stockAdjustment);
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('stock', newStock);
+        
+        await api.updateProduct(currentStockProduct.id, formData);
+        
+        // Update local data
+        currentStockProduct.stock = newStock;
+        
+        closeStockModal();
+        renderStockStats();
+        renderStockTable();
+        updateStockAlertBadge();
+        
+        showNotification(`Estoque atualizado com sucesso!`, 'success');
+    } catch (error) {
+        console.error('Erro ao salvar estoque:', error);
+        showNotification('Erro ao salvar estoque', 'error');
+    }
+}
+
+// Export stock report
+function exportStockReport() {
+    const headers = ['Produto', 'Categoria', 'Preço', 'Estoque', 'Unidade', 'Status'];
+    const rows = stockProducts.map(p => [
+        p.name,
+        CATEGORY_LABELS[p.category] || p.category,
+        `R$ ${parseFloat(p.price).toFixed(2).replace('.', ',')}`,
+        p.stock,
+        p.unit,
+        getStockStatusLabel(p.stock)
+    ]);
+    
+    let csv = headers.join(',') + '\n';
+    rows.forEach(row => {
+        csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `estoque_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    showNotification('Relatório de estoque exportado!', 'success');
+}
+
+// Initialize stock section when shown
+const originalShowSection = showSection;
+showSection = function(sectionName) {
+    originalShowSection(sectionName);
+    
+    if (sectionName === 'stock') {
+        loadStockData();
+    }
+};

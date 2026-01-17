@@ -33,6 +33,13 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="#stock" class="nav-link" data-section="stock">
+                        <span class="nav-icon">🏬</span>
+                        <span class="nav-text">Estoque</span>
+                        <span class="nav-badge stock-alert-badge" id="stockAlertBadge" style="display: none;">0</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="#campaigns" class="nav-link" data-section="campaigns">
                         <span class="nav-icon">🎯</span>
                         <span class="nav-text">Campanhas</span>
@@ -125,6 +132,10 @@
                 <a href="#products" class="mobile-menu-link" data-section="products" onclick="toggleMobileMenu(); showSection('products');">
                     <span class="mobile-menu-icon">📦</span>
                     <span>Produtos</span>
+                </a>
+                <a href="#stock" class="mobile-menu-link" data-section="stock" onclick="toggleMobileMenu(); showSection('stock');">
+                    <span class="mobile-menu-icon">🏬</span>
+                    <span>Estoque</span>
                 </a>
                 <a href="#campaigns" class="mobile-menu-link" data-section="campaigns" onclick="toggleMobileMenu(); showSection('campaigns');">
                     <span class="mobile-menu-icon">🎯</span>
@@ -430,6 +441,109 @@
                 </div>
                 
                 <div class="products-grid" id="productsGrid"></div>
+            </section>
+
+            <!-- Stock Section -->
+            <section class="content-section" id="sectionStock">
+                <div class="section-header">
+                    <h2 class="section-title">🏬 Gestão de Estoque</h2>
+                    <div class="section-actions">
+                        <button class="btn-secondary" onclick="refreshStock()">
+                            🔄 Atualizar
+                        </button>
+                        <button class="btn-secondary" onclick="exportStockReport()">
+                            📥 Exportar
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stock Stats -->
+                <div class="stock-stats-row">
+                    <div class="stock-stat-card">
+                        <div class="stock-stat-icon">📦</div>
+                        <div class="stock-stat-content">
+                            <span class="stock-stat-value" id="stockTotalProducts">0</span>
+                            <span class="stock-stat-label">Total de Produtos</span>
+                        </div>
+                    </div>
+                    <div class="stock-stat-card stock-stat-danger">
+                        <div class="stock-stat-icon">🚫</div>
+                        <div class="stock-stat-content">
+                            <span class="stock-stat-value" id="stockOutOfStock">0</span>
+                            <span class="stock-stat-label">Sem Estoque</span>
+                        </div>
+                    </div>
+                    <div class="stock-stat-card stock-stat-warning">
+                        <div class="stock-stat-icon">⚠️</div>
+                        <div class="stock-stat-content">
+                            <span class="stock-stat-value" id="stockCritical">0</span>
+                            <span class="stock-stat-label">Estoque Crítico (≤5)</span>
+                        </div>
+                    </div>
+                    <div class="stock-stat-card stock-stat-info">
+                        <div class="stock-stat-icon">📉</div>
+                        <div class="stock-stat-content">
+                            <span class="stock-stat-value" id="stockLow">0</span>
+                            <span class="stock-stat-label">Estoque Baixo (≤15)</span>
+                        </div>
+                    </div>
+                    <div class="stock-stat-card stock-stat-success">
+                        <div class="stock-stat-icon">✅</div>
+                        <div class="stock-stat-content">
+                            <span class="stock-stat-value" id="stockNormal">0</span>
+                            <span class="stock-stat-label">Estoque Normal</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stock Filters -->
+                <div class="stock-filters-row">
+                    <div class="stock-search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="stockSearch" placeholder="Buscar produto..." onkeyup="filterStockTable()">
+                    </div>
+                    <select id="stockCategoryFilter" class="filter-select" onchange="filterStockTable()">
+                        <option value="">Todas as Categorias</option>
+                        <option value="vegetais">Vegetais</option>
+                        <option value="frutas">Frutas</option>
+                        <option value="verduras">Verduras</option>
+                        <option value="exoticos">Exóticos</option>
+                        <option value="granjeiro">Granjeiro</option>
+                        <option value="processados">Processados</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                    <select id="stockStatusFilter" class="filter-select" onchange="filterStockTable()">
+                        <option value="">Todos os Status</option>
+                        <option value="out">Sem Estoque</option>
+                        <option value="critical">Estoque Crítico (≤5)</option>
+                        <option value="low">Estoque Baixo (≤15)</option>
+                        <option value="normal">Estoque Normal</option>
+                    </select>
+                    <select id="stockSortBy" class="filter-select" onchange="filterStockTable()">
+                        <option value="stock_asc">Menor Estoque</option>
+                        <option value="stock_desc">Maior Estoque</option>
+                        <option value="name_asc">Nome (A-Z)</option>
+                        <option value="name_desc">Nome (Z-A)</option>
+                        <option value="category">Por Categoria</option>
+                    </select>
+                </div>
+                
+                <!-- Stock Table -->
+                <div class="stock-table-container">
+                    <table class="stock-table" id="stockTable">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Categoria</th>
+                                <th>Preço</th>
+                                <th>Estoque Atual</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody"></tbody>
+                    </table>
+                </div>
             </section>
 
             <!-- Campaigns Section -->
@@ -834,6 +948,62 @@
             </div>
             <div class="modal-body" id="summaryModalContent">
                 <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Edit Modal -->
+    <div class="modal" id="stockModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Estoque</h2>
+                <button class="modal-close" onclick="closeStockModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="stockProductId">
+                
+                <div class="stock-modal-product">
+                    <img id="stockProductImage" src="" alt="">
+                    <div>
+                        <h3 id="stockProductName">-</h3>
+                        <p id="stockProductCategory">-</p>
+                    </div>
+                </div>
+                
+                <div class="stock-modal-current">
+                    <span>Estoque Atual:</span>
+                    <span class="stock-current-value" id="stockCurrentValue">0</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="stockNewValue">Novo valor de estoque:</label>
+                    <input type="number" id="stockNewValue" min="0" placeholder="Ex: 100" oninput="updateStockPreviewFromInput()">
+                    <small class="form-hint">Digite o valor desejado ou use os botões de ajuste abaixo</small>
+                </div>
+                
+                <div class="stock-form-divider">
+                    <span>ou ajuste rápido</span>
+                </div>
+                
+                <div class="stock-adjustment-buttons">
+                    <button type="button" class="stock-adj-btn" onclick="adjustStockValue(-10)">-10</button>
+                    <button type="button" class="stock-adj-btn" onclick="adjustStockValue(-5)">-5</button>
+                    <button type="button" class="stock-adj-btn" onclick="adjustStockValue(-1)">-1</button>
+                    <span class="stock-adj-preview" id="stockAdjPreview">0</span>
+                    <button type="button" class="stock-adj-btn" onclick="adjustStockValue(1)">+1</button>
+                    <button type="button" class="stock-adj-btn" onclick="adjustStockValue(5)">+5</button>
+                    <button type="button" class="stock-adj-btn" onclick="adjustStockValue(10)">+10</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="stockReason">Motivo do ajuste (opcional):</label>
+                    <input type="text" id="stockReason" placeholder="Ex: Entrada de mercadoria, Ajuste de inventário...">
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeStockModal()">Cancelar</button>
+                    <button type="button" class="btn-primary" onclick="saveStockChange()">💾 Salvar</button>
+                </div>
             </div>
         </div>
     </div>
