@@ -5,15 +5,17 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "FreshMarket Pro - Marketplace para Restaurantes",
-  description: "Fornecimento de verduras e produtos frescos para restaurantes",
-  generator: "v0.app",
+  title: "Da Horta Distribuidor",
+  description: "Fornecimento de produtos frescos para restaurantes, hotéis e mercados",
+  icons: {
+    icon: "/images/icone-tomate-dahorta.png",
+  },
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} font-sans antialiased`}>
+      <body className={`${inter.className} font-sans antialiased bg-gray-50`}>
         {children}
         <Analytics />
       </body>

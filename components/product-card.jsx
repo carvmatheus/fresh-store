@@ -85,7 +85,7 @@ export default function ProductCard({ product, onAddToCart }) {
             src={product.image || "/placeholder.svg"}
             alt={product.name}
             fill
-            className="object-cover"
+            className="object-cover object-right-bottom"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         </div>
