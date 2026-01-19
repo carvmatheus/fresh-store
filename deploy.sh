@@ -1,108 +1,192 @@
 #!/bin/bash
 # ==============================================
-# Deploy Script - Da Horta Distribuidor
-# Deploy para Container Docker + Cache Busting
+# Deploy Script - Da Horta Distribuidor (Next.js)
+# Deploy para Container Docker com Next.js
 # ==============================================
 
 set -e
 
 # Configuração
 SITE_DIR="/root/dahorta/dev/front"
-DOCS_DIR="$SITE_DIR/docs"
 CONTAINER_NAME="dahorta-frontend"
-CONTAINER_WEB_DIR="/usr/share/nginx/html"
+COMPOSE_FILE="docker-compose.yml"
+DOCKERFILE="Dockerfile.frontend"
+SERVICE_NAME="frontend"
 
 # Gerar versão baseada no timestamp
 VERSION=$(date +%s)
-echo "🚀 Iniciando deploy..."
+echo "🚀 Iniciando deploy do Next.js..."
 echo "📦 Versão: $VERSION"
+echo "📅 Data: $(date '+%d/%m/%Y %H:%M:%S')"
 
-# 1. Limpar working tree e pull das últimas alterações
+# 1. Navegar para o diretório do projeto
+echo ""
+echo "📁 Navegando para diretório do projeto..."
+cd $SITE_DIR || {
+    echo "   ❌ ERRO: Diretório $SITE_DIR não encontrado!"
+    exit 1
+}
+echo "   ✓ Diretório: $SITE_DIR"
+
+# 2. Limpar working tree e pull das últimas alterações
 echo ""
 echo "📥 Baixando alterações do repositório..."
-cd $SITE_DIR
-
-# Descartar TODAS as alterações locais primeiro
-echo "   🔄 Descartando alterações locais (cache busting será reaplicado)..."
+echo "   🔄 Descartando alterações locais..."
 git reset --hard HEAD
 git clean -fd
 
-# Fazer pull das alterações do GitHub
-echo "   ⬇️  Baixando atualizações..."
+echo "   ⬇️  Baixando atualizações do GitHub..."
 git pull origin main
 
-# Garantir que os arquivos do repositório estão limpos após o pull
 echo "   🔄 Garantindo estado limpo do repositório..."
 git reset --hard origin/main
 git clean -fd
+echo "   ✓ Repositório atualizado e limpo"
 
-# 2. Verificar se o container está rodando
+# 3. Verificar se docker-compose está disponível
 echo ""
-echo "🐳 Verificando container Docker..."
-if ! docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
-    echo "   ❌ ERRO: Container '${CONTAINER_NAME}' não está rodando!"
-    echo "   Execute: docker ps"
+echo "🐳 Verificando Docker..."
+if ! command -v docker &> /dev/null; then
+    echo "   ❌ ERRO: Docker não está instalado!"
     exit 1
 fi
-echo "   ✓ Container '${CONTAINER_NAME}' está rodando"
 
-# 3. Criar diretório temporário para processar arquivos
-TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    echo "   ❌ ERRO: Docker Compose não está disponível!"
+    exit 1
+fi
+
+# Usar docker compose (v2) se disponível, senão docker-compose (v1)
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+else
+    DOCKER_COMPOSE="docker-compose"
+fi
+
+echo "   ✓ Docker disponível"
+
+# 4. Verificar se o container está rodando e pará-lo
 echo ""
-echo "📋 Preparando arquivos para deploy..."
+echo "🛑 Parando container atual..."
+if docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+    echo "   ⏹️  Container '${CONTAINER_NAME}' está rodando, parando..."
+    $DOCKER_COMPOSE -f $COMPOSE_FILE down || {
+        echo "   ⚠️  Tentando parar container diretamente..."
+        docker stop ${CONTAINER_NAME} 2>/dev/null || true
+        docker rm ${CONTAINER_NAME} 2>/dev/null || true
+    }
+    echo "   ✓ Container parado"
+else
+    echo "   ℹ️  Container não está rodando"
+fi
 
-# Copiar todos os arquivos para diretório temporário
-cp -r $DOCS_DIR/* $TEMP_DIR/
-echo "   ✓ Arquivos copiados para diretório temporário"
-
-# 4. Aplicar cache busting APENAS nos arquivos HTML do diretório temporário
-# IMPORTANTE: NUNCA modificar os arquivos em $DOCS_DIR (repositório)
+# 5. Verificar se há variáveis de ambiente necessárias
 echo ""
-echo "🔄 Aplicando cache busting nos arquivos HTML..."
+echo "🔧 Verificando variáveis de ambiente..."
+if [ -f .env ]; then
+    echo "   ✓ Arquivo .env encontrado"
+    source .env
+else
+    echo "   ⚠️  Arquivo .env não encontrado (usando valores padrão)"
+fi
 
-for html_file in $TEMP_DIR/*.html; do
-    if [ -f "$html_file" ]; then
-        filename=$(basename "$html_file")
-        
-        # Aplicar versão em links CSS e JS
-        # Remove versões antigas e adiciona a nova
-        sed -i -E "s/\.css(\?v=[0-9]+)?/\.css?v=$VERSION/g" "$html_file"
-        sed -i -E "s/\.js(\?v=[0-9]+)?/\.js?v=$VERSION/g" "$html_file"
-        
-        echo "   ✓ $filename"
+# Definir NEXT_PUBLIC_API_URL se não estiver definido
+if [ -z "$NEXT_PUBLIC_API_URL" ]; then
+    NEXT_PUBLIC_API_URL="https://compredahorta.com.br/api"
+    echo "   ℹ️  NEXT_PUBLIC_API_URL não definido, usando: $NEXT_PUBLIC_API_URL"
+fi
+
+# 6. Verificar se docker-compose.yml está configurado corretamente
+echo ""
+echo "📝 Verificando configuração do Docker..."
+if [ ! -f "$COMPOSE_FILE" ]; then
+    echo "   ❌ ERRO: Arquivo $COMPOSE_FILE não encontrado!"
+    exit 1
+fi
+
+if ! grep -q "Dockerfile.frontend" "$COMPOSE_FILE"; then
+    echo "   ⚠️  ATENÇÃO: docker-compose.yml não está usando Dockerfile.frontend"
+    echo "   O script continuará, mas certifique-se de que o arquivo está correto"
+fi
+
+echo "   ✓ Configuração verificada"
+
+# 7. Limpar imagens antigas (opcional, para economizar espaço)
+echo ""
+echo "🧹 Limpando imagens antigas..."
+docker image prune -f --filter "dangling=true" || true
+echo "   ✓ Limpeza concluída"
+
+# 8. Construir e iniciar o container
+echo ""
+echo "🔨 Construindo imagem Docker (isso pode levar alguns minutos)..."
+$DOCKER_COMPOSE -f $COMPOSE_FILE build --no-cache --build-arg NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} || {
+    echo "   ❌ ERRO: Falha ao construir imagem!"
+    echo "   Verifique os logs acima para mais detalhes"
+    exit 1
+}
+echo "   ✓ Imagem construída com sucesso"
+
+echo ""
+echo "🚀 Iniciando container..."
+$DOCKER_COMPOSE -f $COMPOSE_FILE up -d || {
+    echo "   ❌ ERRO: Falha ao iniciar container!"
+    exit 1
+}
+echo "   ✓ Container iniciado"
+
+# 9. Aguardar container inicializar
+echo ""
+echo "⏳ Aguardando container inicializar (30 segundos)..."
+sleep 30
+
+# 10. Verificar se o container está rodando
+echo ""
+echo "🔍 Verificando status do container..."
+if docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+    echo "   ✓ Container '${CONTAINER_NAME}' está rodando"
+    
+    # Verificar logs para erros
+    echo ""
+    echo "📋 Últimas linhas dos logs:"
+    docker logs --tail 20 ${CONTAINER_NAME} || true
+else
+    echo "   ❌ ERRO: Container não está rodando!"
+    echo "   Verificando logs..."
+    docker logs ${CONTAINER_NAME} || true
+    exit 1
+fi
+
+# 11. Verificar se a aplicação está respondendo
+echo ""
+echo "🧪 Verificando se a aplicação está respondendo..."
+MAX_RETRIES=10
+RETRY_COUNT=0
+SUCCESS=false
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+        echo "   ✓ Aplicação respondendo corretamente!"
+        SUCCESS=true
+        break
+    else
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        echo "   ⏳ Tentativa $RETRY_COUNT/$MAX_RETRIES... aguardando 5 segundos"
+        sleep 5
     fi
 done
 
-# 5. Copiar arquivos para dentro do container Docker
-echo ""
-echo "📦 Copiando arquivos para o container Docker..."
+if [ "$SUCCESS" = false ]; then
+    echo "   ⚠️  Aplicação ainda não está respondendo após $MAX_RETRIES tentativas"
+    echo "   Verifique os logs: docker logs ${CONTAINER_NAME}"
+    echo "   A aplicação pode estar inicializando, aguarde alguns minutos"
+fi
 
-# Copiar todos os arquivos para o container
-docker cp $TEMP_DIR/. ${CONTAINER_NAME}:${CONTAINER_WEB_DIR}/
-
-# Garantir permissões corretas dentro do container
-docker exec ${CONTAINER_NAME} chown -R nginx:nginx ${CONTAINER_WEB_DIR} 2>/dev/null || \
-docker exec ${CONTAINER_NAME} chown -R www-data:www-data ${CONTAINER_WEB_DIR} 2>/dev/null || true
-
-echo "   ✓ Arquivos copiados para o container"
-
-# 6. Recarregar Nginx dentro do container
-echo ""
-echo "🔧 Recarregando Nginx no container..."
-docker exec ${CONTAINER_NAME} nginx -s reload 2>/dev/null || {
-    echo "   ⚠️  Falha ao recarregar, tentando reiniciar container..."
-    docker restart ${CONTAINER_NAME}
-    echo "   ✓ Container reiniciado"
-}
-echo "   ✓ Nginx atualizado"
-
-# 7. Verificar e garantir que o repositório está limpo
+# 12. Verificar e garantir que o repositório está limpo
 echo ""
 echo "🔍 Verificando repositório..."
 cd $SITE_DIR
 
-# Se houver alterações, descartá-las (não devem existir se tudo funcionou corretamente)
 if [[ -n $(git status --porcelain) ]]; then
     echo "   ⚠️  Alterações detectadas no repositório (descartando...):"
     git status --short
@@ -113,24 +197,7 @@ else
     echo "   ✓ Working tree limpo"
 fi
 
-# Verificação final
-if [[ -n $(git status --porcelain) ]]; then
-    echo "   ❌ ERRO: Ainda há alterações após limpeza!"
-    echo "   Execute manualmente: cd $SITE_DIR && git reset --hard HEAD && git clean -fd"
-    exit 1
-fi
-
-# 8. Verificar se o deploy funcionou
-echo ""
-echo "🧪 Verificando deploy..."
-sleep 2  # Aguardar container processar
-if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
-    echo "   ✓ Container respondendo corretamente"
-else
-    echo "   ⚠️  Container pode estar inicializando, aguarde alguns segundos"
-fi
-
-# 9. Exibir resumo
+# 13. Exibir resumo
 echo ""
 echo "=============================================="
 echo "✅ DEPLOY COMPLETO!"
@@ -138,9 +205,16 @@ echo "=============================================="
 echo "📦 Versão: $VERSION"
 echo "📅 Data: $(date '+%d/%m/%Y %H:%M:%S')"
 echo "🐳 Container: ${CONTAINER_NAME}"
-echo "🌐 Cache busting aplicado em todos os arquivos HTML"
+echo "🌐 Porta: 3000"
 echo "📁 Repositório: $SITE_DIR"
+echo "🔧 Dockerfile: ${DOCKERFILE}"
 echo ""
-echo "Os navegadores dos usuários irão carregar"
-echo "automaticamente os arquivos CSS e JS atualizados."
+echo "Para ver os logs em tempo real:"
+echo "  docker logs -f ${CONTAINER_NAME}"
+echo ""
+echo "Para verificar o status:"
+echo "  docker ps | grep ${CONTAINER_NAME}"
+echo ""
+echo "Para reiniciar o container:"
+echo "  docker restart ${CONTAINER_NAME}"
 echo "=============================================="
