@@ -153,6 +153,22 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Admin pages - sempre fundo escuro */
+  html[data-admin="true"],
+  html[data-admin="true"] body {
+    background-color: #0f1419 !important;
+    min-height: 100vh;
+  }
+  
+  /* Garantir que áreas além do viewport também sejam escuras para admin */
+  html[data-admin="true"] {
+    background-color: #0f1419 !important;
+  }
+  
+  html[data-admin="true"] body {
+    background-color: #0f1419 !important;
+  }
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -349,4 +365,24 @@
   transform: translate(-50%, -50%) scale(1);
   transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   overflow: hidden;
+}
+
+/* ========== ADMIN BACKGROUND FIX ========== */
+/* Garantir que áreas além do viewport também sejam escuras para admin */
+html[data-admin="true"] {
+  background-color: #0f1419 !important;
+  height: 100%;
+}
+
+html[data-admin="true"] body {
+  background-color: #0f1419 !important;
+  min-height: 100vh;
+  height: auto;
+}
+
+/* Forçar fundo escuro em todos os elementos principais do admin */
+html[data-admin="true"] #__next,
+html[data-admin="true"] #__next > div {
+  background-color: #0f1419 !important;
+  min-height: 100vh;
 }

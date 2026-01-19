@@ -14,7 +14,7 @@ export default function StockPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('stock')
+  const [sortBy, setSortBy] = useState('stock-desc')
   
   // Entradas futuras
   const [pendingEntries, setPendingEntries] = useState({})
@@ -149,11 +149,16 @@ export default function StockPage() {
   })
 
   filteredProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === 'stock') return a.stock - b.stock
-    if (sortBy === 'name') return a.name.localeCompare(b.name)
-    if (sortBy === 'category') return (a.category || '').localeCompare(b.category || '')
-    if (sortBy === 'pending') return (pendingEntries[b.id] || 0) - (pendingEntries[a.id] || 0)
-    return 0
+    switch (sortBy) {
+      case 'stock-desc': return (b.stock || 0) - (a.stock || 0)
+      case 'stock-asc': return (a.stock || 0) - (b.stock || 0)
+      case 'name': return (a.name || '').localeCompare(b.name || '')
+      case 'category': return (a.category || '').localeCompare(b.category || '')
+      case 'price-desc': return (b.price || 0) - (a.price || 0)
+      case 'price-asc': return (a.price || 0) - (b.price || 0)
+      case 'pending-desc': return (pendingEntries[b.id] || 0) - (pendingEntries[a.id] || 0)
+      default: return 0
+    }
   })
 
   const stats = {
@@ -221,10 +226,13 @@ export default function StockPage() {
           <option value="normal">Normal</option>
           </select>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="bg-[#1a1f26] border border-[#2d3640] rounded-lg px-4 py-2.5 text-gray-100 focus:outline-none focus:border-emerald-500">
-          <option value="stock">Ordenar: Estoque ↑</option>
-          <option value="name">Ordenar: Nome</option>
-          <option value="category">Ordenar: Categoria</option>
-          <option value="pending">Ordenar: Entradas</option>
+          <option value="stock-desc">Estoque ↓ (maior)</option>
+          <option value="stock-asc">Estoque ↑ (menor)</option>
+          <option value="name">Nome (A-Z)</option>
+          <option value="category">Categoria (A-Z)</option>
+          <option value="price-desc">Preço ↓ (maior)</option>
+          <option value="price-asc">Preço ↑ (menor)</option>
+          <option value="pending-desc">Entradas ↓ (maior)</option>
           </select>
         </div>
 
@@ -357,7 +365,7 @@ export default function StockPage() {
                           className={`w-12 h-6 rounded-full relative transition-colors ${
                             product.is_available !== false ? 'bg-emerald-500' : 'bg-gray-600'
                           }`}
-                        >
+                      >
                           <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
                             product.is_available !== false ? 'right-1' : 'left-1'
                           }`}></span>
@@ -398,7 +406,7 @@ export default function StockPage() {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#2d3640] flex-shrink-0">
                       <Image src={product.image || '/placeholder.jpg'} alt={product.name} width={48} height={48} className="w-full h-full object-cover" />
-                    </div>
+                </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-100 truncate">{product.name}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">

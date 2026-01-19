@@ -10,6 +10,15 @@ function formatCurrency(value) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+// Formatar código do pedido
+function formatOrderNumber(order) {
+  if (order.order_number) return order.order_number
+  const date = new Date(order.created_at)
+  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '')
+  const idStr = order.id?.toString().slice(-4) || '0000'
+  return `DH-${dateStr}-${idStr}`
+}
+
 // Card de estatística
 function StatCard({ icon, label, value, subValue, color = "emerald", href }) {
   const colorClasses = {
@@ -282,7 +291,7 @@ export default function AdminDashboard() {
                 ) : (
                   recentOrders.map((order) => (
                     <tr key={order.id} className="border-b border-[#2d3640] hover:bg-[#242b33] transition-colors">
-                      <td className="p-4 font-mono text-sm">#{order.id?.toString().slice(-6) || 'N/A'}</td>
+                      <td className="p-4 font-mono text-sm text-emerald-400 font-bold">{formatOrderNumber(order)}</td>
                       <td className="p-4 text-gray-300">{order.user?.company_name || order.user?.name || 'Cliente'}</td>
                       <td className="p-4 text-gray-400 text-sm">
                         {order.created_at ? new Date(order.created_at).toLocaleDateString('pt-BR') : '-'}

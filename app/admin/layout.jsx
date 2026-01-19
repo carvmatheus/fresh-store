@@ -45,6 +45,18 @@ export default function AdminLayout({ children }) {
     if (currentUser && isAdmin()) {
       loadCounts()
     }
+    
+    // Forçar fundo escuro em html e body para admin
+    document.documentElement.style.backgroundColor = '#0f1419'
+    document.body.style.backgroundColor = '#0f1419'
+    document.documentElement.setAttribute('data-admin', 'true')
+    
+    // Cleanup ao sair
+    return () => {
+      document.documentElement.style.backgroundColor = ''
+      document.body.style.backgroundColor = ''
+      document.documentElement.removeAttribute('data-admin')
+    }
   }, [router])
 
   const loadCounts = async () => {
@@ -88,7 +100,7 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-gray-100 flex">
+    <div className="min-h-screen bg-[#0f1419] text-gray-100 flex" style={{ backgroundColor: '#0f1419' }}>
       {/* Sidebar - Fixed em todas as resoluções */}
       <aside className={`fixed inset-y-0 left-0 w-[260px] bg-[#1a1f26] border-r border-[#2d3640] flex flex-col z-50 transform transition-transform duration-300 ease-out ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -177,7 +189,7 @@ export default function AdminLayout({ children }) {
       )}
 
       {/* Main Content - Com margem para compensar sidebar fixa */}
-      <div className="flex-1 flex flex-col min-h-screen lg:ml-[260px]">
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-[260px] bg-[#0f1419]" style={{ backgroundColor: '#0f1419', minHeight: '100vh' }}>
         {/* Header */}
         <header className="h-16 bg-[#1a1f26] border-b border-[#2d3640] flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
           <div className="flex items-center gap-4">
@@ -209,7 +221,7 @@ export default function AdminLayout({ children }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-6 overflow-auto bg-[#0f1419]" style={{ backgroundColor: '#0f1419' }}>
           {children}
         </main>
 

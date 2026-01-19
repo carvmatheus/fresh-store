@@ -43,8 +43,12 @@ export default function OrdersPage() {
       ])
       setOrders(ordersData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
       setProducts(productsData)
-      // Filtra apenas usuários aprovados
-      setUsers(Array.isArray(usersData) ? usersData.filter(u => u.is_approved) : [])
+      // Filtra apenas usuários aprovados (pode ser is_approved ou approval_status)
+      const approvedUsers = Array.isArray(usersData) 
+        ? usersData.filter(u => u.approval_status === 'approved' || u.is_approved === true)
+        : []
+      console.log('👥 Usuários carregados:', approvedUsers.length, approvedUsers)
+      setUsers(approvedUsers)
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error)
     } finally {
@@ -830,6 +834,25 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
   const [selectedUser, setSelectedUser] = useState(null)
   const [isNewUser, setIsNewUser] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [localUsers, setLocalUsers] = useState(users || [])
+  
+  // Recarregar usuários quando o modal abrir
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const usersData = await api.getUsers()
+        const approvedUsers = Array.isArray(usersData) 
+          ? usersData.filter(u => u.approval_status === 'approved' || u.is_approved === true)
+          : []
+        console.log('👥 Usuários carregados no modal:', approvedUsers.length)
+        setLocalUsers(approvedUsers)
+      } catch (error) {
+        console.error('Erro ao carregar usuários:', error)
+        setLocalUsers(users || [])
+      }
+    }
+    loadUsers()
+  }, [])
   
   // Dados novo cliente (campos para NF)
   const [newUser, setNewUser] = useState({
@@ -860,17 +883,44 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
   // Notas
   const [notes, setNotes] = useState('')
 
-  const filteredUsers = users.filter(u => 
-    u.name?.toLowerCase().includes(searchUser.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchUser.toLowerCase()) ||
-    u.company?.toLowerCase().includes(searchUser.toLowerCase()) ||
-    u.cnpj?.includes(searchUser)
-  )
+  const filteredUsers = localUsers.filter(u => {
+    if (!searchUser) {
+      // Se não há busca, mostrar todos (limitado a 20 para performance)
+      return true
+    }
+    const search = searchUser.toLowerCase().trim()
+    const searchNumbers = searchUser.replace(/\D/g, '')
+    
+    // Buscar em todos os campos possíveis
+    const matches = (
+      u.name?.toLowerCase().includes(search) ||
+      u.email?.toLowerCase().includes(search) ||
+      u.company?.toLowerCase().includes(search) ||
+      u.company_name?.toLowerCase().includes(search) ||
+      u.razao_social?.toLowerCase().includes(search) ||
+      u.phone?.replace(/\D/g, '').includes(searchNumbers) ||
+      u.cnpj?.replace(/\D/g, '').includes(searchNumbers) ||
+      u.username?.toLowerCase().includes(search)
+    )
+    
+    return matches
+  })
+  
+  console.log('🔍 Busca:', searchUser, '| Resultados:', filteredUsers.length, '| Total usuários:', localUsers.length)
 
-  const filteredProducts = products.filter(p => 
-    p.name?.toLowerCase().includes(searchProduct.toLowerCase()) &&
-    p.is_available !== false
-  )
+  // Mostrar todos os produtos disponíveis, filtrando apenas se houver busca
+  const filteredProducts = products.filter(p => {
+    // Sempre mostrar apenas produtos disponíveis
+    if (p.is_active === false || p.is_available === false) return false
+    
+    // Se houver busca, filtrar por nome
+    if (searchProduct) {
+      return p.name?.toLowerCase().includes(searchProduct.toLowerCase())
+    }
+    
+    // Sem busca, mostrar todos os disponíveis
+    return true
+  })
 
   const handleSelectUser = (user) => {
     setSelectedUser(user)
@@ -925,10 +975,44 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
   const canProceedStep2 = orderItems.length > 0
   const canProceedStep3 = address.street && address.number && address.neighborhood && address.city
 
-  const handleViaCep = async () => {
-    if (address.cep?.length === 8) {
+  // Funções de formatação
+  const formatPhone = (value) => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 10) {
+      return numbers.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+    } else {
+      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    }
+  }
+
+  const formatCEP = (value) => {
+    const numbers = value.replace(/\D/g, '').slice(0, 8)
+    if (numbers.length <= 5) {
+      return numbers
+    }
+    return numbers.replace(/(\d{5})(\d{3})/, '$1-$2')
+  }
+
+  const formatCNPJ = (value) => {
+    const numbers = value.replace(/\D/g, '').slice(0, 14)
+    if (numbers.length <= 2) {
+      return numbers
+    } else if (numbers.length <= 5) {
+      return numbers.replace(/(\d{2})(\d)/, '$1.$2')
+    } else if (numbers.length <= 8) {
+      return numbers.replace(/(\d{2})(\d{3})(\d)/, '$1.$2.$3')
+    } else if (numbers.length <= 12) {
+      return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d)/, '$1.$2.$3/$4')
+    } else {
+      return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d)/, '$1.$2.$3/$4-$5')
+    }
+  }
+
+  const handleViaCep = async (cepValue) => {
+    const cepNumbers = cepValue?.replace(/\D/g, '') || address.cep?.replace(/\D/g, '')
+    if (cepNumbers?.length === 8) {
       try {
-        const resp = await fetch(`https://viacep.com.br/ws/${address.cep}/json/`)
+        const resp = await fetch(`https://viacep.com.br/ws/${cepNumbers}/json/`)
         const data = await resp.json()
         if (!data.erro) {
           setAddress(prev => ({
@@ -938,6 +1022,8 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
             city: data.localidade || prev.city,
             state: data.uf || prev.state
           }))
+        } else {
+          console.warn('CEP não encontrado')
         }
       } catch (e) {
         console.error('Erro ao buscar CEP:', e)
@@ -951,47 +1037,81 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
       // Se novo cliente, criar primeiro
       let userId = selectedUser?.id
       if (isNewUser) {
+        // Gerar username baseado no email ou nome
+        const username = newUser.email 
+          ? newUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+          : newUser.name.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20) + Date.now().toString().slice(-4)
+        
         const createdUser = await api.register({
           name: newUser.name,
           email: newUser.email || `${Date.now()}@manual.com`,
+          username: username,
           password: Math.random().toString(36).slice(-8),
-          phone: newUser.phone,
+          phone: newUser.phone?.replace(/\D/g, ''), // Remove formatação
           company: newUser.company,
-          cnpj: newUser.cnpj,
+          cnpj: newUser.cnpj?.replace(/\D/g, ''), // Remove formatação
           ie: newUser.ie,
           payment_preference: newUser.payment_preference,
-          // Endereço
-          address_street: address.street,
-          address_number: address.number,
-          address_complement: address.complement,
-          address_neighborhood: address.neighborhood,
-          address_city: address.city,
-          address_state: address.state,
-          address_cep: address.cep,
-          role: 'cliente',
-          is_approved: true // Aprovar automaticamente
+          // Endereço como objeto (formato esperado pelo backend)
+          address: {
+            street: address.street,
+            number: address.number,
+            complement: address.complement,
+            neighborhood: address.neighborhood,
+            city: address.city,
+            state: address.state,
+            cep: address.cep?.replace(/\D/g, '') // Remove formatação
+          }
         })
-        userId = createdUser.id
+        userId = createdUser.user?.id
       }
 
-      // Criar pedido
+      // Buscar dados do cliente para contact_info
+      const clientInfo = isNewUser 
+        ? { name: newUser.name, email: newUser.email || '', phone: newUser.phone?.replace(/\D/g, '') || '' }
+        : selectedUser 
+          ? { name: selectedUser.name || '', email: selectedUser.email || '', phone: selectedUser.phone?.replace(/\D/g, '') || '' }
+          : { name: '', email: '', phone: '' }
+
+      // Criar pedido no formato esperado pelo backend
       const orderData = {
-        user_id: userId,
-        items: orderItems.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        shipping_address: address,
-        notes: notes || `Pedido criado manualmente via painel admin`,
-        status: 'confirmado' // Já confirmado
+        items: orderItems.map(item => {
+          // Buscar produto completo para pegar name, unit, image
+          const product = products.find(p => String(p.id) === String(item.product_id))
+          return {
+            product_id: String(item.product_id), // Backend espera string
+            name: item.name || product?.name || 'Produto',
+            quantity: Number(item.quantity),
+            unit: item.unit || product?.unit || 'un',
+            price: Number(item.price),
+            image: product?.image || product?.image_url || null
+          }
+        }),
+        shipping_address: {
+          street: address.street,
+          number: address.number,
+          complement: address.complement || null,
+          neighborhood: address.neighborhood,
+          city: address.city,
+          state: address.state,
+          zipcode: address.cep?.replace(/\D/g, '') || '' // Backend espera zipcode, não cep
+        },
+        contact_info: {
+          name: clientInfo.name,
+          email: clientInfo.email || `${Date.now()}@manual.com`,
+          phone: clientInfo.phone || '00000000000'
+        },
+        delivery_fee: 0, // Pode ser calculado depois se necessário
+        notes: notes || `Pedido criado manualmente via painel admin`
       }
 
+      console.log('📦 Dados do pedido:', JSON.stringify(orderData, null, 2))
       await api.createOrder(orderData)
       onCreated()
     } catch (error) {
       console.error('Erro ao criar pedido:', error)
-      alert('Erro ao criar pedido: ' + error.message)
+      const errorMsg = error?.message || (typeof error === 'object' ? JSON.stringify(error, null, 2) : String(error))
+      alert('Erro ao criar pedido:\n\n' + errorMsg)
     } finally {
       setSaving(false)
     }
@@ -1058,15 +1178,33 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
 
               {!isNewUser ? (
                 <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="🔍 Buscar por nome, email, empresa ou CNPJ..."
-                    value={searchUser}
-                    onChange={(e) => setSearchUser(e.target.value)}
-                    className="w-full bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="🔍 Buscar por nome, email, empresa, CNPJ ou telefone..."
+                      value={searchUser}
+                      onChange={(e) => setSearchUser(e.target.value)}
+                      className="flex-1 bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+                    />
+                    {localUsers.length > 0 && (
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                        {filteredUsers.length} de {localUsers.length}
+                      </span>
+                    )}
+                  </div>
                   <div className="max-h-60 overflow-y-auto space-y-2">
-                    {filteredUsers.slice(0, 10).map(user => (
+                    {!searchUser && (
+                      <p className="text-center text-gray-500 py-4 text-sm">
+                        Digite para buscar clientes cadastrados
+                      </p>
+                    )}
+                    {searchUser && filteredUsers.length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 mb-2">Nenhum cliente encontrado</p>
+                        <p className="text-xs text-gray-600">Tente buscar por nome, email, empresa ou CNPJ</p>
+                      </div>
+                    )}
+                    {filteredUsers.slice(0, 20).map(user => (
                       <button
                         key={user.id}
                         onClick={() => handleSelectUser(user)}
@@ -1076,15 +1214,21 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                             : 'border-[#2d3640] hover:border-gray-500 bg-[#0f1419]'
                         }`}
                       >
-                        <p className="font-medium text-gray-100">{user.company || user.name}</p>
-                        <p className="text-xs text-gray-500">{user.email} • {user.phone}</p>
+                        <p className="font-medium text-gray-100">{user.company_name || user.company || user.razao_social || user.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {user.name && user.name !== (user.company_name || user.company) && <span>👤 {user.name} • </span>}
+                          {user.email} {user.phone && `• ${user.phone}`}
+                        </p>
                         {user.cnpj && <p className="text-xs text-gray-400">CNPJ: {user.cnpj}</p>}
                       </button>
                     ))}
-                    {filteredUsers.length === 0 && searchUser && (
-                      <p className="text-center text-gray-500 py-4">Nenhum cliente encontrado</p>
-                    )}
                   </div>
+                  {selectedUser && (
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                      <p className="text-sm font-medium text-emerald-400">✓ Cliente selecionado</p>
+                      <p className="text-xs text-gray-400">{selectedUser.company_name || selectedUser.company || selectedUser.name}</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1094,6 +1238,15 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                       type="text"
                       value={newUser.name}
                       onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                      onBlur={(e) => {
+                        // Capitalizar primeira letra de cada palavra
+                        const formatted = e.target.value
+                          .toLowerCase()
+                          .split(' ')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ')
+                        setNewUser({...newUser, name: formatted})
+                      }}
                       className="w-full bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                       required
                     />
@@ -1103,7 +1256,14 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                     <input
                       type="tel"
                       value={newUser.phone}
-                      onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                      onChange={(e) => {
+                        const formatted = formatPhone(e.target.value)
+                        setNewUser({...newUser, phone: formatted})
+                      }}
+                      onBlur={(e) => {
+                        const formatted = formatPhone(e.target.value)
+                        setNewUser({...newUser, phone: formatted})
+                      }}
                       className="w-full bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                       placeholder="(21) 99999-9999"
                       required
@@ -1124,6 +1284,15 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                       type="text"
                       value={newUser.company}
                       onChange={(e) => setNewUser({...newUser, company: e.target.value})}
+                      onBlur={(e) => {
+                        // Capitalizar primeira letra de cada palavra
+                        const formatted = e.target.value
+                          .toLowerCase()
+                          .split(' ')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ')
+                        setNewUser({...newUser, company: formatted})
+                      }}
                       className="w-full bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -1132,7 +1301,14 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                     <input
                       type="text"
                       value={newUser.cnpj}
-                      onChange={(e) => setNewUser({...newUser, cnpj: e.target.value})}
+                      onChange={(e) => {
+                        const formatted = formatCNPJ(e.target.value)
+                        setNewUser({...newUser, cnpj: formatted})
+                      }}
+                      onBlur={(e) => {
+                        const formatted = formatCNPJ(e.target.value)
+                        setNewUser({...newUser, cnpj: formatted})
+                      }}
                       className="w-full bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                       placeholder="00.000.000/0001-00"
                     />
@@ -1175,8 +1351,16 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                 className="w-full bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto">
-                {filteredProducts.slice(0, 20).map(product => (
+              {filteredProducts.length === 0 && searchProduct && (
+                <p className="text-center text-gray-500 py-4">Nenhum produto encontrado</p>
+              )}
+              {filteredProducts.length > 0 && (
+                <p className="text-sm text-gray-500">
+                  {searchProduct ? `${filteredProducts.length} produto(s) encontrado(s)` : `${filteredProducts.length} produtos disponíveis`}
+                </p>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                {filteredProducts.map(product => (
                   <button
                     key={product.id}
                     onClick={() => handleAddProduct(product)}
@@ -1200,13 +1384,18 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                   <div className="space-y-2">
                     {orderItems.map(item => (
                       <div key={item.product_id} className="flex items-center justify-between bg-[#0f1419] rounded-lg p-3">
-                        <div>
+                        <div className="flex-1 min-w-0 mr-3">
                           <p className="font-medium text-gray-100">{item.name}</p>
-                          <p className="text-xs text-gray-500">{formatCurrency(item.price)} × {item.quantity} = {formatCurrency(item.price * item.quantity)}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatCurrency(item.price)}/{item.unit || 'un'} × <span className="font-bold text-emerald-400">{item.quantity} {item.unit || 'un'}</span> = {formatCurrency(item.price * item.quantity)}
+                          </p>
+                          {item.stock !== undefined && item.quantity > item.stock && (
+                            <p className="text-xs text-amber-400 mt-1">⚠️ Estoque: {item.stock} {item.unit}</p>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           <button onClick={() => handleUpdateQty(item.product_id, item.quantity - 1)} className="w-8 h-8 rounded bg-gray-700 text-gray-100 hover:bg-gray-600">−</button>
-                          <span className="w-8 text-center font-bold text-gray-100">{item.quantity}</span>
+                          <span className="w-12 text-center font-bold text-gray-100">{item.quantity}</span>
                           <button onClick={() => handleUpdateQty(item.product_id, item.quantity + 1)} className="w-8 h-8 rounded bg-gray-700 text-gray-100 hover:bg-gray-600">+</button>
                           <button onClick={() => handleUpdateQty(item.product_id, 0)} className="ml-2 text-red-400 hover:text-red-300">🗑️</button>
                         </div>
@@ -1231,13 +1420,30 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                   <input
                     type="text"
                     value={address.cep}
-                    onChange={(e) => setAddress({...address, cep: e.target.value.replace(/\D/g, '')})}
-                    onBlur={handleViaCep}
-                    maxLength={8}
+                    onChange={(e) => {
+                      const formatted = formatCEP(e.target.value)
+                      setAddress({...address, cep: formatted})
+                    }}
+                    onBlur={async (e) => {
+                      const formatted = formatCEP(e.target.value)
+                      setAddress(prev => ({...prev, cep: formatted}))
+                      // Buscar CEP quando completa 8 dígitos
+                      const cepNumbers = formatted.replace(/\D/g, '')
+                      if (cepNumbers.length === 8) {
+                        await handleViaCep(cepNumbers)
+                      }
+                    }}
+                    maxLength={9}
                     className="flex-1 bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
-                    placeholder="00000000"
+                    placeholder="00000-000"
                   />
-                  <button onClick={handleViaCep} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">🔍</button>
+                  <button 
+                    onClick={() => handleViaCep(address.cep)} 
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    type="button"
+                  >
+                    🔍
+                  </button>
                 </div>
               </div>
               <div>

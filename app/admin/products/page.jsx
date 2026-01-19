@@ -25,6 +25,9 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('none') // 'none', 'stock-desc', 'stock-asc', 'name', 'category', 'price-desc', 'price-asc'
+  const [availabilityFilter, setAvailabilityFilter] = useState('all') // 'all', 'available', 'unavailable'
+  const [promoFilter, setPromoFilter] = useState('all') // 'all', 'promo', 'not-promo'
   const [editingProduct, setEditingProduct] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [view, setView] = useState('list') // 'list' ou 'promo-order'
@@ -218,12 +221,54 @@ export default function ProductsPage() {
     }
   }
 
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                         p.description?.toLowerCase().includes(search.toLowerCase())
-    const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter
-    return matchesSearch && matchesCategory
-  })
+  // Filtrar e ordenar produtos
+  const getFilteredProducts = () => {
+    let filtered = products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+                           p.description?.toLowerCase().includes(search.toLowerCase())
+      const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter
+      
+      // Filtro de disponibilidade
+      const isAvailable = p.is_active !== false
+      const matchesAvailability = availabilityFilter === 'all' || 
+                                   (availabilityFilter === 'available' && isAvailable) ||
+                                   (availabilityFilter === 'unavailable' && !isAvailable)
+      
+      // Filtro de promoção
+      const isPromo = p.isPromo || p.is_promo
+      const matchesPromo = promoFilter === 'all' ||
+                           (promoFilter === 'promo' && isPromo) ||
+                           (promoFilter === 'not-promo' && !isPromo)
+      
+      return matchesSearch && matchesCategory && matchesAvailability && matchesPromo
+    })
+    
+    // Ordenação
+    switch (sortBy) {
+      case 'stock-desc':
+        filtered = [...filtered].sort((a, b) => (b.stock || 0) - (a.stock || 0))
+        break
+      case 'stock-asc':
+        filtered = [...filtered].sort((a, b) => (a.stock || 0) - (b.stock || 0))
+        break
+      case 'name':
+        filtered = [...filtered].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+        break
+      case 'category':
+        filtered = [...filtered].sort((a, b) => (a.category || '').localeCompare(b.category || ''))
+        break
+      case 'price-desc':
+        filtered = [...filtered].sort((a, b) => (b.price || 0) - (a.price || 0))
+        break
+      case 'price-asc':
+        filtered = [...filtered].sort((a, b) => (a.price || 0) - (b.price || 0))
+        break
+    }
+    
+    return filtered
+  }
+  
+  const filteredProducts = getFilteredProducts()
 
   // Produtos em promoção ordenados (backend usa display_order)
   const promoProducts = products
@@ -359,25 +404,105 @@ export default function ProductsPage() {
       {view === 'list' ? (
         <>
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="🔍 Buscar produtos..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#1a1f26] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
-              />
+          <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+              {/* Busca */}
+              <div className="lg:col-span-2">
+                <label className="text-xs text-gray-500 mb-1 block">🔍 Buscar</label>
+                <input
+                  type="text"
+                  placeholder="Nome ou descrição..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              
+              {/* Categoria */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">🏷️ Categoria</label>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
+                >
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Ordenar */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">📊 Ordenar</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="none">Sem ordenação</option>
+                  <option value="stock-desc">Estoque ↓ (maior)</option>
+                  <option value="stock-asc">Estoque ↑ (menor)</option>
+                  <option value="name">Nome (A-Z)</option>
+                  <option value="category">Categoria (A-Z)</option>
+                  <option value="price-desc">Preço ↓ (maior)</option>
+                  <option value="price-asc">Preço ↑ (menor)</option>
+                </select>
+              </div>
+              
+              {/* Disponibilidade */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">✅ Disponibilidade</label>
+                <select
+                  value={availabilityFilter}
+                  onChange={(e) => setAvailabilityFilter(e.target.value)}
+                  className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="all">Todos</option>
+                  <option value="available">✅ Disponíveis</option>
+                  <option value="unavailable">❌ Indisponíveis</option>
+                </select>
+              </div>
+              
+              {/* Promoção */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">🔥 Promoção</label>
+                <select
+                  value={promoFilter}
+                  onChange={(e) => setPromoFilter(e.target.value)}
+                  className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="all">Todos</option>
+                  <option value="promo">🔥 Em Promo</option>
+                  <option value="not-promo">Sem Promo</option>
+                </select>
+              </div>
             </div>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-[#1a1f26] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
-            >
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
+            
+            {/* Segunda linha - contador e limpar */}
+            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-[#2d3640]">
+              
+              {/* Limpar filtros */}
+              {(search || categoryFilter !== 'all' || sortBy !== 'none' || availabilityFilter !== 'all' || promoFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearch('')
+                    setCategoryFilter('all')
+                    setSortBy('none')
+                    setAvailabilityFilter('all')
+                    setPromoFilter('all')
+                  }}
+                  className="px-3 py-1 text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                >
+                  ✕ Limpar filtros
+                </button>
+              )}
+              
+              {/* Contador */}
+              <span className="text-sm text-gray-500 ml-auto">
+                {filteredProducts.length} de {products.length} produtos
+              </span>
+            </div>
           </div>
 
       {/* Products Table */}
