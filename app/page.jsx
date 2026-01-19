@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { BannerHeader } from "@/components/banner-header"
 import { NavigationHeader } from "@/components/navigation-header"
@@ -12,7 +12,8 @@ import { ProductsGrid } from "@/components/products-grid"
 import { api } from "@/lib/api-client"
 import { getCurrentUser, isUserApproved, isUserPending, isUserSuspended, isAdmin } from "@/lib/auth"
 
-export default function HomePage() {
+// Componente interno que usa useSearchParams
+function HomePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -490,5 +491,18 @@ export default function HomePage() {
         </section>
       </main>
     </div>
+  )
+}
+
+// Componente principal com Suspense boundary
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
   )
 }
