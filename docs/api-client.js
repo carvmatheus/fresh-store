@@ -281,10 +281,13 @@ class ApiClient {
         if (filters.category) params.append('category', filters.category);
         if (filters.search) params.append('search', filters.search);
         if (filters.skip !== undefined) params.append('skip', filters.skip);
-        if (filters.limit !== undefined) params.append('limit', filters.limit);
+        
+        // Sempre buscar todos os produtos (limite alto) para evitar paginação
+        const limit = filters.limit ?? 500;
+        params.append('limit', limit);
         
         const queryString = params.toString();
-        const endpoint = queryString ? `/products?${queryString}` : '/products';
+        const endpoint = `/products?${queryString}`;
         
         const products = await this.request(endpoint);
         console.log(`✅ ${products.length} produtos carregados`);
