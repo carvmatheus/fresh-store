@@ -55,6 +55,11 @@ export function getCurrentUser(): User | null {
   return userStr ? JSON.parse(userStr) : null;
 }
 
+// Alias para getCurrentUser (compatibilidade)
+export function getUser(): User | null {
+  return getCurrentUser();
+}
+
 // Pegar token
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -131,4 +136,50 @@ export function useRequireAuth(requiredRole?: string): {
   }
   
   return { isLoading: false, isAuthenticated: authenticated, user };
+}
+
+// Função para fazer requisições autenticadas
+export async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<any> {
+  const token = getAuthToken();
+  const baseURL = typeof window !== 'undefined' 
+    ? (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+        ? 'https://compredahorta.com.br/api'
+        : 'https://compredahorta.com.br/api')
+    : 'https://compredahorta.com.br/api';
+
+  const url = endpoint.startsWith('http') ? endpoint : `${baseURL}${endpoint}`;
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {})
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      // Token inválido, limpar e redirecionar
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('currentUser');
+        window.location.href = '/login';
+      }
+      throw new Error('Não autorizado. Faça login novamente.');
+    }
+    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+  }
+
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return await response.json();
+  }
+  
+  return await response.text();
 }
