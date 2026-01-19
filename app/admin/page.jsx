@@ -82,7 +82,7 @@ export default function AdminDashboard() {
       const [products, orders, users] = await Promise.all([
         api.getProducts(),
         api.getAllOrders(),
-        api.getAllUsers(),
+        api.getUsers(),
       ])
 
       // Calcular estatísticas
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
               <div>
                 <p className="font-bold text-red-400">{stats.lowStock} produtos com estoque baixo</p>
                 <p className="text-sm text-gray-400">Clique para gerenciar</p>
-              </div>
+          </div>
             </Link>
           )}
         </div>
@@ -248,8 +248,8 @@ export default function AdminDashboard() {
             href="/admin/approvals"
             color="purple"
           />
-        </div>
-      </div>
+                </div>
+            </div>
 
       {/* Recent Orders */}
       <div>
@@ -258,8 +258,8 @@ export default function AdminDashboard() {
           <Link href="/admin/orders" className="text-emerald-400 hover:text-emerald-300 text-sm font-medium">
             Ver todos →
           </Link>
-        </div>
-        
+          </div>
+
         <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -291,7 +291,7 @@ export default function AdminDashboard() {
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                           {getStatusLabel(order.status)}
-                        </span>
+                  </span>
                       </td>
                     </tr>
                   ))
@@ -299,8 +299,8 @@ export default function AdminDashboard() {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
+            </div>
+          </div>
     </div>
   )
 }

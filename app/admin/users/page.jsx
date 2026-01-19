@@ -15,7 +15,7 @@ export default function UsersPage() {
 
   const loadUsers = async () => {
     try {
-      const data = await api.getAllUsers()
+      const data = await api.getUsers()
       // Filtrar apenas clientes aprovados
       setUsers(data.filter(u => u.approval_status === 'approved'))
     } catch (error) {

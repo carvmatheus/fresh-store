@@ -15,7 +15,7 @@ export default function ApprovalsPage() {
 
   const loadUsers = async () => {
     try {
-      const data = await api.getAllUsers()
+      const data = await api.getUsers()
       setUsers(data)
     } catch (error) {
       console.error('Erro ao carregar usuários:', error)

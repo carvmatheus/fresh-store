@@ -17,10 +17,10 @@ export function PromotedCarousel({ products, onAddToCart }) {
   const carouselRef = useRef(null)
   const [isAnimating, setIsAnimating] = useState(false)
 
-  // Filtrar apenas produtos em promoção
+  // Filtrar apenas produtos em promoção (backend usa is_promo e display_order)
   const promotedProducts = products
-    .filter(p => p.isPromo === true)
-    .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+    .filter(p => p.isPromo === true || p.is_promo === true)
+    .sort((a, b) => (a.display_order ?? a.displayOrder ?? 999) - (b.display_order ?? b.displayOrder ?? 999))
 
   // Auto-scroll a cada 3 segundos
   useEffect(() => {
@@ -127,9 +127,10 @@ export function PromotedCarousel({ products, onAddToCart }) {
         <div className="flex flex-nowrap gap-3 pb-2">
           {promotedProducts.map((product) => {
             const originalPrice = formatNumber(product.price)
-            const promoPrice = product.promoPrice ? formatNumber(product.promoPrice) : formatNumber(product.price * 0.9)
-            const discountPercent = product.promoPrice 
-              ? Math.round((1 - product.promoPrice / product.price) * 100) 
+            const actualPromoPrice = product.promoPrice || product.promo_price
+            const promoPrice = actualPromoPrice ? formatNumber(actualPromoPrice) : formatNumber(product.price * 0.9)
+            const discountPercent = actualPromoPrice 
+              ? Math.round((1 - actualPromoPrice / product.price) * 100) 
               : 10
 
             return (
@@ -154,7 +155,7 @@ export function PromotedCarousel({ products, onAddToCart }) {
                 {/* Imagem maior */}
                 <div className="w-full aspect-square relative bg-gray-50">
                   <Image
-                    src={product.image || '/placeholder.jpg'}
+                    src={product.image || product.image_url || '/placeholder.jpg'}
                     alt={product.name}
                     fill
                     className="object-cover object-right-bottom"
