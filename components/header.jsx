@@ -99,7 +99,7 @@ export default function Header({ cartItemsCount, cart, onUpdateQuantity, onRemov
                           <img
                             src={item.image || "/placeholder.svg"}
                             alt={item.name}
-                            className="w-20 h-20 object-cover rounded-md"
+                            className="w-20 h-20 object-cover object-right-bottom rounded-md"
                           />
                           <div className="flex-1 space-y-2">
                             <div className="flex justify-between items-start">
