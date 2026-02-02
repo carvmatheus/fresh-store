@@ -31,10 +31,10 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [view, setView] = useState('list') // 'list' ou 'promo-order'
-  
+
   // Popup para preço promocional
   const [promoPopup, setPromoPopup] = useState({ show: false, product: null, price: '' })
-  
+
   // Estado para ordenação de promoções (cópia local para drag and drop)
   const [promoOrderList, setPromoOrderList] = useState([])
   const [hasOrderChanges, setHasOrderChanges] = useState(false)
@@ -85,7 +85,7 @@ export default function ProductsPage() {
   // Abrir popup para definir preço promocional
   const handleTogglePromo = (product) => {
     const isCurrentlyPromo = product.isPromo || product.is_promo
-    
+
     if (isCurrentlyPromo) {
       // Desativar promoção
       handleSavePromo(product, false, null)
@@ -103,18 +103,18 @@ export default function ProductsPage() {
   const handleSavePromo = async (product, isPromo, promoPrice) => {
     // Fechar popup primeiro
     setPromoPopup({ show: false, product: null, price: '' })
-    
+
     // Atualização otimista
-    setProducts(prev => prev.map(p => 
-      p.id === product.id ? { 
-        ...p, 
-        isPromo: isPromo, 
+    setProducts(prev => prev.map(p =>
+      p.id === product.id ? {
+        ...p,
+        isPromo: isPromo,
         is_promo: isPromo,
         promoPrice: promoPrice,
         promo_price: promoPrice
       } : p
     ))
-    
+
     try {
       // Envia todos os campos do produto
       const formData = new FormData()
@@ -125,7 +125,7 @@ export default function ProductsPage() {
       formData.append('min_order', String(product.min_order || product.minOrder || 1))
       formData.append('stock', String(product.stock))
       formData.append('description', product.description || '')
-      
+
       // Importante: manter a imagem
       if (product.image_url) {
         formData.append('image_url', product.image_url)
@@ -133,28 +133,28 @@ export default function ProductsPage() {
       if (product.cloudinary_public_id) {
         formData.append('cloudinary_public_id', product.cloudinary_public_id)
       }
-      
+
       // Manter disponibilidade
       formData.append('is_active', product.is_active !== false ? 'true' : 'false')
-      
+
       // SEMPRE enviar is_promo, seja true ou false
       formData.append('is_promo', isPromo ? 'true' : 'false')
-      
+
       // Preço promocional (só se ativar promoção)
       if (isPromo && promoPrice) {
         formData.append('promo_price', String(promoPrice))
       }
-      
+
       // Manter display_order
       if (product.display_order !== undefined) {
         formData.append('display_order', String(product.display_order))
       }
-      
+
       console.log('📤 Salvando produto:', product.name, 'is_promo:', isPromo)
-      
+
       const response = await api.updateProduct(product.id, formData)
       console.log('✅ Produto atualizado:', response)
-      
+
       // Recarregar para confirmar que salvou
       await loadProducts()
     } catch (error) {
@@ -168,12 +168,12 @@ export default function ProductsPage() {
     // Backend usa is_active para disponibilidade
     const currentValue = product.is_active !== false
     const newValue = !currentValue
-    
+
     // Atualização otimista imediata
-    setProducts(prev => prev.map(p => 
+    setProducts(prev => prev.map(p =>
       p.id === product.id ? { ...p, is_available: newValue, is_active: newValue } : p
     ))
-    
+
     try {
       // Envia todos os campos do produto
       const formData = new FormData()
@@ -184,10 +184,10 @@ export default function ProductsPage() {
       formData.append('min_order', String(product.min_order || product.minOrder || 1))
       formData.append('stock', String(product.stock))
       formData.append('description', product.description || '')
-      
+
       // SEMPRE enviar is_active
       formData.append('is_active', newValue ? 'true' : 'false')
-      
+
       // Importante: manter a imagem
       if (product.image_url) {
         formData.append('image_url', product.image_url)
@@ -195,23 +195,23 @@ export default function ProductsPage() {
       if (product.cloudinary_public_id) {
         formData.append('cloudinary_public_id', product.cloudinary_public_id)
       }
-      
+
       // SEMPRE enviar is_promo (não apenas quando for true)
       formData.append('is_promo', product.is_promo ? 'true' : 'false')
       if (product.is_promo && product.promo_price) {
         formData.append('promo_price', String(product.promo_price))
       }
-      
+
       // Manter display_order
       if (product.display_order !== undefined) {
         formData.append('display_order', String(product.display_order))
       }
-      
+
       console.log('📤 Salvando disponibilidade:', product.name, 'is_active:', newValue)
-      
+
       const response = await api.updateProduct(product.id, formData)
       console.log('✅ Disponibilidade atualizada:', response)
-      
+
       // Recarregar para confirmar que salvou
       await loadProducts()
     } catch (error) {
@@ -225,24 +225,24 @@ export default function ProductsPage() {
   const getFilteredProducts = () => {
     let filtered = products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                           p.description?.toLowerCase().includes(search.toLowerCase())
+        p.description?.toLowerCase().includes(search.toLowerCase())
       const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter
-      
+
       // Filtro de disponibilidade
       const isAvailable = p.is_active !== false
-      const matchesAvailability = availabilityFilter === 'all' || 
-                                   (availabilityFilter === 'available' && isAvailable) ||
-                                   (availabilityFilter === 'unavailable' && !isAvailable)
-      
+      const matchesAvailability = availabilityFilter === 'all' ||
+        (availabilityFilter === 'available' && isAvailable) ||
+        (availabilityFilter === 'unavailable' && !isAvailable)
+
       // Filtro de promoção
       const isPromo = p.isPromo || p.is_promo
       const matchesPromo = promoFilter === 'all' ||
-                           (promoFilter === 'promo' && isPromo) ||
-                           (promoFilter === 'not-promo' && !isPromo)
-      
+        (promoFilter === 'promo' && isPromo) ||
+        (promoFilter === 'not-promo' && !isPromo)
+
       return matchesSearch && matchesCategory && matchesAvailability && matchesPromo
     })
-    
+
     // Ordenação
     switch (sortBy) {
       case 'stock-desc':
@@ -264,10 +264,10 @@ export default function ProductsPage() {
         filtered = [...filtered].sort((a, b) => (a.price || 0) - (b.price || 0))
         break
     }
-    
+
     return filtered
   }
-  
+
   const filteredProducts = getFilteredProducts()
 
   // Produtos em promoção ordenados (backend usa display_order)
@@ -286,11 +286,11 @@ export default function ProductsPage() {
   // Mover item na lista local (sem salvar ainda)
   const moveItemInList = (fromIndex, toIndex) => {
     if (toIndex < 0 || toIndex >= promoOrderList.length) return
-    
+
     const newList = [...promoOrderList]
     const [movedItem] = newList.splice(fromIndex, 1)
     newList.splice(toIndex, 0, movedItem)
-    
+
     setPromoOrderList(newList)
     setHasOrderChanges(true)
   }
@@ -303,10 +303,10 @@ export default function ProductsPage() {
         id: product.id,
         display_order: index + 1
       }))
-      
+
       console.log('📊 Salvando ordem:', orderData)
       await api.updateProductsOrder(orderData)
-      
+
       setHasOrderChanges(false)
       await loadProducts()
       alert('✅ Ordem salva com sucesso!')
@@ -340,11 +340,11 @@ export default function ProductsPage() {
 
   const handleDrop = (e, targetIndex) => {
     e.preventDefault()
-    
+
     if (dragState.dragging !== null && dragState.dragging !== targetIndex) {
       moveItemInList(dragState.dragging, targetIndex)
     }
-    
+
     setDragState({ dragging: null, over: null })
   }
 
@@ -385,17 +385,15 @@ export default function ProductsPage() {
       <div className="flex items-center gap-2 bg-[#1a1f26] rounded-lg p-1 w-fit">
         <button
           onClick={() => setView('list')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            view === 'list' ? 'bg-emerald-500 text-white' : 'text-gray-400 hover:text-gray-100'
-          }`}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${view === 'list' ? 'bg-emerald-500 text-white' : 'text-gray-400 hover:text-gray-100'
+            }`}
         >
           📋 Lista de Produtos
         </button>
         <button
           onClick={() => setView('promo-order')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            view === 'promo-order' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-gray-100'
-          }`}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${view === 'promo-order' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-gray-100'
+            }`}
         >
           🔥 Ordenar Promoções ({promoProducts.length})
         </button>
@@ -417,7 +415,7 @@ export default function ProductsPage() {
                   className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>
-              
+
               {/* Categoria */}
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">🏷️ Categoria</label>
@@ -431,7 +429,7 @@ export default function ProductsPage() {
                   ))}
                 </select>
               </div>
-              
+
               {/* Ordenar */}
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">📊 Ordenar</label>
@@ -449,7 +447,7 @@ export default function ProductsPage() {
                   <option value="price-asc">Preço ↑ (menor)</option>
                 </select>
               </div>
-              
+
               {/* Disponibilidade */}
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">✅ Disponibilidade</label>
@@ -463,7 +461,7 @@ export default function ProductsPage() {
                   <option value="unavailable">❌ Indisponíveis</option>
                 </select>
               </div>
-              
+
               {/* Promoção */}
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">🔥 Promoção</label>
@@ -478,10 +476,10 @@ export default function ProductsPage() {
                 </select>
               </div>
             </div>
-            
+
             {/* Segunda linha - contador e limpar */}
             <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-[#2d3640]">
-              
+
               {/* Limpar filtros */}
               {(search || categoryFilter !== 'all' || sortBy !== 'none' || availabilityFilter !== 'all' || promoFilter !== 'all') && (
                 <button
@@ -497,7 +495,7 @@ export default function ProductsPage() {
                   ✕ Limpar filtros
                 </button>
               )}
-              
+
               {/* Contador */}
               <span className="text-sm text-gray-500 ml-auto">
                 {filteredProducts.length} de {products.length} produtos
@@ -505,124 +503,119 @@ export default function ProductsPage() {
             </div>
           </div>
 
-      {/* Products Table */}
-      <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#2d3640]">
-                <th className="text-left p-4 text-gray-400 font-medium text-sm">Produto</th>
-                <th className="text-left p-4 text-gray-400 font-medium text-sm">Categoria</th>
-                <th className="text-left p-4 text-gray-400 font-medium text-sm">Preço</th>
-                <th className="text-left p-4 text-gray-400 font-medium text-sm">Estoque</th>
-                <th className="text-center p-4 text-gray-400 font-medium text-sm">Disponível</th>
-                <th className="text-center p-4 text-gray-400 font-medium text-sm">Promo</th>
-                <th className="text-right p-4 text-gray-400 font-medium text-sm">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
-                    Nenhum produto encontrado
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map((product) => (
-                  <tr key={product.id} className="border-b border-[#2d3640] hover:bg-[#242b33] transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
-                          <Image
-                            src={product.image || '/placeholder.jpg'}
-                            alt={product.name}
-                            width={48}
-                            height={48}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-100">{product.name}</p>
-                          <p className="text-sm text-gray-500 line-clamp-1">{product.description}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium capitalize">
-                        {product.category}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <p className={`font-medium ${(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) ? 'text-gray-500 line-through text-sm' : 'text-gray-100'}`}>
-                          {formatCurrency(product.price)}
-                        </p>
-                        {(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) && (
-                          <p className="font-bold text-emerald-400">{formatCurrency(product.promoPrice || product.promo_price)}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`font-medium ${
-                        product.stock < 0 ? 'text-rose-400 animate-pulse' :
-                        product.stock === 0 ? 'text-red-400' :
-                        product.stock <= 10 ? 'text-amber-400' :
-                        'text-gray-100'
-                      }`}>
-                        {product.stock} {product.unit}
-                      </span>
-                    </td>
-                    {/* Disponível */}
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleToggleAvailable(product)}
-                        className={`w-12 h-6 rounded-full relative transition-colors ${
-                          (product.is_available ?? product.is_active) !== false ? 'bg-emerald-500' : 'bg-gray-600'
-                        }`}
-                      >
-                        <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${
-                          (product.is_available ?? product.is_active) !== false ? 'right-1' : 'left-1'
-                        }`} />
-                      </button>
-                    </td>
-                    {/* Promo */}
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleTogglePromo(product)}
-                        className={`w-12 h-6 rounded-full relative transition-colors ${
-                          (product.isPromo || product.is_promo) ? 'bg-orange-500' : 'bg-gray-600'
-                        }`}
-                      >
-                        <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${
-                          (product.isPromo || product.is_promo) ? 'right-1' : 'left-1'
-                        }`} />
-                      </button>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => { setEditingProduct(product); setShowModal(true) }}
-                          className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
-                          title="Editar"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
-                          title="Excluir"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
+          {/* Products Table */}
+          <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#2d3640]">
+                    <th className="text-left p-4 text-gray-400 font-medium text-sm">Produto</th>
+                    <th className="text-left p-4 text-gray-400 font-medium text-sm">Categoria</th>
+                    <th className="text-left p-4 text-gray-400 font-medium text-sm">Preço</th>
+                    <th className="text-left p-4 text-gray-400 font-medium text-sm">Estoque</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm">Disponível</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm">Promo</th>
+                    <th className="text-right p-4 text-gray-400 font-medium text-sm">Ações</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody>
+                  {filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-gray-500">
+                        Nenhum produto encontrado
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredProducts.map((product) => (
+                      <tr key={product.id} className="border-b border-[#2d3640] hover:bg-[#242b33] transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
+                              <Image
+                                src={product.image || '/placeholder.jpg'}
+                                alt={product.name}
+                                width={48}
+                                height={48}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-100">{product.name}</p>
+                              <p className="text-sm text-gray-500 line-clamp-1">{product.description}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium capitalize">
+                            {product.category}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <div>
+                            <p className={`font-medium ${(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) ? 'text-gray-500 line-through text-sm' : 'text-gray-100'}`}>
+                              {formatCurrency(product.price)}
+                            </p>
+                            {(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) && (
+                              <p className="font-bold text-emerald-400">{formatCurrency(product.promoPrice || product.promo_price)}</p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`font-medium ${product.stock < 0 ? 'text-rose-400 animate-pulse' :
+                              product.stock === 0 ? 'text-red-400' :
+                                product.stock <= 10 ? 'text-amber-400' :
+                                  'text-gray-100'
+                            }`}>
+                            {product.stock} {product.unit}
+                          </span>
+                        </td>
+                        {/* Disponível */}
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => handleToggleAvailable(product)}
+                            className={`w-12 h-6 rounded-full relative transition-colors ${(product.is_available ?? product.is_active) !== false ? 'bg-emerald-500' : 'bg-gray-600'
+                              }`}
+                          >
+                            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${(product.is_available ?? product.is_active) !== false ? 'right-1' : 'left-1'
+                              }`} />
+                          </button>
+                        </td>
+                        {/* Promo */}
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => handleTogglePromo(product)}
+                            className={`w-12 h-6 rounded-full relative transition-colors ${(product.isPromo || product.is_promo) ? 'bg-orange-500' : 'bg-gray-600'
+                              }`}
+                          >
+                            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${(product.isPromo || product.is_promo) ? 'right-1' : 'left-1'
+                              }`} />
+                          </button>
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => { setEditingProduct(product); setShowModal(true) }}
+                              className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
+                              title="Editar"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
+                              title="Excluir"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </>
       ) : (
         /* View: Ordenar Promoções */
@@ -637,17 +630,16 @@ export default function ProductsPage() {
                   <p className="text-sm text-gray-500">Arraste e solte para reordenar ou use as setas</p>
                 </div>
               </div>
-              
+
               {/* Botão Salvar */}
               {promoOrderList.length > 0 && (
                 <button
                   onClick={savePromoOrder}
                   disabled={!hasOrderChanges || savingOrder}
-                  className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                    hasOrderChanges && !savingOrder
+                  className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${hasOrderChanges && !savingOrder
                       ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                       : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   {savingOrder ? (
                     <>
@@ -686,13 +678,12 @@ export default function ProductsPage() {
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, index)}
                     onDragEnd={handleDragEnd}
-                    className={`flex items-center gap-4 p-4 bg-[#0f1419] rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${
-                      dragState.over === index 
-                        ? 'border-orange-500 bg-orange-500/10 scale-[1.02]' 
-                        : dragState.dragging === index 
-                          ? 'border-orange-300 opacity-40 scale-95' 
+                    className={`flex items-center gap-4 p-4 bg-[#0f1419] rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${dragState.over === index
+                        ? 'border-orange-500 bg-orange-500/10 scale-[1.02]'
+                        : dragState.dragging === index
+                          ? 'border-orange-300 opacity-40 scale-95'
                           : 'border-transparent hover:border-[#2d3640]'
-                    }`}
+                      }`}
                   >
                     {/* Posição */}
                     <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
@@ -705,9 +696,9 @@ export default function ProductsPage() {
                     {/* Imagem */}
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
                       {(product.image || product.image_url) && (
-                        <img 
-                          src={product.image || product.image_url} 
-                          alt={product.name} 
+                        <img
+                          src={product.image || product.image_url}
+                          alt={product.name}
                           className="w-full h-full object-cover"
                         />
                       )}
@@ -775,8 +766,8 @@ export default function ProductsPage() {
                   <div key={product.id} className="flex-shrink-0 w-32 bg-[#0f1419] rounded-lg overflow-hidden">
                     <div className="relative">
                       {(product.image || product.image_url) && (
-                        <img 
-                          src={product.image || product.image_url} 
+                        <img
+                          src={product.image || product.image_url}
                           alt={product.name}
                           className="w-full h-24 object-cover"
                         />
@@ -818,9 +809,9 @@ export default function ProductsPage() {
             <div className="p-4 space-y-4">
               <div className="flex items-center gap-3 bg-[#0f1419] rounded-lg p-3">
                 {(promoPopup.product.image || promoPopup.product.image_url) && (
-                  <img 
-                    src={promoPopup.product.image || promoPopup.product.image_url} 
-                    alt="" 
+                  <img
+                    src={promoPopup.product.image || promoPopup.product.image_url}
+                    alt=""
                     className="w-12 h-12 rounded-lg object-cover"
                   />
                 )}
@@ -916,39 +907,33 @@ function ProductModal({ product, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
-    
-    // Se tiver arquivo de imagem, usar FormData
-    if (imageFile) {
-      const formDataToSend = new FormData()
-      formDataToSend.append('name', formData.name)
-      formDataToSend.append('description', formData.description || '')
-      formDataToSend.append('price', parseFloat(formData.price) || 0)
-      formDataToSend.append('promo_price', formData.promoPrice ? parseFloat(formData.promoPrice) : '')
-      formDataToSend.append('stock', parseInt(formData.stock) || 0)
-      formDataToSend.append('unit', formData.unit)
-      formDataToSend.append('category', formData.category)
-      formDataToSend.append('min_order', parseInt(formData.minOrder) || 1)
-      formDataToSend.append('is_promo', formData.isPromo)
-      formDataToSend.append('is_active', formData.is_active)
-      formDataToSend.append('display_order', parseInt(formData.display_order) || 0)
-      formDataToSend.append('image_file', imageFile)
-      
-      await onSave(formDataToSend, true) // true = isFormData
-    } else {
-      await onSave({
-        ...formData,
-        price: parseFloat(formData.price) || 0,
-        promoPrice: formData.promoPrice ? parseFloat(formData.promoPrice) : null,
-        promo_price: formData.promoPrice ? parseFloat(formData.promoPrice) : null,
-        stock: parseInt(formData.stock),
-        minOrder: parseInt(formData.minOrder) || 1,
-        min_order: parseInt(formData.minOrder) || 1,
-        is_promo: formData.isPromo,
-        is_active: formData.is_active,
-        display_order: parseInt(formData.display_order) || 0,
-        image_url: formData.image,
-      })
+
+    // SEMPRE usar FormData para garantir compatibilidade com o backend
+    const formDataToSend = new FormData()
+
+    // Adicionar campos ao FormData
+    formDataToSend.append('name', formData.name)
+    formDataToSend.append('description', formData.description || '')
+    formDataToSend.append('price', parseFloat(formData.price) || 0)
+    if (formData.promoPrice) {
+      formDataToSend.append('promo_price', parseFloat(formData.promoPrice))
     }
+    formDataToSend.append('stock', parseInt(formData.stock) || 0)
+    formDataToSend.append('unit', formData.unit)
+    formDataToSend.append('category', formData.category)
+    formDataToSend.append('min_order', parseInt(formData.minOrder) || 1)
+    formDataToSend.append('is_promo', formData.isPromo)
+    formDataToSend.append('is_active', formData.is_active)
+    formDataToSend.append('display_order', parseInt(formData.display_order) || 0)
+
+    // Adicionar imagem (arquivo ou URL)
+    if (imageFile) {
+      formDataToSend.append('image_file', imageFile)
+    } else if (formData.image) {
+      formDataToSend.append('image_url', formData.image)
+    }
+
+    await onSave(formDataToSend, true) // true = isFormData
     setSaving(false)
   }
 
@@ -968,11 +953,10 @@ function ProductModal({ product, onClose, onSave }) {
             <label className="block text-sm font-medium text-gray-400 mb-2">Imagem do Produto</label>
             <div className="flex items-start gap-4">
               {/* Preview */}
-              <div 
+              <div
                 onClick={() => document.getElementById('productImageInput').click()}
-                className={`w-32 h-32 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors overflow-hidden ${
-                  imagePreview ? 'border-emerald-500' : 'border-[#2d3640] hover:border-gray-500'
-                }`}
+                className={`w-32 h-32 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors overflow-hidden ${imagePreview ? 'border-emerald-500' : 'border-[#2d3640] hover:border-gray-500'
+                  }`}
               >
                 {imagePreview ? (
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
@@ -983,7 +967,7 @@ function ProductModal({ product, onClose, onSave }) {
                   </div>
                 )}
               </div>
-              
+
               {/* Ações */}
               <div className="flex-1 space-y-2">
                 <input
@@ -1126,13 +1110,12 @@ function ProductModal({ product, onClose, onSave }) {
             {/* Toggles visuais */}
             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Disponível */}
-              <div 
+              <div
                 onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  formData.is_active 
-                    ? 'border-emerald-500 bg-emerald-500/10' 
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.is_active
+                    ? 'border-emerald-500 bg-emerald-500/10'
                     : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1142,24 +1125,21 @@ function ProductModal({ product, onClose, onSave }) {
                       <p className="text-xs text-gray-500">Produto visível na loja</p>
                     </div>
                   </div>
-                  <div className={`w-12 h-6 rounded-full relative transition-colors ${
-                    formData.is_active ? 'bg-emerald-500' : 'bg-gray-600'
-                  }`}>
-                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                      formData.is_active ? 'right-1' : 'left-1'
-                    }`}></span>
+                  <div className={`w-12 h-6 rounded-full relative transition-colors ${formData.is_active ? 'bg-emerald-500' : 'bg-gray-600'
+                    }`}>
+                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.is_active ? 'right-1' : 'left-1'
+                      }`}></span>
                   </div>
                 </div>
               </div>
 
               {/* Promoção */}
-              <div 
+              <div
                 onClick={() => setFormData({ ...formData, isPromo: !formData.isPromo })}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  formData.isPromo 
-                    ? 'border-orange-500 bg-orange-500/10' 
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.isPromo
+                    ? 'border-orange-500 bg-orange-500/10'
                     : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1169,12 +1149,10 @@ function ProductModal({ product, onClose, onSave }) {
                       <p className="text-xs text-gray-500">Aparece no carrossel</p>
                     </div>
                   </div>
-                  <div className={`w-12 h-6 rounded-full relative transition-colors ${
-                    formData.isPromo ? 'bg-orange-500' : 'bg-gray-600'
-                  }`}>
-                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                      formData.isPromo ? 'right-1' : 'left-1'
-                    }`}></span>
+                  <div className={`w-12 h-6 rounded-full relative transition-colors ${formData.isPromo ? 'bg-orange-500' : 'bg-gray-600'
+                    }`}>
+                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.isPromo ? 'right-1' : 'left-1'
+                      }`}></span>
                   </div>
                 </div>
               </div>
