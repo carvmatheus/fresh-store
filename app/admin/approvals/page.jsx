@@ -57,16 +57,23 @@ export default function ApprovalsPage() {
   }
 
   const filteredUsers = users.filter(u => {
+    const isRejected = u.approval_status === 'suspended' && u.suspension_reason?.includes('Rejeitado')
+
     if (filter === 'pending') return u.approval_status === 'pending'
     if (filter === 'approved') return u.approval_status === 'approved'
-    if (filter === 'rejected') return u.approval_status === 'rejected'
-    if (filter === 'suspended') return u.approval_status === 'suspended'
+    if (filter === 'rejected') return isRejected
+    if (filter === 'suspended') return u.approval_status === 'suspended' && !isRejected
     return true
   })
 
   const pendingCount = users.filter(u => u.approval_status === 'pending').length
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (user) => {
+    let status = user.approval_status
+    if (status === 'suspended' && user.suspension_reason?.includes('Rejeitado')) {
+      status = 'rejected'
+    }
+
     const styles = {
       pending: 'bg-amber-500/20 text-amber-400',
       approved: 'bg-emerald-500/20 text-emerald-400',
@@ -103,7 +110,7 @@ export default function ApprovalsPage() {
       <div>
         <h2 className="text-2xl font-bold text-gray-100">Aprovações de Clientes</h2>
         <p className="text-gray-400">
-          {pendingCount > 0 
+          {pendingCount > 0
             ? `${pendingCount} cadastro${pendingCount > 1 ? 's' : ''} aguardando aprovação`
             : 'Nenhum cadastro pendente'
           }
@@ -122,11 +129,10 @@ export default function ApprovalsPage() {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filter === f.id
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === f.id
                 ? 'bg-emerald-500 text-white'
                 : 'bg-[#1a1f26] text-gray-400 hover:bg-[#242b33]'
-            }`}
+              }`}
           >
             {f.label} ({f.count})
           </button>
@@ -156,7 +162,7 @@ export default function ApprovalsPage() {
                     <p className="text-sm text-gray-500">{user.email}</p>
                   </div>
                 </div>
-                {getStatusBadge(user.approval_status)}
+                {getStatusBadge(user)}
               </div>
 
               <div className="space-y-2 text-sm mb-4">
@@ -318,9 +324,9 @@ export default function ApprovalsPage() {
               <div className="flex items-center justify-between pt-4 border-t border-[#2d3640]">
                 <div>
                   <p className="text-xs text-gray-500">Status atual</p>
-                  {getStatusBadge(selectedUser.approval_status)}
+                  {getStatusBadge(selectedUser)}
                 </div>
-                
+
                 <div className="flex gap-2">
                   {selectedUser.approval_status === 'pending' && (
                     <>

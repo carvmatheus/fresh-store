@@ -74,6 +74,13 @@ function getApprovalColor(status) {
   return colors[status] || 'bg-gray-500/20 text-gray-400'
 }
 
+function getUserStatus(user) {
+  if (user.approval_status === 'suspended' && user.suspension_reason?.includes('Rejeitado')) {
+    return 'rejected'
+  }
+  return user.approval_status
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -142,15 +149,16 @@ export default function UsersPage() {
   const filteredUsers = users.filter(u => {
     const searchLower = search.toLowerCase()
     const matchesSearch = u.name?.toLowerCase().includes(searchLower) ||
-                          u.company_name?.toLowerCase().includes(searchLower) ||
-                          u.company?.toLowerCase().includes(searchLower) ||
-                          u.email?.toLowerCase().includes(searchLower) ||
-                          u.cnpj?.includes(search)
-    
-    const matchesStatus = statusFilter === 'all' || u.approval_status === statusFilter
+      u.company_name?.toLowerCase().includes(searchLower) ||
+      u.company?.toLowerCase().includes(searchLower) ||
+      u.email?.toLowerCase().includes(searchLower) ||
+      u.cnpj?.includes(search)
+
+    const status = getUserStatus(u)
+    const matchesStatus = statusFilter === 'all' || status === statusFilter
     const matchesBusiness = businessFilter === 'all' || u.business_type === businessFilter
     const matchesRole = roleFilter === 'all' || u.role === roleFilter
-    
+
     return matchesSearch && matchesStatus && matchesBusiness && matchesRole
   })
 
@@ -280,7 +288,7 @@ export default function UsersPage() {
             </select>
           </div>
         </div>
-        
+
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#2d3640]">
           <span className="text-sm text-gray-500">
             {filteredUsers.length} de {users.length} usuários
@@ -340,11 +348,10 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        user.role === 'admin' ? 'bg-purple-500/20 text-purple-400' :
-                        user.role === 'consultor' ? 'bg-blue-500/20 text-blue-400' :
-                        'bg-gray-500/20 text-gray-400'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${user.role === 'admin' ? 'bg-purple-500/20 text-purple-400' :
+                          user.role === 'consultor' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-gray-500/20 text-gray-400'
+                        }`}>
                         {getRoleLabel(user.role)}
                       </span>
                     </td>
@@ -369,8 +376,8 @@ export default function UsersPage() {
                       {formatCurrency(user.total_spent || 0)}
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getApprovalColor(user.approval_status)}`}>
-                        {getApprovalLabel(user.approval_status)}
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getApprovalColor(getUserStatus(user))}`}>
+                        {getApprovalLabel(getUserStatus(user))}
                       </span>
                     </td>
                     <td className="p-4 text-right">
@@ -383,7 +390,7 @@ export default function UsersPage() {
                           👁️
                         </button>
                         <button
-                          onClick={() => { setEditingUser({...user}); setSelectedUser(null) }}
+                          onClick={() => { setEditingUser({ ...user }); setSelectedUser(null) }}
                           className="p-2 rounded-lg hover:bg-[#2d3640] transition-colors"
                           title="Editar"
                         >
@@ -498,7 +505,7 @@ export default function UsersPage() {
               {/* Actions */}
               <div className="flex gap-3 pt-4 border-t border-[#2d3640]">
                 <button
-                  onClick={() => { setEditingUser({...selectedUser}); setSelectedUser(null) }}
+                  onClick={() => { setEditingUser({ ...selectedUser }); setSelectedUser(null) }}
                   className="flex-1 py-3 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors"
                 >
                   ✏️ Editar Cliente
@@ -540,7 +547,7 @@ export default function UsersPage() {
                   <input
                     type="text"
                     value={editingUser.name || ''}
-                    onChange={(e) => setEditingUser({...editingUser, name: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -549,7 +556,7 @@ export default function UsersPage() {
                   <input
                     type="email"
                     value={editingUser.email || ''}
-                    onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -558,7 +565,7 @@ export default function UsersPage() {
                   <input
                     type="text"
                     value={editingUser.phone || ''}
-                    onChange={(e) => setEditingUser({...editingUser, phone: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -567,7 +574,7 @@ export default function UsersPage() {
                   <input
                     type="text"
                     value={editingUser.company_name || editingUser.company || ''}
-                    onChange={(e) => setEditingUser({...editingUser, company_name: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, company_name: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -576,7 +583,7 @@ export default function UsersPage() {
                   <input
                     type="text"
                     value={editingUser.razao_social || ''}
-                    onChange={(e) => setEditingUser({...editingUser, razao_social: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, razao_social: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -585,7 +592,7 @@ export default function UsersPage() {
                   <input
                     type="text"
                     value={editingUser.cnpj || ''}
-                    onChange={(e) => setEditingUser({...editingUser, cnpj: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, cnpj: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -594,7 +601,7 @@ export default function UsersPage() {
                   <input
                     type="text"
                     value={editingUser.ie || ''}
-                    onChange={(e) => setEditingUser({...editingUser, ie: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, ie: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -602,7 +609,7 @@ export default function UsersPage() {
                   <label className="text-xs text-gray-500 mb-1 block">Tipo de Negócio</label>
                   <select
                     value={editingUser.business_type || ''}
-                    onChange={(e) => setEditingUser({...editingUser, business_type: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, business_type: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   >
                     <option value="">Selecione...</option>
@@ -620,7 +627,7 @@ export default function UsersPage() {
                   <label className="text-xs text-gray-500 mb-1 block">Forma de Pagamento Preferida</label>
                   <select
                     value={editingUser.payment_preference || ''}
-                    onChange={(e) => setEditingUser({...editingUser, payment_preference: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, payment_preference: e.target.value })}
                     className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                   >
                     <option value="">Selecione...</option>
@@ -642,7 +649,7 @@ export default function UsersPage() {
                     <input
                       type="text"
                       value={editingUser.address_street || ''}
-                      onChange={(e) => setEditingUser({...editingUser, address_street: e.target.value})}
+                      onChange={(e) => setEditingUser({ ...editingUser, address_street: e.target.value })}
                       className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -651,7 +658,7 @@ export default function UsersPage() {
                     <input
                       type="text"
                       value={editingUser.address_number || ''}
-                      onChange={(e) => setEditingUser({...editingUser, address_number: e.target.value})}
+                      onChange={(e) => setEditingUser({ ...editingUser, address_number: e.target.value })}
                       className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -660,7 +667,7 @@ export default function UsersPage() {
                     <input
                       type="text"
                       value={editingUser.address_complement || ''}
-                      onChange={(e) => setEditingUser({...editingUser, address_complement: e.target.value})}
+                      onChange={(e) => setEditingUser({ ...editingUser, address_complement: e.target.value })}
                       className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -669,7 +676,7 @@ export default function UsersPage() {
                     <input
                       type="text"
                       value={editingUser.address_neighborhood || ''}
-                      onChange={(e) => setEditingUser({...editingUser, address_neighborhood: e.target.value})}
+                      onChange={(e) => setEditingUser({ ...editingUser, address_neighborhood: e.target.value })}
                       className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -678,7 +685,7 @@ export default function UsersPage() {
                     <input
                       type="text"
                       value={editingUser.address_cep || ''}
-                      onChange={(e) => setEditingUser({...editingUser, address_cep: e.target.value})}
+                      onChange={(e) => setEditingUser({ ...editingUser, address_cep: e.target.value })}
                       className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -687,7 +694,7 @@ export default function UsersPage() {
                     <input
                       type="text"
                       value={editingUser.address_city || ''}
-                      onChange={(e) => setEditingUser({...editingUser, address_city: e.target.value})}
+                      onChange={(e) => setEditingUser({ ...editingUser, address_city: e.target.value })}
                       className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -696,7 +703,7 @@ export default function UsersPage() {
                     <input
                       type="text"
                       value={editingUser.address_state || ''}
-                      onChange={(e) => setEditingUser({...editingUser, address_state: e.target.value})}
+                      onChange={(e) => setEditingUser({ ...editingUser, address_state: e.target.value })}
                       className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
                       maxLength={2}
                       placeholder="RJ"

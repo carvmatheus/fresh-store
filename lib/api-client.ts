@@ -5,12 +5,13 @@
 import { API_CONFIG } from './config';
 
 export interface User {
-  id: number;
+  id: string; // UUID
   username: string;
   email: string;
   name: string;
   role: 'admin' | 'cliente' | 'consultor';
   approval_status: 'pending' | 'approved' | 'suspended';
+  suspension_reason?: string;
   company_name?: string;
   cnpj?: string;
   phone?: string;
@@ -18,6 +19,9 @@ export interface User {
   city?: string;
   state?: string;
   cep?: string;
+  orders_count?: number;
+  total_spent?: number;
+  last_purchase?: string;
 }
 
 export interface Product {
@@ -41,10 +45,10 @@ export interface CartItem extends Product {
 }
 
 export interface Order {
-  id: number;
+  id: string; // UUID
   order_number: string;
-  user_id: number;
-  status: 'pending' | 'confirmed' | 'delivering' | 'delivered' | 'cancelled';
+  user_id: string; // UUID
+  status: 'pendente' | 'confirmado' | 'em_preparacao' | 'em_transporte' | 'concluido' | 'cancelado' | 'reembolsado';
   total: number;
   items: OrderItem[];
   created_at: string;
@@ -53,7 +57,7 @@ export interface Order {
 }
 
 export interface OrderItem {
-  product_id: number;
+  product_id: string; // UUID
   product_name: string;
   quantity: number;
   unit_price: number;
@@ -402,7 +406,7 @@ class ApiClient {
   }
 
   async getCategories(): Promise<string[]> {
-    return await this.request<string[]>('/products/categories/list');
+    return await this.request<string[]>('/products/categories');
   }
 
   // =============================
@@ -419,7 +423,7 @@ class ApiClient {
     return await this.request<Order[]>(`/orders/all${params}`);
   }
 
-  async getOrder(id: number): Promise<Order> {
+  async getOrder(id: string): Promise<Order> {
     return await this.request<Order>(`/orders/${id}`);
   }
 
@@ -455,7 +459,7 @@ class ApiClient {
     });
   }
 
-  async updateOrderStatus(id: number, status: string, deliveryDate?: string): Promise<Order> {
+  async updateOrderStatus(id: string, status: string, deliveryDate?: string): Promise<Order> {
     const data: { status: string; delivery_date?: string } = { status };
     if (deliveryDate) data.delivery_date = deliveryDate;
 
@@ -474,40 +478,45 @@ class ApiClient {
   }
 
   async getAllUsers(): Promise<User[]> {
-    return await this.request<User[]>('/users/all');
+    // A rota /users já lista todos os usuários para admin
+    return await this.request<User[]>('/users');
   }
 
-  async getUser(id: number): Promise<User> {
+  async getUser(id: string): Promise<User> {
     return await this.request<User>(`/users/${id}`);
   }
 
-  async updateUser(id: number | string, userData: Partial<User>): Promise<User> {
+  async updateUser(id: string, userData: Partial<User>): Promise<User> {
     return await this.request<User>(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(userData)
     });
   }
 
-  async updateUserApproval(id: number, status: 'approved' | 'pending' | 'suspended' | 'rejected'): Promise<User> {
-    return await this.request<User>(`/users/${id}/approval`, {
-      method: 'PATCH',
-      body: JSON.stringify({ approval_status: status })
+  async updateUserApproval(
+    id: string,
+    action: 'approve' | 'suspend' | 'reactivate',
+    reason?: string
+  ): Promise<{ message: string; user_id: string; new_status: string }> {
+    return await this.request<{ message: string; user_id: string; new_status: string }>(`/users/${id}/approval`, {
+      method: 'POST',
+      body: JSON.stringify({ action, reason })
     });
   }
 
-  async approveUser(id: number): Promise<User> {
-    return this.updateUserApproval(id, 'approved');
+  async approveUser(id: string): Promise<{ message: string; user_id: string; new_status: string }> {
+    return this.updateUserApproval(id, 'approve');
   }
 
-  async rejectUser(id: number): Promise<User> {
-    return this.updateUserApproval(id, 'rejected');
+  async rejectUser(id: string): Promise<{ message: string; user_id: string; new_status: string }> {
+    return this.updateUserApproval(id, 'suspend', 'Rejeitado pelo administrador');
   }
 
-  async suspendUser(id: number): Promise<User> {
-    return this.updateUserApproval(id, 'suspended');
+  async suspendUser(id: string): Promise<{ message: string; user_id: string; new_status: string }> {
+    return this.updateUserApproval(id, 'suspend');
   }
 
-  async deactivateUser(id: number): Promise<void> {
+  async deactivateUser(id: string): Promise<void> {
     await this.request(`/users/${id}`, { method: 'DELETE' });
   }
 }
