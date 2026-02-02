@@ -15,12 +15,12 @@ export default function StockPage() {
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('stock-desc')
-  
+
   // Entradas futuras
   const [pendingEntries, setPendingEntries] = useState({})
   const [editingEntry, setEditingEntry] = useState(null)
   const [entryValue, setEntryValue] = useState('')
-  
+
   // Edição de estoque
   const [editingStock, setEditingStock] = useState(null)
   const [stockValue, setStockValue] = useState('')
@@ -48,10 +48,9 @@ export default function StockPage() {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStockValue } : p))
     setEditingStock(null)
     setStockValue('')
-    
+
     try {
-      const product = products.find(p => p.id === productId)
-      await api.updateProduct(productId, { ...product, stock: newStockValue })
+      await api.updateProductStock(productId, newStockValue)
     } catch (error) {
       console.error('Erro ao atualizar estoque:', error)
       await loadProducts()
@@ -62,12 +61,12 @@ export default function StockPage() {
   const handleToggleAvailable = async (productId) => {
     const product = products.find(p => p.id === productId)
     if (!product) return
-    
-    const newValue = !product.is_available
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, is_available: newValue } : p))
-    
+
+    const newValue = !product.isActive
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, isActive: newValue } : p))
+
     try {
-      await api.updateProduct(productId, { ...product, is_available: newValue })
+      await api.updateProductAvailability(productId, newValue)
     } catch (error) {
       console.error('Erro ao atualizar disponibilidade:', error)
       await loadProducts()
@@ -90,10 +89,10 @@ export default function StockPage() {
   const handleConfirmEntry = async (productId) => {
     const entryAmount = pendingEntries[productId] || 0
     if (entryAmount <= 0) return
-    
+
     const product = products.find(p => p.id === productId)
     const newStock = product.stock + entryAmount
-    
+
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock } : p))
     setPendingEntries(prev => {
       const updated = { ...prev }
@@ -101,9 +100,9 @@ export default function StockPage() {
       localStorage.setItem('pendingStockEntries', JSON.stringify(updated))
       return updated
     })
-    
+
     try {
-      await api.updateProduct(productId, { ...product, stock: newStock })
+      await api.updateProductStock(productId, newStock)
     } catch (error) {
       console.error('Erro ao confirmar entrada:', error)
       await loadProducts()
@@ -144,7 +143,7 @@ export default function StockPage() {
     if (filter === 'low') return matchesSearch && p.stock > 0 && p.stock <= 10
     if (filter === 'pending') return matchesSearch && pendingEntries[p.id] > 0
     if (filter === 'normal') return matchesSearch && p.stock > 10
-    if (filter === 'unavailable') return matchesSearch && p.is_available === false
+    if (filter === 'unavailable') return matchesSearch && p.isActive === false
     return matchesSearch
   })
 
@@ -166,7 +165,7 @@ export default function StockPage() {
     negative: products.filter(p => p.stock < 0).length,
     outOfStock: products.filter(p => p.stock === 0).length,
     low: products.filter(p => p.stock > 0 && p.stock <= 10).length,
-    unavailable: products.filter(p => p.is_available === false).length,
+    unavailable: products.filter(p => p.isActive === false).length,
     pendingEntries: Object.keys(pendingEntries).length,
     totalPending: Object.values(pendingEntries).reduce((a, b) => a + b, 0),
   }
@@ -194,13 +193,13 @@ export default function StockPage() {
         <StatCard icon="⚠️" value={stats.low} label="Baixo" color="amber" />
         <StatCard icon="🚫" value={stats.unavailable} label="Indisponíveis" color="gray" />
         <StatCard icon="📥" value={stats.pendingEntries} label="C/ entrada" color="purple" />
-        </div>
+      </div>
 
       {/* Alerta de estoque negativo */}
       {stats.negative > 0 && (
         <div className="bg-rose-500/20 border border-rose-500 rounded-xl p-4 flex items-center gap-3">
           <span className="text-2xl animate-pulse">⚠️</span>
-            <div>
+          <div>
             <p className="text-rose-400 font-bold">Atenção: {stats.negative} produto(s) com estoque negativo!</p>
             <p className="text-rose-300/80 text-sm">Isso significa que há mais pedidos do que estoque disponível. Reponha o estoque o mais rápido possível.</p>
           </div>
@@ -209,8 +208,8 @@ export default function StockPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
+        <input
+          type="text"
           placeholder="🔍 Buscar produto..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -224,7 +223,7 @@ export default function StockPage() {
           <option value="unavailable">Indisponíveis ({stats.unavailable})</option>
           <option value="pending">Com entrada ({stats.pendingEntries})</option>
           <option value="normal">Normal</option>
-          </select>
+        </select>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="bg-[#1a1f26] border border-[#2d3640] rounded-lg px-4 py-2.5 text-gray-100 focus:outline-none focus:border-emerald-500">
           <option value="stock-desc">Estoque ↓ (maior)</option>
           <option value="stock-asc">Estoque ↑ (menor)</option>
@@ -233,14 +232,14 @@ export default function StockPage() {
           <option value="price-desc">Preço ↓ (maior)</option>
           <option value="price-asc">Preço ↑ (menor)</option>
           <option value="pending-desc">Entradas ↓ (maior)</option>
-          </select>
-        </div>
+        </select>
+      </div>
 
       {/* Table */}
       <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] overflow-hidden">
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full table-fixed">
-          <thead>
+            <thead>
               <tr className="border-b border-[#2d3640] bg-[#0f1419]/50">
                 <th className="w-[25%] text-left p-4 text-gray-400 font-semibold text-xs uppercase">Produto</th>
                 <th className="w-[10%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Categoria</th>
@@ -249,10 +248,10 @@ export default function StockPage() {
                 <th className="w-[17%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">📥 Entrada</th>
                 <th className="w-[10%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Disponível</th>
                 <th className="w-[10%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProducts.length === 0 ? (
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProducts.length === 0 ? (
                 <tr><td colSpan={7} className="p-8 text-center text-gray-500">Nenhum produto encontrado</td></tr>
               ) : (
                 filteredProducts.map((product) => {
@@ -260,32 +259,31 @@ export default function StockPage() {
                   const pendingAmount = pendingEntries[product.id] || 0
                   const isEditingStock = editingStock === product.id
                   const isEditingEntry = editingEntry === product.id
-                  
+
                   return (
-                    <tr key={product.id} className={`border-b border-[#2d3640] hover:bg-[#242b33] ${
-                      product.stock < 0 ? 'bg-rose-500/10' : 
-                      product.is_available === false ? 'bg-gray-500/10 opacity-60' :
-                      product.stock === 0 ? 'bg-red-500/5' : ''
-                    }`}>
+                    <tr key={product.id} className={`border-b border-[#2d3640] hover:bg-[#242b33] ${product.stock < 0 ? 'bg-rose-500/10' :
+                      product.isActive === false ? 'bg-gray-500/10 opacity-60' :
+                        product.stock === 0 ? 'bg-red-500/5' : ''
+                      }`}>
                       {/* Produto */}
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#2d3640] flex-shrink-0">
                             <Image src={product.image || '/placeholder.jpg'} alt={product.name} width={40} height={40} className="w-full h-full object-cover" />
-                  </div>
+                          </div>
                           <div className="min-w-0">
                             <p className="font-medium text-gray-100 truncate">{product.name}</p>
                             <p className="text-xs text-gray-500">{product.unit}</p>
-                      </div>
-                    </div>
-                  </td>
+                          </div>
+                        </div>
+                      </td>
 
                       {/* Categoria */}
                       <td className="p-4 text-center">
                         <span className="px-2 py-1 rounded-full bg-blue-500/15 text-blue-400 text-xs capitalize">
                           {product.category}
-                    </span>
-                  </td>
+                        </span>
+                      </td>
 
                       {/* Preço */}
                       <td className="p-4 text-center text-gray-300 text-sm">
@@ -311,12 +309,12 @@ export default function StockPage() {
                               />
                             </div>
                           ) : (
-                      <button 
+                            <button
                               onClick={() => { setEditingStock(product.id); setStockValue(product.stock.toString()) }}
                               className={`text-xl font-bold hover:opacity-80 transition-opacity ${getStockColor(product.stock)}`}
-                      >
+                            >
                               {product.stock}
-                      </button>
+                            </button>
                           )}
                         </div>
                       </td>
@@ -348,28 +346,26 @@ export default function StockPage() {
                               <button onClick={() => handleClearEntry(product.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
                             </>
                           ) : (
-                      <button 
+                            <button
                               onClick={() => { setEditingEntry(product.id); setEntryValue('') }}
                               className="text-gray-500 hover:text-purple-400 text-sm"
-                      >
+                            >
                               + Adicionar
-                      </button>
+                            </button>
                           )}
-                    </div>
-                  </td>
+                        </div>
+                      </td>
 
                       {/* Disponível - Toggle */}
                       <td className="p-4 text-center">
-                      <button 
+                        <button
                           onClick={() => handleToggleAvailable(product.id)}
-                          className={`w-12 h-6 rounded-full relative transition-colors ${
-                            product.is_available !== false ? 'bg-emerald-500' : 'bg-gray-600'
-                          }`}
-                      >
-                          <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                            product.is_available !== false ? 'right-1' : 'left-1'
-                          }`}></span>
-                      </button>
+                          className={`w-12 h-6 rounded-full relative transition-colors ${product.isActive !== false ? 'bg-emerald-500' : 'bg-gray-600'
+                            }`}
+                        >
+                          <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${product.isActive !== false ? 'right-1' : 'left-1'
+                            }`}></span>
+                        </button>
                       </td>
 
                       {/* Status */}
@@ -377,15 +373,15 @@ export default function StockPage() {
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.bg} ${status.color} ${status.alert ? 'animate-pulse' : ''}`}>
                           {status.label}
                         </span>
-                  </td>
-                </tr>
+                      </td>
+                    </tr>
                   )
                 })
-            )}
-          </tbody>
-        </table>
-            </div>
-            
+              )}
+            </tbody>
+          </table>
+        </div>
+
         {/* Mobile Cards */}
         <div className="lg:hidden divide-y divide-[#2d3640]">
           {filteredProducts.length === 0 ? (
@@ -396,44 +392,41 @@ export default function StockPage() {
               const pendingAmount = pendingEntries[product.id] || 0
               const isEditingStock = editingStock === product.id
               const isEditingEntry = editingEntry === product.id
-              
+
               return (
-                <div key={product.id} className={`p-4 ${
-                  product.stock < 0 ? 'bg-rose-500/10' :
-                  product.is_available === false ? 'bg-gray-500/10 opacity-60' :
-                  product.stock === 0 ? 'bg-red-500/5' : ''
-                }`}>
+                <div key={product.id} className={`p-4 ${product.stock < 0 ? 'bg-rose-500/10' :
+                  product.isActive === false ? 'bg-gray-500/10 opacity-60' :
+                    product.stock === 0 ? 'bg-red-500/5' : ''
+                  }`}>
                   <div className="flex items-start gap-3 mb-3">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#2d3640] flex-shrink-0">
                       <Image src={product.image || '/placeholder.jpg'} alt={product.name} width={48} height={48} className="w-full h-full object-cover" />
-                </div>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-100 truncate">{product.name}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-xs capitalize">{product.category}</span>
                         <span className={`px-2 py-0.5 rounded-full text-xs ${status.bg} ${status.color} ${status.alert ? 'animate-pulse' : ''}`}>{status.label}</span>
-                        {product.is_available === false && <span className="px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs">Indisponível</span>}
+                        {product.isActive === false && <span className="px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs">Indisponível</span>}
                       </div>
                     </div>
                     {/* Toggle Disponível Mobile */}
                     <button
                       onClick={() => handleToggleAvailable(product.id)}
-                      className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${
-                        product.is_available !== false ? 'bg-emerald-500' : 'bg-gray-600'
-                      }`}
+                      className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${product.isActive !== false ? 'bg-emerald-500' : 'bg-gray-600'
+                        }`}
                     >
-                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${
-                        product.is_available !== false ? 'right-0.5' : 'left-0.5'
-                      }`}></span>
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${product.isActive !== false ? 'right-0.5' : 'left-0.5'
+                        }`}></span>
                     </button>
-              </div>
-              
+                  </div>
+
                   <div className="flex items-center justify-between bg-[#0f1419] rounded-lg p-3">
                     <div className="text-center flex-1">
                       <p className="text-xs text-gray-500 mb-1">Estoque</p>
                       {isEditingStock ? (
-                  <input
-                    type="number"
+                        <input
+                          type="number"
                           value={stockValue}
                           onChange={(e) => setStockValue(e.target.value)}
                           className="w-16 h-8 bg-[#1a1f26] border border-emerald-500 rounded text-center text-gray-100 focus:outline-none"
@@ -443,15 +436,15 @@ export default function StockPage() {
                       ) : (
                         <button onClick={() => { setEditingStock(product.id); setStockValue(product.stock.toString()) }} className={`text-2xl font-bold ${getStockColor(product.stock)}`}>
                           {product.stock}
-                    </button>
-                  )}
-                </div>
-                
+                        </button>
+                      )}
+                    </div>
+
                     <div className="text-center flex-1">
                       <p className="text-xs text-gray-500 mb-1">Entrada</p>
                       {isEditingEntry ? (
                         <div className="flex items-center justify-center gap-1">
-                  <input
+                          <input
                             type="number"
                             value={entryValue}
                             onChange={(e) => setEntryValue(e.target.value)}
@@ -474,9 +467,9 @@ export default function StockPage() {
               )
             })
           )}
-              </div>
-            </div>
-            
+        </div>
+      </div>
+
       {/* Legenda */}
       <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] p-4">
         <div className="flex flex-wrap gap-4 text-xs">
@@ -484,9 +477,9 @@ export default function StockPage() {
           <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-500"></span><span className="text-gray-400">Baixo (6-10)</span></span>
           <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500"></span><span className="text-gray-400">OK (+10)</span></span>
           <span className="text-gray-500">• Clique no estoque para editar • Entradas: registre e confirme quando chegar</span>
-            </div>
-          </div>
         </div>
+      </div>
+    </div>
   )
 }
 

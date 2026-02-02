@@ -84,11 +84,11 @@ class ApiClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-    
+
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-    
+
     return headers;
   }
 
@@ -97,21 +97,21 @@ class ApiClient {
    */
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     // Detectar se body é FormData
     const isFormData = options.body instanceof FormData;
-    
+
     // Configurar headers
     const headers: Record<string, string> = {
       ...Object.fromEntries(Object.entries(this.getHeaders())),
       ...Object.fromEntries(Object.entries(options.headers || {}))
     };
-    
+
     // Se for FormData, remover Content-Type para o browser definir automaticamente
     if (isFormData) {
       delete headers['Content-Type'];
     }
-    
+
     const config: RequestInit = {
       ...options,
       headers
@@ -119,29 +119,29 @@ class ApiClient {
 
     try {
       console.log(`📡 API Request: ${options.method || 'GET'} ${url}`);
-      
+
       // Criar timeout para a requisição
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       config.signal = controller.signal;
-      
+
       const response = await fetch(url, config);
       clearTimeout(timeout);
-      
+
       console.log(`✅ API Response: ${response.status} ${response.statusText}`);
-      
+
       // Se status 204 (No Content), retornar null
       if (response.status === 204) {
         return null as T;
       }
-      
+
       // Verificar se a resposta é JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
         console.error('❌ Resposta não é JSON:', text.substring(0, 200));
-        
+
         if (response.status === 404) {
           throw new Error('Rota não encontrada no servidor.');
         }
@@ -150,12 +150,12 @@ class ApiClient {
         }
         throw new Error(`Resposta inválida do servidor (${response.status})`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         console.error(`❌ API Error ${response.status}:`, data);
-        
+
         // Tratar erro 422 (validação) - mostrar detalhes
         if (response.status === 422 && data.detail) {
           let errorMsg = 'Erro de validação:\n'
@@ -172,7 +172,7 @@ class ApiClient {
           }
           throw new Error(errorMsg)
         }
-        
+
         // Outros erros
         if (data.detail) {
           if (Array.isArray(data.detail)) {
@@ -180,10 +180,10 @@ class ApiClient {
           }
           throw new Error(String(data.detail))
         }
-        
+
         throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
-      
+
       return data;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -200,42 +200,42 @@ class ApiClient {
 
   async login(username: string, password: string): Promise<LoginResponse> {
     console.log('📡 ApiClient: Enviando credenciais...');
-    
+
     const data = await this.request<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
     });
-    
+
     if (!data.access_token) {
       throw new Error('Servidor não retornou token de autenticação');
     }
-    
+
     // Salvar token JWT
     this.token = data.access_token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('currentUser', JSON.stringify(data.user));
     }
-    
+
     console.log('✅ Login realizado com sucesso:', data.user.username);
-    
+
     return data;
   }
 
   async register(userData: Record<string, any>): Promise<LoginResponse> {
     console.log('📤 Enviando dados de cadastro:', userData);
-    
+
     const data = await this.request<LoginResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData)
     });
-    
+
     this.token = data.access_token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('currentUser', JSON.stringify(data.user));
     }
-    
+
     console.log('✅ Cadastro realizado:', data.user.username);
     return data;
   }
@@ -274,7 +274,7 @@ class ApiClient {
     } catch (error) {
       console.error('❌ Erro ao salvar carrinho antes do logout:', error);
     }
-    
+
     this.token = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
@@ -314,20 +314,20 @@ class ApiClient {
     limit?: number;
   } = {}): Promise<Product[]> {
     const params = new URLSearchParams();
-    
+
     if (filters.category) params.append('category', filters.category);
     if (filters.search) params.append('search', filters.search);
     if (filters.skip !== undefined) params.append('skip', String(filters.skip));
-    
+
     // Sempre buscar todos os produtos (limite alto) para evitar paginação
     const limit = filters.limit ?? 500;
     params.append('limit', String(limit));
-    
+
     const queryString = params.toString();
     const endpoint = `/products?${queryString}`;
-    
+
     const productsData = await this.request<any[]>(endpoint);
-    
+
     // Normalizar dados do PostgreSQL
     return productsData.map(p => ({
       id: String(p.id),
@@ -351,10 +351,10 @@ class ApiClient {
   }
 
   async createProduct(productData: FormData | Partial<Product>): Promise<Product> {
-    const body = productData instanceof FormData 
-      ? productData 
+    const body = productData instanceof FormData
+      ? productData
       : JSON.stringify(productData);
-    
+
     return await this.request<Product>('/products', {
       method: 'POST',
       body: body as BodyInit
@@ -362,13 +362,31 @@ class ApiClient {
   }
 
   async updateProduct(id: string, productData: FormData | Partial<Product>): Promise<Product> {
-    const body = productData instanceof FormData 
-      ? productData 
+    const body = productData instanceof FormData
+      ? productData
       : JSON.stringify(productData);
-    
+
     return await this.request<Product>(`/products/${id}`, {
       method: 'PUT',
       body: body as BodyInit
+    });
+  }
+
+  async updateProductStock(id: string, stock: number): Promise<Product> {
+    const formData = new FormData();
+    formData.append('stock', stock.toString());
+    return await this.request<Product>(`/products/${id}`, {
+      method: 'PUT',
+      body: formData
+    });
+  }
+
+  async updateProductAvailability(id: string, isActive: boolean): Promise<Product> {
+    const formData = new FormData();
+    formData.append('is_active', isActive.toString());
+    return await this.request<Product>(`/products/${id}`, {
+      method: 'PUT',
+      body: formData
     });
   }
 
@@ -440,7 +458,7 @@ class ApiClient {
   async updateOrderStatus(id: number, status: string, deliveryDate?: string): Promise<Order> {
     const data: { status: string; delivery_date?: string } = { status };
     if (deliveryDate) data.delivery_date = deliveryDate;
-    
+
     return await this.request<Order>(`/orders/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify(data)
