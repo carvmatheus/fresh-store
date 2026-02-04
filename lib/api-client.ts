@@ -326,7 +326,7 @@ class ApiClient {
     // Sempre buscar todos os produtos (limite alto) para evitar paginação
     const limit = filters.limit ?? 500;
     params.append('limit', String(limit));
-
+    params.append('active_only', 'false');
     const queryString = params.toString();
     const endpoint = `/products?${queryString}`;
 
