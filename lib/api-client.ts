@@ -10,6 +10,7 @@ export interface User {
   email: string;
   name: string;
   role: 'admin' | 'cliente' | 'consultor';
+  tier?: 'bronze' | 'prata' | 'ouro' | 'platina' | 'diamante';
   approval_status: 'pending' | 'approved' | 'suspended';
   suspension_reason?: string;
   company_name?: string;
@@ -36,6 +37,8 @@ export interface Product {
   image: string;
   description: string;
   isPromo: boolean;
+  tierPricing?: Record<string, { type: 'fixed' | 'percentage'; value: number }>;
+  finalPrice?: number;
   displayOrder: number;
   isActive: boolean;
 }
@@ -345,6 +348,8 @@ class ApiClient {
       image: p.image_url || 'https://via.placeholder.com/400',
       description: p.description || '',
       isPromo: p.is_promo === true,
+      tierPricing: p.tier_pricing,
+      finalPrice: p.final_price ? parseFloat(p.final_price) : undefined,
       displayOrder: p.display_order || 0,
       isActive: p.is_active !== false
     }));
@@ -402,6 +407,16 @@ class ApiClient {
     return await this.request<{ message: string }>('/products/order/update', {
       method: 'PUT',
       body: JSON.stringify({ products })
+    });
+  }
+
+  async updateProductTierPricing(id: string, tierPricing: Record<string, any>): Promise<Product> {
+    const formData = new FormData();
+    formData.append('tier_pricing', JSON.stringify(tierPricing));
+
+    return await this.request<Product>(`/products/${id}`, {
+      method: 'PUT',
+      body: formData
     });
   }
 

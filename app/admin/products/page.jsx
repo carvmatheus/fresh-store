@@ -562,9 +562,9 @@ export default function ProductsPage() {
                         </td>
                         <td className="p-4">
                           <span className={`font-medium ${product.stock < 0 ? 'text-rose-400 animate-pulse' :
-                              product.stock === 0 ? 'text-red-400' :
-                                product.stock <= 10 ? 'text-amber-400' :
-                                  'text-gray-100'
+                            product.stock === 0 ? 'text-red-400' :
+                              product.stock <= 10 ? 'text-amber-400' :
+                                'text-gray-100'
                             }`}>
                             {product.stock} {product.unit}
                           </span>
@@ -637,8 +637,8 @@ export default function ProductsPage() {
                   onClick={savePromoOrder}
                   disabled={!hasOrderChanges || savingOrder}
                   className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${hasOrderChanges && !savingOrder
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                      : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                     }`}
                 >
                   {savingOrder ? (
@@ -679,10 +679,10 @@ export default function ProductsPage() {
                     onDrop={(e) => handleDrop(e, index)}
                     onDragEnd={handleDragEnd}
                     className={`flex items-center gap-4 p-4 bg-[#0f1419] rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${dragState.over === index
-                        ? 'border-orange-500 bg-orange-500/10 scale-[1.02]'
-                        : dragState.dragging === index
-                          ? 'border-orange-300 opacity-40 scale-95'
-                          : 'border-transparent hover:border-[#2d3640]'
+                      ? 'border-orange-500 bg-orange-500/10 scale-[1.02]'
+                      : dragState.dragging === index
+                        ? 'border-orange-300 opacity-40 scale-95'
+                        : 'border-transparent hover:border-[#2d3640]'
                       }`}
                   >
                     {/* Posição */}
@@ -882,6 +882,13 @@ function ProductModal({ product, onClose, onSave }) {
     isPromo: product?.isPromo || product?.is_promo || false,
     is_active: (product?.is_available ?? product?.is_active) !== false,
     display_order: product?.display_order ?? 0,
+    tierPricing: product?.tierPricing || product?.tier_pricing || {
+      bronze: { type: 'percentage', value: 0 },
+      prata: { type: 'percentage', value: 0 },
+      ouro: { type: 'percentage', value: 0 },
+      platina: { type: 'percentage', value: 0 },
+      diamante: { type: 'percentage', value: 0 },
+    }
   })
   const [saving, setSaving] = useState(false)
   const [imageFile, setImageFile] = useState(null)
@@ -924,7 +931,11 @@ function ProductModal({ product, onClose, onSave }) {
     formDataToSend.append('min_order', parseInt(formData.minOrder) || 1)
     formDataToSend.append('is_promo', formData.isPromo)
     formDataToSend.append('is_active', formData.is_active)
+    formDataToSend.append('is_active', formData.is_active)
     formDataToSend.append('display_order', parseInt(formData.display_order) || 0)
+
+    // Tier Pricing
+    formDataToSend.append('tier_pricing', JSON.stringify(formData.tierPricing))
 
     // Adicionar imagem (arquivo ou URL)
     if (imageFile) {
@@ -1113,8 +1124,8 @@ function ProductModal({ product, onClose, onSave }) {
               <div
                 onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.is_active
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
+                  ? 'border-emerald-500 bg-emerald-500/10'
+                  : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -1137,8 +1148,8 @@ function ProductModal({ product, onClose, onSave }) {
               <div
                 onClick={() => setFormData({ ...formData, isPromo: !formData.isPromo })}
                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.isPromo
-                    ? 'border-orange-500 bg-orange-500/10'
-                    : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
+                  ? 'border-orange-500 bg-orange-500/10'
+                  : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -1173,6 +1184,77 @@ function ProductModal({ product, onClose, onSave }) {
                 <p className="text-xs text-gray-500 mt-1">Menor número aparece primeiro no carrossel</p>
               </div>
             )}
+
+            {/* Tier Pricing Configuration */}
+            <div className="md:col-span-2 pt-4 border-t border-[#2d3640]">
+              <h4 className="text-lg font-bold text-gray-100 mb-4 flex items-center gap-2">
+                💎 Precificação por Tier (Nível)
+              </h4>
+              <div className="grid grid-cols-1 gap-4">
+                {['bronze', 'prata', 'ouro', 'platina', 'diamante'].map((tier) => (
+                  <div key={tier} className="flex items-center gap-4 bg-[#0f1419] p-3 rounded-lg border border-[#2d3640]">
+                    <div className="w-24">
+                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider
+                        ${tier === 'bronze' ? 'bg-orange-700/20 text-orange-400' :
+                          tier === 'prata' ? 'bg-gray-400/20 text-gray-300' :
+                            tier === 'ouro' ? 'bg-yellow-500/20 text-yellow-400' :
+                              tier === 'platina' ? 'bg-indigo-300/20 text-indigo-200' :
+                                'bg-cyan-400/20 text-cyan-300'}`}>
+                        {tier}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <select
+                        value={formData.tierPricing?.[tier]?.type || 'percentage'}
+                        onChange={(e) => {
+                          const newPricing = { ...formData.tierPricing }
+                          if (!newPricing[tier]) newPricing[tier] = { type: 'percentage', value: 0 }
+                          newPricing[tier] = { ...newPricing[tier], type: e.target.value }
+                          setFormData({ ...formData, tierPricing: newPricing })
+                        }}
+                        className="bg-[#1a1f26] border border-[#2d3640] rounded px-3 py-1 text-sm text-gray-300 focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="percentage">Desconto (%)</option>
+                        <option value="fixed">Preço Fixo (R$)</option>
+                      </select>
+
+                      <input
+                        type="number"
+                        step={formData.tierPricing?.[tier]?.type === 'fixed' ? '0.01' : '1'}
+                        value={formData.tierPricing?.[tier]?.value || 0}
+                        onChange={(e) => {
+                          const newPricing = { ...formData.tierPricing }
+                          if (!newPricing[tier]) newPricing[tier] = { type: 'percentage', value: 0 }
+                          newPricing[tier] = { ...newPricing[tier], value: parseFloat(e.target.value) || 0 }
+                          setFormData({ ...formData, tierPricing: newPricing })
+                        }}
+                        className="bg-[#1a1f26] border border-[#2d3640] rounded px-3 py-1 text-sm text-gray-100 focus:outline-none focus:border-emerald-500"
+                        placeholder="Valor"
+                      />
+                    </div>
+
+                    <div className="text-right w-32 text-xs text-gray-500">
+                      {formData.tierPricing?.[tier]?.type === 'percentage' && formData.tierPricing?.[tier]?.value > 0 ? (
+                        <>
+                          Final: <span className="text-emerald-400 font-bold">
+                            {formatCurrency(formData.price * (1 - (formData.tierPricing[tier].value / 100)))}
+                          </span>
+                        </>
+                      ) : formData.tierPricing?.[tier]?.type === 'fixed' && formData.tierPricing?.[tier]?.value > 0 ? (
+                        <>
+                          Final: <span className="text-emerald-400 font-bold">
+                            {formatCurrency(formData.tierPricing[tier].value)}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Preço Base</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-[#2d3640]">

@@ -74,6 +74,22 @@ function getApprovalColor(status) {
   return colors[status] || 'bg-gray-500/20 text-gray-400'
 }
 
+function getTierLabel(tier) {
+  if (!tier) return 'Bronze'
+  return tier.charAt(0).toUpperCase() + tier.slice(1)
+}
+
+function getTierColor(tier) {
+  const colors = {
+    'bronze': 'bg-orange-700/20 text-orange-400',
+    'prata': 'bg-gray-400/20 text-gray-300',
+    'ouro': 'bg-yellow-500/20 text-yellow-400',
+    'platina': 'bg-indigo-300/20 text-indigo-200',
+    'diamante': 'bg-cyan-400/20 text-cyan-300'
+  }
+  return colors[tier?.toLowerCase()] || 'bg-orange-700/20 text-orange-400'
+}
+
 function getUserStatus(user) {
   if (user.approval_status === 'suspended' && user.suspension_reason?.includes('Rejeitado')) {
     return 'rejected'
@@ -317,6 +333,7 @@ export default function UsersPage() {
               <tr className="border-b border-[#2d3640]">
                 <th className="text-left p-4 text-gray-400 font-medium text-sm">Cliente</th>
                 <th className="text-left p-4 text-gray-400 font-medium text-sm hidden lg:table-cell">Perfil</th>
+                <th className="text-left p-4 text-gray-400 font-medium text-sm hidden lg:table-cell">Tier</th>
                 <th className="text-left p-4 text-gray-400 font-medium text-sm">Empresa / CNPJ</th>
                 <th className="text-left p-4 text-gray-400 font-medium text-sm hidden md:table-cell">Tipo</th>
                 <th className="text-left p-4 text-gray-400 font-medium text-sm hidden lg:table-cell">Último Login</th>
@@ -349,10 +366,15 @@ export default function UsersPage() {
                     </td>
                     <td className="p-4 hidden lg:table-cell">
                       <span className={`px-2 py-1 rounded-lg text-xs font-medium ${user.role === 'admin' ? 'bg-purple-500/20 text-purple-400' :
-                          user.role === 'consultor' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-gray-500/20 text-gray-400'
+                        user.role === 'consultor' ? 'bg-blue-500/20 text-blue-400' :
+                          'bg-gray-500/20 text-gray-400'
                         }`}>
                         {getRoleLabel(user.role)}
+                      </span>
+                    </td>
+                    <td className="p-4 hidden lg:table-cell">
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getTierColor(user.tier)}`}>
+                        {getTierLabel(user.tier)}
                       </span>
                     </td>
                     <td className="p-4">
@@ -434,7 +456,12 @@ export default function UsersPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-100">{selectedUser.name}</h3>
-                  <p className="text-gray-500">{selectedUser.email}</p>
+                  <div className="flex gap-2 items-center">
+                    <p className="text-gray-500">{selectedUser.email}</p>
+                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${getTierColor(selectedUser.tier)}`}>
+                      {selectedUser.tier || 'BRONZE'}
+                    </span>
+                  </div>
                 </div>
               </div>
               <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-100 text-2xl">✕</button>
@@ -542,6 +569,20 @@ export default function UsersPage() {
 
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-500 mb-1 block">Tier (Nível do Cliente)</label>
+                  <select
+                    value={editingUser.tier || 'bronze'}
+                    onChange={(e) => setEditingUser({ ...editingUser, tier: e.target.value })}
+                    className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="bronze">Bronze</option>
+                    <option value="prata">Prata</option>
+                    <option value="ouro">Ouro</option>
+                    <option value="platina">Platina</option>
+                    <option value="diamante">Diamante</option>
+                  </select>
+                </div>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Nome *</label>
                   <input
