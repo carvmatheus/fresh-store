@@ -44,8 +44,8 @@ export const categories: Category[] = [
  */
 export function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined || isNaN(value)) return 'R$ 0,00'
-  return value.toLocaleString('pt-BR', { 
-    style: 'currency', 
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -57,7 +57,7 @@ export function formatCurrency(value: number | null | undefined): string {
  */
 export function formatNumber(value: number | null | undefined): string {
   if (value === null || value === undefined || isNaN(value)) return '0,00'
-  return value.toLocaleString('pt-BR', { 
+  return value.toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })
@@ -69,21 +69,21 @@ export function formatNumber(value: number | null | undefined): string {
 export async function loadProductsFromAPI(): Promise<Product[]> {
   try {
     console.log('📡 Carregando produtos da API...')
-    
+
     const productsData = await api.getProducts()
-    
+
     console.log('✅ Produtos carregados da API:', productsData ? productsData.length : 0)
-    
+
     if (!productsData || !Array.isArray(productsData)) {
       console.error('❌ Dados inválidos recebidos da API:', productsData)
       return []
     }
-    
+
     if (productsData.length === 0) {
       console.warn('⚠️ API retornou array vazio')
       return []
     }
-    
+
     // Normalizar dados: converter campos do PostgreSQL para formato esperado
     const normalized = productsData.map((p: any): Product => ({
       id: String(p.id),
@@ -100,9 +100,9 @@ export async function loadProductsFromAPI(): Promise<Product[]> {
       displayOrder: p.display_order || 0,
       isActive: p.is_active !== false
     }))
-    
+
     console.log('✅ Total de produtos normalizados:', normalized.length)
-    
+
     return normalized
   } catch (error) {
     console.error('❌ ERRO ao carregar produtos da API:', error)
@@ -115,24 +115,23 @@ export async function loadProductsFromAPI(): Promise<Product[]> {
  */
 export async function fetchProducts(categoryId: string = 'all'): Promise<Product[]> {
   const allProducts = await loadProductsFromAPI()
-  
+
   if (categoryId === 'all') {
     // Ordenar por displayOrder se disponível, senão manter ordem original
     return allProducts
-      .filter(p => p.isActive !== false)
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
   }
-  
+
   if (categoryId === 'ofertas') {
     // Filtrar apenas produtos em promoção
     return allProducts
-      .filter(p => p.isPromo === true && p.isActive !== false)
+      .filter(p => p.isPromo === true)
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
   }
-  
+
   // Filtrar por categoria específica
   return allProducts
-    .filter(p => p.category === categoryId && p.isActive !== false)
+    .filter(p => p.category === categoryId)
     .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
 }
 
@@ -162,11 +161,11 @@ export async function calculateDelivery(cep: string, cartTotal: number): Promise
   try {
     // Limpar CEP - remover caracteres não numéricos
     const cleanCep = cep.replace(/\D/g, '')
-    
+
     if (cleanCep.length !== 8) {
       throw new Error('CEP inválido. Digite um CEP com 8 dígitos.')
     }
-    
+
     // Chamar API de cálculo de entrega
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://dahorta-backend.onrender.com'}/orders/calculate-delivery`, {
       method: 'POST',
@@ -178,14 +177,14 @@ export async function calculateDelivery(cep: string, cartTotal: number): Promise
         cart_total: cartTotal
       })
     })
-    
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
       throw new Error(error.detail || 'Erro ao calcular entrega')
     }
-    
+
     const data = await response.json()
-    
+
     return {
       distance: data.distance,
       estimatedTime: data.estimatedTime,

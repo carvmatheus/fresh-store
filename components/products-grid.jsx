@@ -6,7 +6,7 @@ import { getCategoryName } from "./category-icons"
 // Formatar número
 function formatNumber(value) {
   if (value === null || value === undefined || isNaN(value)) return '0,00'
-  return value.toLocaleString('pt-BR', { 
+  return value.toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })
@@ -46,26 +46,25 @@ export function ProductsGrid({ products, onAddToCart, loading = false }) {
         const hasPromo = product.isPromo && product.promoPrice
         const displayPrice = hasPromo ? product.promoPrice : product.price
         const discountPercent = hasPromo ? Math.round((1 - product.promoPrice / product.price) * 100) : 0
-        const isAvailable = product.stock > 0
+        const isAvailable = product.isActive !== false
 
         return (
-          <div 
+          <div
             key={product.id}
-            className={`relative bg-white rounded-xl overflow-hidden shadow-sm border transition-all flex flex-col ${
-              !isAvailable 
-                ? 'border-gray-200 opacity-70 cursor-not-allowed' 
-                : hasPromo 
-                  ? 'border-emerald-400 hover:border-emerald-500 cursor-pointer hover:-translate-y-1 hover:shadow-md' 
-                  : 'border-gray-200 hover:border-emerald-400 cursor-pointer hover:-translate-y-1 hover:shadow-md'
-            }`}
+            className={`relative bg-white rounded-xl overflow-hidden shadow-sm border transition-all flex flex-col ${!isAvailable
+              ? 'border-gray-200 opacity-70 cursor-not-allowed'
+              : hasPromo
+                ? 'border-emerald-400 hover:border-emerald-500 cursor-pointer hover:-translate-y-1 hover:shadow-md'
+                : 'border-gray-200 hover:border-emerald-400 cursor-pointer hover:-translate-y-1 hover:shadow-md'
+              }`}
             onClick={(e) => isAvailable && onAddToCart(product.id, e)}
             title={isAvailable ? "Clique para adicionar ao carrinho" : "Produto indisponível"}
           >
             {/* Badge de Oferta */}
             {hasPromo && isAvailable && (
-              <div 
+              <div
                 className="promo-badge absolute top-2 left-2 px-1.5 py-0.5 rounded text-white text-[9px] font-bold uppercase z-[5] animate-pulse-badge"
-                style={{ 
+                style={{
                   background: 'linear-gradient(135deg, #EC1841, #c41235)',
                   boxShadow: '0 2px 6px rgba(236, 24, 65, 0.3)'
                 }}
@@ -127,19 +126,18 @@ export function ProductsGrid({ products, onAddToCart, loading = false }) {
                   <span className="text-[10px] text-gray-500">/{product.unit}</span>
                 </div>
 
-                <button 
+                <button
                   onClick={(e) => {
                     e.stopPropagation()
                     if (isAvailable) onAddToCart(product.id, e)
                   }}
                   disabled={!isAvailable}
-                  className={`w-full py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 text-xs transition-colors ${
-                    isAvailable 
-                      ? 'bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
+                  className={`w-full py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 text-xs transition-colors ${isAvailable
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
                 >
-                  {isAvailable ? '🛒 Adicionar' : 'Esgotado'}
+                  {isAvailable ? '🛒 Adicionar' : 'Indisponível'}
                 </button>
               </div>
             </div>
