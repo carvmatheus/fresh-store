@@ -82,7 +82,7 @@ export function SideMenu({ isOpen, onClose }) {
               </li>
             )}
 
-            {user && (user.role === 'admin' || user.role === 'consultor') && (
+            {user && (user.role === 'admin' || user.role === 'god' || user.role === 'consultor') && (
               <li>
                 <Link 
                   href="/admin"

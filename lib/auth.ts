@@ -72,9 +72,10 @@ export function hasRole(role: string): boolean {
   return user?.role === role;
 }
 
-// Verificar se é admin
+// Verificar se é admin (inclui GOD)
 export function isAdmin(): boolean {
-  return hasRole('admin');
+  const user = getCurrentUser();
+  return user?.role === 'admin' || user?.role === 'god';
 }
 
 // Verificar se é consultor
@@ -86,8 +87,8 @@ export function isConsultor(): boolean {
 export function isUserApproved(): boolean {
   const user = getCurrentUser();
   if (!user) return false;
-  // Admins e consultores são sempre considerados aprovados
-  if (user.role === 'admin' || user.role === 'consultor') return true;
+  // Admins, GOD e consultores são sempre considerados aprovados
+  if (user.role === 'admin' || user.role === 'god' || user.role === 'consultor') return true;
   return user.approval_status === 'approved';
 }
 
@@ -107,7 +108,7 @@ export function isUserSuspended(): boolean {
 
 // Obter URL de redirecionamento após login
 export function getRedirectUrl(user: User): string {
-  if (user.role === 'admin' || user.role === 'consultor') {
+  if (user.role === 'admin' || user.role === 'god' || user.role === 'consultor') {
     return '/admin';
   }
   if (user.approval_status === 'approved') {

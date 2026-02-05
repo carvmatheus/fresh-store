@@ -9,7 +9,8 @@ export interface User {
   username: string;
   email: string;
   name: string;
-  role: 'admin' | 'cliente' | 'consultor';
+  role: 'admin' | 'cliente' | 'consultor' | 'god';
+  tier?: 'bronze' | 'prata' | 'ouro' | 'platina' | 'diamante';
   approval_status: 'pending' | 'approved' | 'suspended';
   suspension_reason?: string;
   company_name?: string;
@@ -36,6 +37,8 @@ export interface Product {
   image: string;
   description: string;
   isPromo: boolean;
+  tierPricing?: Record<string, { type: 'fixed' | 'percentage'; value: number }>;
+  finalPrice?: number;
   displayOrder: number;
   isActive: boolean;
 }
@@ -155,7 +158,15 @@ class ApiClient {
         throw new Error(`Resposta inválida do servidor (${response.status})`);
       }
 
-      const data = await response.json();
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        // Se não conseguir parsear JSON, tentar ler como texto
+        const text = await response.text();
+        console.error(`❌ API Error ${response.status} - Resposta não é JSON:`, text.substring(0, 200));
+        throw new Error(`Erro ${response.status}: ${response.statusText || 'Erro no servidor'}`);
+      }
 
       if (!response.ok) {
         console.error(`❌ API Error ${response.status}:`, data);
@@ -177,15 +188,20 @@ class ApiClient {
           throw new Error(errorMsg)
         }
 
-        // Outros erros
-        if (data.detail) {
+        // Outros erros - verificar se data.detail existe
+        if (data && data.detail) {
           if (Array.isArray(data.detail)) {
             throw new Error(data.detail.map((d: any) => d.msg || JSON.stringify(d)).join(', '))
           }
           throw new Error(String(data.detail))
         }
 
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        // Se data está vazio ou não tem detail, usar mensagem genérica mais informativa
+        if (response.status === 500) {
+          throw new Error('Erro interno do servidor. Por favor, tente novamente mais tarde.');
+        }
+        
+        throw new Error(`Erro ${response.status}: ${response.statusText || 'Erro desconhecido'}`);
       }
 
       return data;
@@ -345,6 +361,8 @@ class ApiClient {
       image: p.image_url || 'https://via.placeholder.com/400',
       description: p.description || '',
       isPromo: p.is_promo === true,
+      tierPricing: p.tier_pricing,
+      finalPrice: p.final_price ? parseFloat(p.final_price) : undefined,
       displayOrder: p.display_order || 0,
       isActive: p.is_active !== false
     }));
@@ -405,8 +423,29 @@ class ApiClient {
     });
   }
 
+  async updateProductTierPricing(id: string, tierPricing: Record<string, any>): Promise<Product> {
+    const formData = new FormData();
+    formData.append('tier_pricing', JSON.stringify(tierPricing));
+
+    return await this.request<Product>(`/products/${id}`, {
+      method: 'PUT',
+      body: formData
+    });
+  }
+
   async getCategories(): Promise<string[]> {
     return await this.request<string[]>('/products/categories');
+  }
+
+  async bulkUpdatePricing(data: {
+    product_ids: string[];
+    tier_percentages: { [tier: string]: number };
+    apply_to_base_price?: boolean;
+  }): Promise<{ updated_count: number; products_updated: any[]; message: string }> {
+    return await this.request<{ updated_count: number; products_updated: any[]; message: string }>('/products/bulk-update-pricing', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   }
 
   // =============================
@@ -518,6 +557,17 @@ class ApiClient {
 
   async deactivateUser(id: string): Promise<void> {
     await this.request(`/users/${id}`, { method: 'DELETE' });
+  }
+
+  async getUserPassword(id: string): Promise<{ hashed_password: string; username: string; email: string }> {
+    return await this.request<{ hashed_password: string; username: string; email: string }>(`/users/${id}/password`);
+  }
+
+  async updateUserPassword(id: string, newPassword: string): Promise<{ message: string; user_id: string; username: string }> {
+    return await this.request<{ message: string; user_id: string; username: string }>(`/users/${id}/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ new_password: newPassword })
+    });
   }
 }
 

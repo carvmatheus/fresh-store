@@ -39,6 +39,25 @@ export default function ProductsPage() {
   const [promoOrderList, setPromoOrderList] = useState([])
   const [hasOrderChanges, setHasOrderChanges] = useState(false)
   const [savingOrder, setSavingOrder] = useState(false)
+  const [editingTierPrices, setEditingTierPrices] = useState({}) // { productId: { tier: { value, type } } }
+  const [savingTierPrice, setSavingTierPrice] = useState(null)
+  const [tierEditPopup, setTierEditPopup] = useState({ show: false, productId: null, tier: null, type: 'fixed', value: '' })
+  const [editingBasePrice, setEditingBasePrice] = useState({}) // { productId: value }
+  const [editingPromoPrice, setEditingPromoPrice] = useState({}) // { productId: value }
+  const [savingPrice, setSavingPrice] = useState(null) // 'productId-base' ou 'productId-promo'
+  
+  // Estados para edição em massa
+  const [showBulkPricing, setShowBulkPricing] = useState(false)
+  const [selectedProducts, setSelectedProducts] = useState(new Set())
+  const [selectedTiers, setSelectedTiers] = useState(new Set())
+  const [bulkPercentages, setBulkPercentages] = useState({}) // { tier: percentage }
+  const [applyToBase, setApplyToBase] = useState(true)
+  const [savingBulk, setSavingBulk] = useState(false)
+  const [bulkSearch, setBulkSearch] = useState('')
+  const [bulkCategoryFilter, setBulkCategoryFilter] = useState('all')
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+  const [bulkConfirmData, setBulkConfirmData] = useState(null)
+  const [showTierModal, setShowTierModal] = useState({ productId: null, tier: null })
 
   useEffect(() => {
     loadProducts()
@@ -352,11 +371,298 @@ export default function ProductsPage() {
     setDragState({ dragging: null, over: null })
   }
 
+  // Função para salvar preço de tier individual
+  const handleSaveTierPrice = async (productId, tier, value, type) => {
+    const product = products.find(p => p.id === productId)
+    if (!product) return
+
+    const numValue = parseFloat(value)
+    if (isNaN(numValue)) {
+      alert('⚠️ Digite um valor válido')
+      return
+    }
+
+    if (type === 'fixed' && numValue < 0) {
+      alert('⚠️ O preço não pode ser negativo')
+      return
+    }
+
+    if (type === 'percentage' && (numValue < -100 || numValue > 0)) {
+      alert('⚠️ O percentual deve ser um desconto entre -100% e 0%')
+      return
+    }
+
+    setSavingTierPrice(`${productId}-${tier}`)
+    
+    try {
+      const currentTierPricing = product.tierPricing || product.tier_pricing || {}
+      const newTierPricing = {
+        ...currentTierPricing,
+        [tier]: {
+          type: type,
+          value: numValue
+        }
+      }
+
+      const formData = new FormData()
+      formData.append('name', product.name)
+      formData.append('category', product.category)
+      formData.append('price', String(product.price))
+      formData.append('unit', product.unit)
+      formData.append('min_order', String(product.min_order || product.minOrder || 1))
+      formData.append('stock', String(product.stock))
+      formData.append('description', product.description || '')
+      formData.append('is_active', product.is_active !== false ? 'true' : 'false')
+      formData.append('is_promo', product.is_promo ? 'true' : 'false')
+      if (product.is_promo && product.promo_price) {
+        formData.append('promo_price', String(product.promo_price))
+      }
+      if (product.display_order !== undefined) {
+        formData.append('display_order', String(product.display_order))
+      }
+      if (product.image_url) {
+        formData.append('image_url', product.image_url)
+      }
+      if (product.cloudinary_public_id) {
+        formData.append('cloudinary_public_id', product.cloudinary_public_id)
+      }
+      formData.append('tier_pricing', JSON.stringify(newTierPricing))
+
+      await api.updateProduct(productId, formData, true)
+      
+      // Limpar edição
+      const newEditing = { ...editingTierPrices }
+      if (newEditing[productId]) {
+        delete newEditing[productId][tier]
+        if (Object.keys(newEditing[productId]).length === 0) {
+          delete newEditing[productId]
+        }
+      }
+      setEditingTierPrices(newEditing)
+      
+      await loadProducts()
+    } catch (error) {
+      console.error('Erro ao salvar preço de tier:', error)
+      alert('❌ Erro ao salvar: ' + error.message)
+    } finally {
+      setSavingTierPrice(null)
+    }
+  }
+
+  // Função para salvar preço base ou promoção
+  const handleSavePrice = async (productId, type, value) => {
+    const product = products.find(p => p.id === productId)
+    if (!product) return
+
+    const numValue = parseFloat(value)
+    if (isNaN(numValue) || numValue < 0) {
+      alert('⚠️ Digite um valor válido (maior ou igual a 0)')
+      return
+    }
+
+    setSavingPrice(`${productId}-${type}`)
+    
+    try {
+      const formData = new FormData()
+      formData.append('name', product.name)
+      formData.append('category', product.category)
+      
+      if (type === 'base') {
+        formData.append('price', String(numValue))
+      } else {
+        formData.append('price', String(product.price))
+      }
+      
+      formData.append('unit', product.unit)
+      formData.append('min_order', String(product.min_order || product.minOrder || 1))
+      formData.append('stock', String(product.stock))
+      formData.append('description', product.description || '')
+      formData.append('is_active', product.is_active !== false ? 'true' : 'false')
+      
+      if (type === 'promo') {
+        formData.append('is_promo', 'true')
+        formData.append('promo_price', String(numValue))
+      } else {
+        formData.append('is_promo', product.is_promo ? 'true' : 'false')
+        if (product.is_promo && product.promo_price) {
+          formData.append('promo_price', String(product.promo_price))
+        }
+      }
+      
+      if (product.display_order !== undefined) {
+        formData.append('display_order', String(product.display_order))
+      }
+      if (product.image_url) {
+        formData.append('image_url', product.image_url)
+      }
+      if (product.cloudinary_public_id) {
+        formData.append('cloudinary_public_id', product.cloudinary_public_id)
+      }
+      if (product.tierPricing || product.tier_pricing) {
+        formData.append('tier_pricing', JSON.stringify(product.tierPricing || product.tier_pricing))
+      }
+
+      await api.updateProduct(productId, formData, true)
+      
+      // Limpar edição
+      if (type === 'base') {
+        const newEditing = { ...editingBasePrice }
+        delete newEditing[productId]
+        setEditingBasePrice(newEditing)
+      } else {
+        const newEditing = { ...editingPromoPrice }
+        delete newEditing[productId]
+        setEditingPromoPrice(newEditing)
+      }
+      
+      await loadProducts()
+    } catch (error) {
+      console.error('Erro ao salvar preço:', error)
+      alert('❌ Erro ao salvar: ' + error.message)
+    } finally {
+      setSavingPrice(null)
+    }
+  }
+
+  // Funções para edição em massa
+  const toggleBulkProduct = (productId) => {
+    const newSelected = new Set(selectedProducts)
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId)
+    } else {
+      newSelected.add(productId)
+    }
+    setSelectedProducts(newSelected)
+  }
+
+  const toggleBulkTier = (tierId) => {
+    const newSelected = new Set(selectedTiers)
+    if (newSelected.has(tierId)) {
+      newSelected.delete(tierId)
+    } else {
+      newSelected.add(tierId)
+    }
+    setSelectedTiers(newSelected)
+  }
+
+  const selectAllBulkProducts = () => {
+    const filtered = getFilteredProducts()
+    if (selectedProducts.size === filtered.length) {
+      setSelectedProducts(new Set())
+    } else {
+      setSelectedProducts(new Set(filtered.map(p => p.id)))
+    }
+  }
+
+  const selectAllBulkTiers = () => {
+    const TIERS = ['bronze', 'prata', 'ouro', 'platina', 'diamante']
+    if (selectedTiers.size === TIERS.length) {
+      setSelectedTiers(new Set())
+    } else {
+      setSelectedTiers(new Set(TIERS))
+    }
+  }
+
+  const getBulkFilteredProducts = () => {
+    return products.filter(p => {
+      const matchesSearch = !bulkSearch || 
+        p.name.toLowerCase().includes(bulkSearch.toLowerCase()) ||
+        p.category.toLowerCase().includes(bulkSearch.toLowerCase())
+      const matchesCategory = bulkCategoryFilter === 'all' || p.category === bulkCategoryFilter
+      return matchesSearch && matchesCategory
+    })
+  }
+
+  const handleBulkApply = async () => {
+    if (selectedProducts.size === 0) {
+      alert('⚠️ Selecione pelo menos um produto')
+      return
+    }
+    if (selectedTiers.size === 0) {
+      alert('⚠️ Selecione pelo menos um nível')
+      return
+    }
+
+    // Validar que todos os níveis selecionados têm percentual
+    const tierPercentages = {}
+    for (const tier of selectedTiers) {
+      const percent = bulkPercentages[tier]
+      if (!percent || isNaN(parseFloat(percent))) {
+        alert(`⚠️ Digite um percentual válido para o nível ${tier}`)
+        return
+      }
+      const percentValue = parseFloat(percent)
+      if (percentValue < -100 || percentValue > 0) {
+        alert(`⚠️ O percentual do nível ${tier} deve ser um desconto entre -100% e 0%`)
+        return
+      }
+      tierPercentages[tier] = percentValue
+    }
+
+    const productNames = Array.from(selectedProducts)
+      .map(id => products.find(p => p.id === id)?.name)
+      .filter(Boolean)
+      .slice(0, 15)
+      .join(', ')
+    const moreProducts = selectedProducts.size > 15 ? ` e mais ${selectedProducts.size - 15}` : ''
+    
+    const TIERS_LABELS = {
+      'bronze': 'Bronze',
+      'prata': 'Prata',
+      'ouro': 'Ouro',
+      'platina': 'Platina',
+      'diamante': 'Diamante'
+    }
+    const tierDetails = Array.from(selectedTiers)
+      .map(id => `${TIERS_LABELS[id]}: ${tierPercentages[id]}%`)
+      .join(', ')
+
+    // Mostrar modal de confirmação
+    setBulkConfirmData({
+      tierDetails,
+      productNames,
+      moreProducts,
+      productCount: selectedProducts.size,
+      tierPercentages: tierPercentages
+    })
+    setShowBulkConfirm(true)
+  }
+
+  const handleBulkConfirm = async () => {
+    if (!bulkConfirmData) return
+
+    setShowBulkConfirm(false)
+    setSavingBulk(true)
+    try {
+      const response = await api.bulkUpdatePricing({
+        product_ids: Array.from(selectedProducts),
+        tier_percentages: bulkConfirmData.tierPercentages,
+        apply_to_base_price: applyToBase
+      })
+
+      alert(`✅ ${response.message}\n\n${response.updated_count} produtos atualizados com sucesso!`)
+      
+      // Limpar seleções
+      setSelectedProducts(new Set())
+      setSelectedTiers(new Set())
+      setBulkPercentages({})
+      setShowBulkPricing(false)
+      
+      // Recarregar produtos
+      await loadProducts()
+    } catch (error) {
+      console.error('Erro ao atualizar preços:', error)
+      alert('❌ Erro ao atualizar preços: ' + error.message)
+    } finally {
+      setSavingBulk(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-spin">⚙️</div>
+          <div className="text-4xl mb-4 animate-spin">⟳</div>
           <p className="text-gray-400">Carregando produtos...</p>
         </div>
       </div>
@@ -373,10 +679,16 @@ export default function ProductsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => { setShowBulkPricing(true); setSelectedProducts(new Set()); setSelectedTiers(new Set()); setBulkPercentages({}) }}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+          >
+            ✨ Edição em Massa
+          </button>
+          <button
             onClick={() => { setEditingProduct({}); setShowModal(true) }}
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
           >
-            <span>➕</span> Novo Produto
+            + Novo Produto
           </button>
         </div>
       </div>
@@ -388,7 +700,7 @@ export default function ProductsPage() {
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${view === 'list' ? 'bg-emerald-500 text-white' : 'text-gray-400 hover:text-gray-100'
             }`}
         >
-          📋 Lista de Produtos
+          Lista de Produtos
         </button>
         <button
           onClick={() => setView('promo-order')}
@@ -406,7 +718,7 @@ export default function ProductsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
               {/* Busca */}
               <div className="lg:col-span-2">
-                <label className="text-xs text-gray-500 mb-1 block">🔍 Buscar</label>
+                <label className="text-xs text-gray-500 mb-1 block">Buscar</label>
                 <input
                   type="text"
                   placeholder="Nome ou descrição..."
@@ -509,19 +821,21 @@ export default function ProductsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[#2d3640]">
-                    <th className="text-left p-4 text-gray-400 font-medium text-sm">Produto</th>
-                    <th className="text-left p-4 text-gray-400 font-medium text-sm">Categoria</th>
-                    <th className="text-left p-4 text-gray-400 font-medium text-sm">Preço</th>
-                    <th className="text-left p-4 text-gray-400 font-medium text-sm">Estoque</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm">Produto</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm">Categoria</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm">Preço Base</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm hidden xl:table-cell">Preços por Nível</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm">Estoque</th>
                     <th className="text-center p-4 text-gray-400 font-medium text-sm">Disponível</th>
                     <th className="text-center p-4 text-gray-400 font-medium text-sm">Promo</th>
-                    <th className="text-right p-4 text-gray-400 font-medium text-sm">Ações</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm xl:hidden">Níveis</th>
+                    <th className="text-center p-4 text-gray-400 font-medium text-sm">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredProducts.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-gray-500">
+                      <td colSpan={8} className="p-8 text-center text-gray-500">
                         Nenhum produto encontrado
                       </td>
                     </tr>
@@ -552,19 +866,231 @@ export default function ProductsPage() {
                         </td>
                         <td className="p-4">
                           <div>
-                            <p className={`font-medium ${(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) ? 'text-gray-500 line-through text-sm' : 'text-gray-100'}`}>
-                              {formatCurrency(product.price)}
-                            </p>
-                            {(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) && (
-                              <p className="font-bold text-emerald-400">{formatCurrency(product.promoPrice || product.promo_price)}</p>
+                            {/* Preço Base */}
+                            {editingBasePrice[product.id] !== undefined ? (
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                defaultValue={editingBasePrice[product.id] || product.price}
+                                onBlur={(e) => {
+                                  const value = e.target.value
+                                  if (value && !isNaN(parseFloat(value))) {
+                                    handleSavePrice(product.id, 'base', value)
+                                  } else {
+                                    const newEditing = { ...editingBasePrice }
+                                    delete newEditing[product.id]
+                                    setEditingBasePrice(newEditing)
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.target.blur()
+                                  } else if (e.key === 'Escape') {
+                                    const newEditing = { ...editingBasePrice }
+                                    delete newEditing[product.id]
+                                    setEditingBasePrice(newEditing)
+                                    e.target.blur()
+                                  }
+                                }}
+                                autoFocus
+                                disabled={savingPrice === `${product.id}-base`}
+                                className="w-full px-2 py-1 bg-emerald-500/20 border border-emerald-500/50 rounded text-emerald-300 font-medium focus:outline-none focus:border-emerald-400 disabled:opacity-50 text-sm"
+                              />
+                            ) : (
+                              <p className={`font-medium ${(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) ? 'text-gray-500 line-through text-sm' : 'text-emerald-400'} cursor-pointer hover:opacity-80 transition-opacity`} onClick={() => {
+                                setEditingBasePrice({ ...editingBasePrice, [product.id]: product.price })
+                              }} title="Clique para editar preço base">
+                                {savingPrice === `${product.id}-base` ? '...' : formatCurrency(product.price)}
+                              </p>
                             )}
+                            
+                            {/* Preço Promoção */}
+                            {(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) && (
+                              editingPromoPrice[product.id] !== undefined ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  defaultValue={editingPromoPrice[product.id] || (product.promoPrice || product.promo_price)}
+                                  onBlur={(e) => {
+                                    const value = e.target.value
+                                    if (value && !isNaN(parseFloat(value))) {
+                                      handleSavePrice(product.id, 'promo', value)
+                                    } else {
+                                      const newEditing = { ...editingPromoPrice }
+                                      delete newEditing[product.id]
+                                      setEditingPromoPrice(newEditing)
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.target.blur()
+                                    } else if (e.key === 'Escape') {
+                                      const newEditing = { ...editingPromoPrice }
+                                      delete newEditing[product.id]
+                                      setEditingPromoPrice(newEditing)
+                                      e.target.blur()
+                                    }
+                                  }}
+                                  autoFocus
+                                  disabled={savingPrice === `${product.id}-promo`}
+                                  className="w-full px-2 py-1 bg-orange-500/20 border border-orange-500/50 rounded text-orange-300 font-bold focus:outline-none focus:border-orange-400 disabled:opacity-50 text-sm mt-1"
+                                />
+                              ) : (
+                                <p className="font-bold text-emerald-400 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => {
+                                  setEditingPromoPrice({ ...editingPromoPrice, [product.id]: product.promoPrice || product.promo_price })
+                                }} title="Clique para editar preço de promoção">
+                                  {savingPrice === `${product.id}-promo` ? '...' : formatCurrency(product.promoPrice || product.promo_price)}
+                                </p>
+                              )
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4 hidden xl:table-cell">
+                          <div className="grid grid-cols-5 gap-1.5 w-full">
+                            {['bronze', 'prata', 'ouro', 'platina', 'diamante'].map(tier => {
+                              const tierPricing = product.tierPricing || product.tier_pricing || {}
+                              const tierData = tierPricing[tier]
+                              const tierType = tierData?.type || 'fixed'
+                              const tierValue = tierData?.value
+                              const isEditing = editingTierPrices[product.id]?.[tier] !== undefined
+                              const editingData = editingTierPrices[product.id]?.[tier]
+                              const savingKey = `${product.id}-${tier}`
+                              
+                              const TIERS_COLORS = {
+                                'bronze': { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
+                                'prata': { bg: 'bg-gray-400/10', border: 'border-gray-400/30', text: 'text-gray-300' },
+                                'ouro': { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
+                                'platina': { bg: 'bg-indigo-300/10', border: 'border-indigo-300/30', text: 'text-indigo-200' },
+                                'diamante': { bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', text: 'text-cyan-300' }
+                              }
+                              const TIERS_LABELS = {
+                                'bronze': 'Bronze',
+                                'prata': 'Prata',
+                                'ouro': 'Ouro',
+                                'platina': 'Platina',
+                                'diamante': 'Diamante'
+                              }
+                              
+                              // Calcular preço final para exibição - sempre mostra o preço calculado do nível
+                              const getDisplayPrice = () => {
+                                if (!tierData) {
+                                  // Se não tem tier customizado, retorna o preço base
+                                  return product.price
+                                }
+                                if (tierType === 'fixed') {
+                                  // Se é preço fixo, retorna o valor fixo
+                                  return tierValue
+                                }
+                                if (tierType === 'percentage') {
+                                  // Se é percentual, calcula o desconto (tierValue já é negativo)
+                                  const discount = product.price * (Math.abs(tierValue) / 100)
+                                  return product.price - discount
+                                }
+                                return product.price
+                              }
+                              
+                              const displayPrice = getDisplayPrice()
+                              
+                              return (
+                                <div key={tier} className={`flex flex-col gap-1 p-1.5 rounded border ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].border} min-w-0 overflow-hidden`}>
+                                  <span className={`text-[10px] font-bold uppercase ${TIERS_COLORS[tier].text} truncate text-center`}>
+                                    {TIERS_LABELS[tier].substring(0, 3)}
+                                  </span>
+                                  {isEditing ? (
+                                    <div className="flex flex-col gap-1">
+                                      <select
+                                        value={editingData?.type || 'fixed'}
+                                        onChange={(e) => {
+                                          setEditingTierPrices({
+                                            ...editingTierPrices,
+                                            [product.id]: {
+                                              ...(editingTierPrices[product.id] || {}),
+                                              [tier]: {
+                                                type: e.target.value,
+                                                value: editingData?.value !== undefined ? editingData.value : (e.target.value === 'fixed' ? product.price : 0)
+                                              }
+                                            }
+                                          })
+                                        }}
+                                        className="w-full px-1 py-0.5 text-[10px] bg-[#1a1f26] border border-[#2d3640] rounded text-gray-300 focus:outline-none focus:border-blue-400"
+                                      >
+                                        <option value="fixed">R$</option>
+                                        <option value="percentage">%</option>
+                                      </select>
+                                      <input
+                                        type="number"
+                                        step={editingData?.type === 'fixed' ? '0.01' : '0.1'}
+                                        defaultValue={editingData?.value !== undefined ? editingData.value : (editingData?.type === 'fixed' ? product.price : 0)}
+                                        onBlur={(e) => {
+                                          const value = e.target.value
+                                          if (value && !isNaN(parseFloat(value))) {
+                                            handleSaveTierPrice(product.id, tier, value, editingData?.type || 'fixed')
+                                          } else {
+                                            const newEditing = { ...editingTierPrices }
+                                            if (newEditing[product.id]) {
+                                              delete newEditing[product.id][tier]
+                                              if (Object.keys(newEditing[product.id]).length === 0) {
+                                                delete newEditing[product.id]
+                                              }
+                                            }
+                                            setEditingTierPrices(newEditing)
+                                          }
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.target.blur()
+                                          } else if (e.key === 'Escape') {
+                                            const newEditing = { ...editingTierPrices }
+                                            if (newEditing[product.id]) {
+                                              delete newEditing[product.id][tier]
+                                              if (Object.keys(newEditing[product.id]).length === 0) {
+                                                delete newEditing[product.id]
+                                              }
+                                            }
+                                            setEditingTierPrices(newEditing)
+                                            e.target.blur()
+                                          }
+                                        }}
+                                        autoFocus
+                                        disabled={savingTierPrice === savingKey}
+                                        className="w-full px-1 py-0.5 text-xs bg-blue-500/20 border border-blue-500/50 rounded text-blue-300 font-medium focus:outline-none focus:border-blue-400 disabled:opacity-50"
+                                        placeholder={editingData?.type === 'fixed' ? '0.00' : '0'}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setTierEditPopup({
+                                          show: true,
+                                          productId: product.id,
+                                          tier: tier,
+                                          type: tierType,
+                                          value: tierValue !== undefined ? String(tierValue) : (tierType === 'fixed' ? String(product.price) : '0')
+                                        })
+                                      }}
+                                      disabled={savingTierPrice === savingKey}
+                                      className={`text-xs px-1 py-1 rounded font-medium transition-colors text-left w-full truncate border ${
+                                        tierData 
+                                          ? `${TIERS_COLORS[tier].border} ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].text} hover:opacity-80 cursor-pointer` 
+                                          : 'bg-gray-700/30 border-gray-600/50 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
+                                      } disabled:opacity-50`}
+                                      title={`${TIERS_LABELS[tier]}: ${formatCurrency(displayPrice)} (clique para editar)`}
+                                    >
+                                      {savingTierPrice === savingKey ? '...' : formatCurrency(displayPrice)}
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
                         </td>
                         <td className="p-4">
                           <span className={`font-medium ${product.stock < 0 ? 'text-rose-400 animate-pulse' :
-                              product.stock === 0 ? 'text-red-400' :
-                                product.stock <= 10 ? 'text-amber-400' :
-                                  'text-gray-100'
+                            product.stock === 0 ? 'text-red-400' :
+                              product.stock <= 10 ? 'text-amber-400' :
+                                'text-gray-100'
                             }`}>
                             {product.stock} {product.unit}
                           </span>
@@ -589,6 +1115,14 @@ export default function ProductsPage() {
                           >
                             <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${(product.isPromo || product.is_promo) ? 'right-1' : 'left-1'
                               }`} />
+                          </button>
+                        </td>
+                        <td className="p-4 xl:hidden">
+                          <button
+                            onClick={() => setShowTierModal({ productId: product.id, tier: null })}
+                            className="w-full px-3 py-2 rounded-lg bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/30 transition-colors text-xs font-medium"
+                          >
+                            Níveis
                           </button>
                         </td>
                         <td className="p-4 text-right">
@@ -637,8 +1171,8 @@ export default function ProductsPage() {
                   onClick={savePromoOrder}
                   disabled={!hasOrderChanges || savingOrder}
                   className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${hasOrderChanges && !savingOrder
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                      : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                     }`}
                 >
                   {savingOrder ? (
@@ -679,10 +1213,10 @@ export default function ProductsPage() {
                     onDrop={(e) => handleDrop(e, index)}
                     onDragEnd={handleDragEnd}
                     className={`flex items-center gap-4 p-4 bg-[#0f1419] rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all ${dragState.over === index
-                        ? 'border-orange-500 bg-orange-500/10 scale-[1.02]'
-                        : dragState.dragging === index
-                          ? 'border-orange-300 opacity-40 scale-95'
-                          : 'border-transparent hover:border-[#2d3640]'
+                      ? 'border-orange-500 bg-orange-500/10 scale-[1.02]'
+                      : dragState.dragging === index
+                        ? 'border-orange-300 opacity-40 scale-95'
+                        : 'border-transparent hover:border-[#2d3640]'
                       }`}
                   >
                     {/* Posição */}
@@ -864,6 +1398,736 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação */}
+      {showBulkConfirm && bulkConfirmData && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
+          <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] w-full max-w-lg shadow-2xl">
+            <div className="p-6 border-b border-[#2d3640]">
+              <h3 className="text-xl font-bold text-gray-100">⚠️ Confirmar Alteração</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-gray-300">
+                Deseja aplicar os descontos nos níveis para <span className="font-bold text-emerald-400">{bulkConfirmData.productCount} produto(s)</span>?
+              </p>
+              
+              <div className="bg-[#0f1318] rounded-lg p-4">
+                <p className="text-sm font-medium text-gray-400 mb-3">Descontos por Nível:</p>
+                <div className="flex flex-wrap gap-3">
+                  {Object.entries(bulkConfirmData.tierPercentages).map(([tier, percent]) => {
+                    const TIERS_LABELS = {
+                      'bronze': 'Bronze',
+                      'prata': 'Prata',
+                      'ouro': 'Ouro',
+                      'platina': 'Platina',
+                      'diamante': 'Diamante'
+                    }
+                    const TIERS_COLORS = {
+                      'bronze': 'bg-orange-700/20 text-orange-400 border-orange-700/30',
+                      'prata': 'bg-gray-400/20 text-gray-300 border-gray-400/30',
+                      'ouro': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                      'platina': 'bg-indigo-300/20 text-indigo-200 border-indigo-300/30',
+                      'diamante': 'bg-cyan-400/20 text-cyan-300 border-cyan-400/30'
+                    }
+                    return (
+                      <div key={tier} className={`px-3 py-2 rounded-lg border ${TIERS_COLORS[tier]}`}>
+                        <span className="text-xs font-medium">{TIERS_LABELS[tier]}: </span>
+                        <span className="text-red-400 font-bold">
+                          {percent}%
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-[#0f1318] rounded-lg p-4 max-h-48 overflow-y-auto">
+                <p className="text-sm font-medium text-gray-400 mb-2">Produtos ({bulkConfirmData.productCount}):</p>
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  {bulkConfirmData.productNames}{bulkConfirmData.moreProducts}
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-[#2d3640] flex gap-3">
+              <button
+                onClick={() => {
+                  setShowBulkConfirm(false)
+                  setBulkConfirmData(null)
+                }}
+                className="flex-1 py-3 rounded-lg bg-[#2d3640] text-gray-300 font-medium hover:bg-[#3d4650] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleBulkConfirm}
+                className="flex-1 py-3 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors"
+              >
+                ✅ Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popup de Edição de Nível */}
+      {tierEditPopup.show && (() => {
+        const product = products.find(p => p.id === tierEditPopup.productId)
+        if (!product) return null
+        
+        const TIERS_COLORS = {
+          'bronze': { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
+          'prata': { bg: 'bg-gray-400/10', border: 'border-gray-400/30', text: 'text-gray-300' },
+          'ouro': { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
+          'platina': { bg: 'bg-indigo-300/10', border: 'border-indigo-300/30', text: 'text-indigo-200' },
+          'diamante': { bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', text: 'text-cyan-300' }
+        }
+        const TIERS_LABELS = {
+          'bronze': 'Bronze',
+          'prata': 'Prata',
+          'ouro': 'Ouro',
+          'platina': 'Platina',
+          'diamante': 'Diamante'
+        }
+        const tierColor = TIERS_COLORS[tierEditPopup.tier] || TIERS_COLORS['bronze']
+        const tierLabel = TIERS_LABELS[tierEditPopup.tier] || 'Nível'
+        
+        const handleSave = async () => {
+          if (!tierEditPopup.value || isNaN(parseFloat(tierEditPopup.value))) {
+            alert('⚠️ Digite um valor válido')
+            return
+          }
+          
+          const numValue = parseFloat(tierEditPopup.value)
+          if (tierEditPopup.type === 'percentage' && (numValue < -100 || numValue > 0)) {
+            alert('⚠️ O desconto deve estar entre -100% e 0%')
+            return
+          }
+          
+          await handleSaveTierPrice(tierEditPopup.productId, tierEditPopup.tier, tierEditPopup.value, tierEditPopup.type)
+          setTierEditPopup({ show: false, productId: null, tier: null, type: 'fixed', value: '' })
+        }
+        
+        return (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-4">
+            <div className={`bg-[#1a1f26] rounded-xl border ${tierColor.border} w-full max-w-sm shadow-2xl`}>
+              <div className={`p-4 border-b ${tierColor.border} flex justify-between items-center`}>
+                <div>
+                  <h3 className={`text-lg font-bold ${tierColor.text}`}>👑 {tierLabel}</h3>
+                  <p className="text-xs text-gray-400 mt-1">{product.name}</p>
+                </div>
+                <button 
+                  onClick={() => setTierEditPopup({ show: false, productId: null, tier: null, type: 'fixed', value: '' })}
+                  className="text-gray-400 hover:text-gray-100 text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-2 block">Tipo</label>
+                  <select
+                    value={tierEditPopup.type}
+                    onChange={(e) => setTierEditPopup({ ...tierEditPopup, type: e.target.value, value: e.target.value === 'fixed' ? String(product.price) : '-0' })}
+                    className="w-full px-3 py-2 bg-[#0f1318] border border-[#2d3640] rounded-lg text-gray-300 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="fixed">Valor Fixo (R$)</option>
+                    <option value="percentage">Desconto (%)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-gray-400 mb-2 block">
+                    {tierEditPopup.type === 'fixed' ? 'Valor (R$)' : 'Desconto (%)'}
+                  </label>
+                  <input
+                    type="number"
+                    step={tierEditPopup.type === 'fixed' ? '0.01' : '0.1'}
+                    min={tierEditPopup.type === 'percentage' ? -100 : undefined}
+                    max={tierEditPopup.type === 'percentage' ? 0 : undefined}
+                    value={tierEditPopup.value}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (tierEditPopup.type === 'percentage') {
+                        const numValue = parseFloat(value)
+                        if (value !== '' && value !== '-' && !isNaN(numValue) && (numValue > 0 || numValue < -100)) {
+                          return // Não permite valores inválidos
+                        }
+                      }
+                      setTierEditPopup({ ...tierEditPopup, value: value })
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSave()
+                      } else if (e.key === 'Escape') {
+                        setTierEditPopup({ show: false, productId: null, tier: null, type: 'fixed', value: '' })
+                      }
+                    }}
+                    autoFocus
+                    className={`w-full px-3 py-2 bg-[#0f1318] border ${tierColor.border} rounded-lg ${tierColor.text} font-medium focus:outline-none focus:border-current`}
+                    placeholder={tierEditPopup.type === 'fixed' ? '0.00' : '-0'}
+                  />
+                </div>
+                
+                {tierEditPopup.value && !isNaN(parseFloat(tierEditPopup.value)) && (
+                  <div className={`p-3 rounded-lg ${tierColor.bg} border ${tierColor.border}`}>
+                    <p className="text-xs text-gray-400 mb-1">Preço Final:</p>
+                    <p className={`text-lg font-bold ${tierColor.text}`}>
+                      {tierEditPopup.type === 'fixed' 
+                        ? formatCurrency(parseFloat(tierEditPopup.value))
+                        : formatCurrency(product.price * (1 + (parseFloat(tierEditPopup.value) / 100)))
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-4 border-t border-[#2d3640] flex gap-3">
+                <button
+                  onClick={() => setTierEditPopup({ show: false, productId: null, tier: null, type: 'fixed', value: '' })}
+                  className="flex-1 py-2 rounded-lg bg-[#2d3640] text-gray-300 font-medium hover:bg-[#3d4650] transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={!tierEditPopup.value || isNaN(parseFloat(tierEditPopup.value)) || savingTierPrice === `${tierEditPopup.productId}-${tierEditPopup.tier}`}
+                  className={`flex-1 py-2 rounded-lg ${tierColor.bg} border ${tierColor.border} ${tierColor.text} font-medium hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {savingTierPrice === `${tierEditPopup.productId}-${tierEditPopup.tier}` ? 'Salvando...' : 'OK'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Modal de Níveis (Mobile/Tablet) */}
+      {showTierModal.productId && (() => {
+        const product = products.find(p => p.id === showTierModal.productId)
+        if (!product) return null
+        
+        return (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4 xl:hidden">
+            <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-[#2d3640] flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-100">👑 Preços por Nível</h3>
+                  <p className="text-sm text-gray-400 mt-1">{product.name}</p>
+                </div>
+                <button 
+                  onClick={() => setShowTierModal({ productId: null, tier: null })}
+                  className="text-gray-400 hover:text-gray-100 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-3">
+                {['bronze', 'prata', 'ouro', 'platina', 'diamante'].map(tier => {
+                  const tierPricing = product.tierPricing || product.tier_pricing || {}
+                  const tierData = tierPricing[tier]
+                  const tierType = tierData?.type || 'fixed'
+                  const tierValue = tierData?.value
+                  const isEditing = editingTierPrices[product.id]?.[tier] !== undefined
+                  const editingData = editingTierPrices[product.id]?.[tier]
+                  const savingKey = `${product.id}-${tier}`
+                  
+                  const TIERS_COLORS = {
+                    'bronze': { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
+                    'prata': { bg: 'bg-gray-400/10', border: 'border-gray-400/30', text: 'text-gray-300' },
+                    'ouro': { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
+                    'platina': { bg: 'bg-indigo-300/10', border: 'border-indigo-300/30', text: 'text-indigo-200' },
+                    'diamante': { bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', text: 'text-cyan-300' }
+                  }
+                  const TIERS_LABELS = {
+                    'bronze': 'Bronze',
+                    'prata': 'Prata',
+                    'ouro': 'Ouro',
+                    'platina': 'Platina',
+                    'diamante': 'Diamante'
+                  }
+                  
+                  const getDisplayPrice = () => {
+                    if (!tierData) {
+                      // Se não tem tier customizado, retorna o preço base
+                      return product.price
+                    }
+                    if (tierType === 'fixed') {
+                      // Se é preço fixo, retorna o valor fixo
+                      return tierValue
+                    }
+                    if (tierType === 'percentage') {
+                      // Se é percentual, calcula o desconto (tierValue já é negativo)
+                      const discount = product.price * (Math.abs(tierValue) / 100)
+                      return product.price - discount
+                    }
+                    return product.price
+                  }
+                  
+                  const displayPrice = getDisplayPrice()
+                  
+                  return (
+                    <div key={tier} className={`p-4 rounded-lg border ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].border}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`text-sm font-bold uppercase ${TIERS_COLORS[tier].text}`}>
+                          {TIERS_LABELS[tier]}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          Final: {formatCurrency(displayPrice)}
+                        </span>
+                      </div>
+                      
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <select
+                            value={editingData?.type || 'fixed'}
+                            onChange={(e) => {
+                              setEditingTierPrices({
+                                ...editingTierPrices,
+                                [product.id]: {
+                                  ...(editingTierPrices[product.id] || {}),
+                                  [tier]: {
+                                    type: e.target.value,
+                                    value: editingData?.value !== undefined ? editingData.value : (e.target.value === 'fixed' ? product.price : 0)
+                                  }
+                                }
+                              })
+                            }}
+                            className="w-full px-3 py-2 bg-[#1a1f26] border border-[#2d3640] rounded-lg text-gray-300 focus:outline-none focus:border-blue-400"
+                          >
+                            <option value="fixed">Valor Fixo (R$)</option>
+                            <option value="percentage">Desconto (%)</option>
+                          </select>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              step={editingData?.type === 'fixed' ? '0.01' : '0.1'}
+                              defaultValue={editingData?.value !== undefined ? editingData.value : (editingData?.type === 'fixed' ? product.price : 0)}
+                              onBlur={(e) => {
+                                const value = e.target.value
+                                if (value && !isNaN(parseFloat(value))) {
+                                  handleSaveTierPrice(product.id, tier, value, editingData?.type || 'fixed')
+                                } else {
+                                  const newEditing = { ...editingTierPrices }
+                                  if (newEditing[product.id]) {
+                                    delete newEditing[product.id][tier]
+                                    if (Object.keys(newEditing[product.id]).length === 0) {
+                                      delete newEditing[product.id]
+                                    }
+                                  }
+                                  setEditingTierPrices(newEditing)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.target.blur()
+                                } else if (e.key === 'Escape') {
+                                  const newEditing = { ...editingTierPrices }
+                                  if (newEditing[product.id]) {
+                                    delete newEditing[product.id][tier]
+                                    if (Object.keys(newEditing[product.id]).length === 0) {
+                                      delete newEditing[product.id]
+                                    }
+                                  }
+                                  setEditingTierPrices(newEditing)
+                                  e.target.blur()
+                                }
+                              }}
+                              autoFocus
+                              disabled={savingTierPrice === savingKey}
+                              className="flex-1 px-3 py-2 bg-blue-500/20 border border-blue-500/50 rounded-lg text-blue-300 font-medium focus:outline-none focus:border-blue-400 disabled:opacity-50"
+                              placeholder={editingData?.type === 'fixed' ? '0.00' : '0'}
+                            />
+                            <button
+                              onClick={() => {
+                                const newEditing = { ...editingTierPrices }
+                                if (newEditing[product.id]) {
+                                  delete newEditing[product.id][tier]
+                                  if (Object.keys(newEditing[product.id]).length === 0) {
+                                    delete newEditing[product.id]
+                                  }
+                                }
+                                setEditingTierPrices(newEditing)
+                              }}
+                              className="px-3 py-2 bg-[#2d3640] text-gray-400 rounded-lg hover:bg-[#3d4650] transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setTierEditPopup({
+                              show: true,
+                              productId: product.id,
+                              tier: tier,
+                              type: tierType,
+                              value: tierValue !== undefined ? String(tierValue) : (tierType === 'fixed' ? String(product.price) : '0')
+                            })
+                            setShowTierModal({ productId: null, tier: null })
+                          }}
+                          disabled={savingTierPrice === savingKey}
+                          className={`w-full px-3 py-2 rounded-lg font-medium transition-colors text-left border ${
+                            tierData 
+                              ? `${TIERS_COLORS[tier].border} ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].text} hover:opacity-80 cursor-pointer` 
+                              : 'bg-gray-700/30 border-gray-600/50 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
+                          } disabled:opacity-50`}
+                        >
+                          {savingTierPrice === savingKey ? 'Salvando...' : formatCurrency(displayPrice)}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Modal Edição em Massa */}
+      {showBulkPricing && (
+        <BulkPricingModal
+          products={products}
+          onClose={() => {
+            setShowBulkPricing(false)
+            setSelectedProducts(new Set())
+            setSelectedTiers(new Set())
+            setBulkPercentages({})
+            setBulkSearch('')
+            setBulkCategoryFilter('all')
+          }}
+          onApply={handleBulkApply}
+          selectedProducts={selectedProducts}
+          setSelectedProducts={setSelectedProducts}
+          selectedTiers={selectedTiers}
+          setSelectedTiers={setSelectedTiers}
+          percentages={bulkPercentages}
+          setPercentages={setBulkPercentages}
+          applyToBase={applyToBase}
+          setApplyToBase={setApplyToBase}
+          saving={savingBulk}
+          search={bulkSearch}
+          setSearch={setBulkSearch}
+          categoryFilter={bulkCategoryFilter}
+          setCategoryFilter={setBulkCategoryFilter}
+        />
+      )}
+    </div>
+  )
+}
+
+// Modal de Edição em Massa
+function BulkPricingModal({ products, onClose, onApply, selectedProducts, setSelectedProducts, selectedTiers, setSelectedTiers, percentages, setPercentages, applyToBase, setApplyToBase, saving, search, setSearch, categoryFilter, setCategoryFilter }) {
+  const TIERS = [
+    { id: 'bronze', name: 'Bronze', color: 'bg-orange-700/20 text-orange-400 border-orange-700/30' },
+    { id: 'prata', name: 'Prata', color: 'bg-gray-400/20 text-gray-300 border-gray-400/30' },
+    { id: 'ouro', name: 'Ouro', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+    { id: 'platina', name: 'Platina', color: 'bg-indigo-300/20 text-indigo-200 border-indigo-300/30' },
+    { id: 'diamante', name: 'Diamante', color: 'bg-cyan-400/20 text-cyan-300 border-cyan-400/30' },
+  ]
+
+  const categories = [...new Set(products.map(p => p.category))]
+
+  const toggleProduct = (productId) => {
+    const newSelected = new Set(selectedProducts)
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId)
+    } else {
+      newSelected.add(productId)
+    }
+    setSelectedProducts(newSelected)
+  }
+
+  const toggleTier = (tierId) => {
+    const newSelected = new Set(selectedTiers)
+    if (newSelected.has(tierId)) {
+      newSelected.delete(tierId)
+    } else {
+      newSelected.add(tierId)
+    }
+    setSelectedTiers(newSelected)
+  }
+
+  const selectAllProducts = () => {
+    const filtered = getFilteredProducts()
+    if (selectedProducts.size === filtered.length) {
+      setSelectedProducts(new Set())
+    } else {
+      setSelectedProducts(new Set(filtered.map(p => p.id)))
+    }
+  }
+
+  const selectAllTiers = () => {
+    if (selectedTiers.size === TIERS.length) {
+      setSelectedTiers(new Set())
+    } else {
+      setSelectedTiers(new Set(TIERS.map(t => t.id)))
+    }
+  }
+
+  const getFilteredProducts = () => {
+    return products.filter(p => {
+      const matchesSearch = !search || 
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.category.toLowerCase().includes(search.toLowerCase())
+      const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter
+      return matchesSearch && matchesCategory
+    })
+  }
+
+  const filteredProducts = getFilteredProducts()
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-[#2d3640] flex justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-bold text-gray-100">💰 Edição em Massa de Preços</h3>
+            <p className="text-sm text-gray-400 mt-1">Atualize preços de múltiplos produtos por nível usando desconto</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-100 text-2xl">✕</button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Coluna 1: Seleção de Produtos */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="bg-[#0f1318] rounded-xl border border-[#2d3640] p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-bold text-gray-100">📦 Selecionar Produtos</h4>
+                  <button
+                    onClick={selectAllProducts}
+                    className="text-sm text-emerald-400 hover:text-emerald-300"
+                  >
+                    {selectedProducts.size === filteredProducts.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                  </button>
+                </div>
+
+                {/* Filtros */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Buscar</label>
+                    <input
+                      type="text"
+                      placeholder="Nome ou categoria..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full bg-[#1a1f26] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">📋 Categoria</label>
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="w-full bg-[#1a1f26] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="all">Todas</option>
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Lista de Produtos */}
+                <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-2">
+                  {filteredProducts.length === 0 ? (
+                    <p className="text-gray-400 text-center py-8">Nenhum produto encontrado</p>
+                  ) : (
+                    filteredProducts.map(product => (
+                      <label
+                        key={product.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                          selectedProducts.has(product.id)
+                            ? 'bg-emerald-500/10 border-emerald-500/30'
+                            : 'bg-[#1a1f26] border-[#2d3640] hover:border-[#3d4650]'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedProducts.has(product.id)}
+                          onChange={() => toggleProduct(product.id)}
+                          className="w-5 h-5 rounded border-[#2d3640] bg-[#0f1318] text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-100 font-medium truncate">{product.name}</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-gray-500">{product.category}</span>
+                            <span className="text-xs text-emerald-400 font-medium">
+                              {formatCurrency(product.price)}
+                            </span>
+                            {product.tierPricing && Object.keys(product.tierPricing).length > 0 && (
+                              <span className="text-xs text-yellow-400">
+                                {Object.keys(product.tierPricing).length} nível(is)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Coluna 2: Configuração */}
+            <div className="space-y-4">
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Produtos</p>
+                  <p className="text-2xl font-bold text-blue-400">{selectedProducts.size}</p>
+                </div>
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Níveis</p>
+                  <p className="text-2xl font-bold text-emerald-400">{selectedTiers.size}</p>
+                </div>
+              </div>
+
+              {/* Seleção de Tiers com Percentuais */}
+              <div className="bg-[#0f1318] rounded-xl border border-[#2d3640] p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-bold text-gray-100">👑 Selecionar Níveis e Descontos</h4>
+                  <button
+                    onClick={selectAllTiers}
+                    className="text-sm text-emerald-400 hover:text-emerald-300"
+                  >
+                    {selectedTiers.size === TIERS.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {TIERS.map(tier => (
+                    <div
+                      key={tier.id}
+                      className={`p-3 rounded-lg border transition-all ${
+                        selectedTiers.has(tier.id)
+                          ? `${tier.color} border-current`
+                          : 'bg-[#1a1f26] border-[#2d3640]'
+                      }`}
+                    >
+                      <label className="flex items-center gap-3 cursor-pointer mb-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedTiers.has(tier.id)}
+                          onChange={() => toggleTier(tier.id)}
+                          className="w-5 h-5 rounded border-[#2d3640] bg-[#0f1318] text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <span className="font-medium">{tier.name}</span>
+                      </label>
+                      
+                      {selectedTiers.has(tier.id) && (
+                        <div className="mt-2 ml-8">
+                          <label className="text-xs text-gray-400 mb-1 block">Desconto para {tier.name} (%)</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              step="0.1"
+                              max="0"
+                              min="-100"
+                              value={percentages[tier.id] || ''}
+                              onChange={(e) => {
+                                const newPercentages = { ...percentages }
+                                if (e.target.value === '') {
+                                  delete newPercentages[tier.id]
+                                } else {
+                                  const value = parseFloat(e.target.value)
+                                  if (isNaN(value) || value > 0 || value < -100) {
+                                    return // Não permite valores inválidos
+                                  }
+                                  newPercentages[tier.id] = e.target.value
+                                }
+                                setPercentages(newPercentages)
+                              }}
+                              placeholder="Ex: -5 ou -10"
+                              className="flex-1 bg-[#1a1f26] border border-[#2d3640] rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+                            />
+                            <span className="text-gray-400 text-sm">%</span>
+                          </div>
+                          {percentages[tier.id] && !isNaN(parseFloat(percentages[tier.id])) && (
+                            <p className="text-xs mt-1 ml-0">
+                              <span className="text-red-400">
+                                ↓ Desconto de {Math.abs(parseFloat(percentages[tier.id]))}%
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Configuração */}
+              <div className="bg-[#0f1318] rounded-xl border border-[#2d3640] p-4">
+                <h4 className="text-lg font-bold text-gray-100 mb-4">⚙️ Configuração</h4>
+
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={applyToBase}
+                      onChange={(e) => setApplyToBase(e.target.checked)}
+                      className="w-5 h-5 rounded border-[#2d3640] bg-[#0f1318] text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <span className="text-sm text-gray-300">
+                      Aplicar ao preço base
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1 ml-7">
+                    Se desmarcado, aplica ao preço do tier existente
+                  </p>
+                </div>
+              </div>
+
+              {/* Preview */}
+              {selectedProducts.size > 0 && selectedTiers.size > 0 && Object.keys(percentages).length > 0 && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                  <p className="text-xs text-blue-400 font-medium mb-2">📋 Preview</p>
+                  <p className="text-sm text-gray-300 mb-2">
+                    {selectedProducts.size} produto(s) × {selectedTiers.size} nível(is) = {selectedProducts.size * selectedTiers.size} atualização(ões)
+                  </p>
+                  <div className="space-y-1">
+                    {Array.from(selectedTiers).map(tierId => {
+                      const tier = TIERS.find(t => t.id === tierId)
+                      const percent = percentages[tierId]
+                      if (!tier || !percent) return null
+                      return (
+                        <p key={tierId} className="text-xs text-gray-400">
+                          {tier.name}: {percent}%
+                        </p>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-[#2d3640] flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-lg bg-[#2d3640] text-gray-300 font-medium hover:bg-[#3d4650] transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onApply}
+            disabled={saving || selectedProducts.size === 0 || selectedTiers.size === 0 || Object.keys(percentages).length === 0 || Array.from(selectedTiers).some(tier => !percentages[tier] || isNaN(parseFloat(percentages[tier])))}
+            className="flex-1 py-3 rounded-lg bg-emerald-500 text-white font-bold text-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? '⏳ Aplicando...' : `✅ Aplicar em ${selectedProducts.size} produto(s)`}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -882,6 +2146,13 @@ function ProductModal({ product, onClose, onSave }) {
     isPromo: product?.isPromo || product?.is_promo || false,
     is_active: (product?.is_available ?? product?.is_active) !== false,
     display_order: product?.display_order ?? 0,
+    tierPricing: product?.tierPricing || product?.tier_pricing || {
+      bronze: { type: 'percentage', value: 0 },
+      prata: { type: 'percentage', value: 0 },
+      ouro: { type: 'percentage', value: 0 },
+      platina: { type: 'percentage', value: 0 },
+      diamante: { type: 'percentage', value: 0 },
+    }
   })
   const [saving, setSaving] = useState(false)
   const [imageFile, setImageFile] = useState(null)
@@ -924,7 +2195,11 @@ function ProductModal({ product, onClose, onSave }) {
     formDataToSend.append('min_order', parseInt(formData.minOrder) || 1)
     formDataToSend.append('is_promo', formData.isPromo)
     formDataToSend.append('is_active', formData.is_active)
+    formDataToSend.append('is_active', formData.is_active)
     formDataToSend.append('display_order', parseInt(formData.display_order) || 0)
+
+    // Tier Pricing
+    formDataToSend.append('tier_pricing', JSON.stringify(formData.tierPricing))
 
     // Adicionar imagem (arquivo ou URL)
     if (imageFile) {
@@ -1113,8 +2388,8 @@ function ProductModal({ product, onClose, onSave }) {
               <div
                 onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.is_active
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
+                  ? 'border-emerald-500 bg-emerald-500/10'
+                  : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -1137,8 +2412,8 @@ function ProductModal({ product, onClose, onSave }) {
               <div
                 onClick={() => setFormData({ ...formData, isPromo: !formData.isPromo })}
                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.isPromo
-                    ? 'border-orange-500 bg-orange-500/10'
-                    : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
+                  ? 'border-orange-500 bg-orange-500/10'
+                  : 'border-[#2d3640] bg-[#0f1419] hover:border-gray-500'
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -1173,6 +2448,83 @@ function ProductModal({ product, onClose, onSave }) {
                 <p className="text-xs text-gray-500 mt-1">Menor número aparece primeiro no carrossel</p>
               </div>
             )}
+
+            {/* Tier Pricing Configuration */}
+            <div className="md:col-span-2 pt-4 border-t border-[#2d3640]">
+              <h4 className="text-lg font-bold text-gray-100 mb-4 flex items-center gap-2">
+                💎 Precificação por Nível
+              </h4>
+              <div className="grid grid-cols-1 gap-4">
+                {['bronze', 'prata', 'ouro', 'platina', 'diamante'].map((tier) => (
+                  <div key={tier} className="flex items-center gap-4 bg-[#0f1419] p-3 rounded-lg border border-[#2d3640]">
+                    <div className="w-24">
+                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider
+                        ${tier === 'bronze' ? 'bg-orange-700/20 text-orange-400' :
+                          tier === 'prata' ? 'bg-gray-400/20 text-gray-300' :
+                            tier === 'ouro' ? 'bg-yellow-500/20 text-yellow-400' :
+                              tier === 'platina' ? 'bg-indigo-300/20 text-indigo-200' :
+                                'bg-cyan-400/20 text-cyan-300'}`}>
+                        {tier}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <select
+                        value={formData.tierPricing?.[tier]?.type || 'percentage'}
+                        onChange={(e) => {
+                          const newPricing = { ...formData.tierPricing }
+                          if (!newPricing[tier]) newPricing[tier] = { type: 'percentage', value: 0 }
+                          newPricing[tier] = { ...newPricing[tier], type: e.target.value }
+                          setFormData({ ...formData, tierPricing: newPricing })
+                        }}
+                        className="bg-[#1a1f26] border border-[#2d3640] rounded px-3 py-1 text-sm text-gray-300 focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="percentage">Desconto (%)</option>
+                        <option value="fixed">Preço Fixo (R$)</option>
+                      </select>
+
+                      <input
+                        type="number"
+                        step={formData.tierPricing?.[tier]?.type === 'fixed' ? '0.01' : '0.1'}
+                        min={formData.tierPricing?.[tier]?.type === 'percentage' ? -100 : undefined}
+                        max={formData.tierPricing?.[tier]?.type === 'percentage' ? 0 : undefined}
+                        value={formData.tierPricing?.[tier]?.value || (formData.tierPricing?.[tier]?.type === 'percentage' ? -0 : 0)}
+                        onChange={(e) => {
+                          const newPricing = { ...formData.tierPricing }
+                          if (!newPricing[tier]) newPricing[tier] = { type: 'percentage', value: -0 }
+                          const value = parseFloat(e.target.value) || (newPricing[tier].type === 'percentage' ? -0 : 0)
+                          if (newPricing[tier].type === 'percentage' && (value > 0 || value < -100)) {
+                            return // Não permite valores inválidos
+                          }
+                          newPricing[tier] = { ...newPricing[tier], value: value }
+                          setFormData({ ...formData, tierPricing: newPricing })
+                        }}
+                        className="bg-[#1a1f26] border border-[#2d3640] rounded px-3 py-1 text-sm text-gray-100 focus:outline-none focus:border-emerald-500"
+                        placeholder={formData.tierPricing?.[tier]?.type === 'percentage' ? '-0' : '0.00'}
+                      />
+                    </div>
+
+                    <div className="text-right w-32 text-xs text-gray-500">
+                      {formData.tierPricing?.[tier]?.type === 'percentage' && formData.tierPricing?.[tier]?.value > 0 ? (
+                        <>
+                          Final: <span className="text-emerald-400 font-bold">
+                            {formatCurrency(formData.price * (1 - (formData.tierPricing[tier].value / 100)))}
+                          </span>
+                        </>
+                      ) : formData.tierPricing?.[tier]?.type === 'fixed' && formData.tierPricing?.[tier]?.value > 0 ? (
+                        <>
+                          Final: <span className="text-emerald-400 font-bold">
+                            {formatCurrency(formData.tierPricing[tier].value)}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Preço Base</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-[#2d3640]">
