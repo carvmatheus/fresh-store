@@ -33,7 +33,7 @@ export default function Header({ cartItemsCount, cart, onUpdateQuantity, onRemov
         <div className="flex items-center gap-2 sm:gap-4">
           {user ? (
             <div className="flex items-center gap-2">
-              {user.role === "admin" && (
+              {(user.role === "admin" || user.role === "god") && (
                 <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
                   <Link href="/admin/orders">
                     <Settings className="h-4 w-4 mr-2" />

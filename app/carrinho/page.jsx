@@ -95,7 +95,7 @@ export default function CarrinhoPage() {
     }
     
     // Verificar aprovação
-    if (currentUser.role !== 'admin' && currentUser.role !== 'consultor') {
+    if (currentUser.role !== 'admin' && currentUser.role !== 'god' && currentUser.role !== 'consultor') {
       if (currentUser.approval_status === 'pending' || currentUser.approval_status === 'suspended') {
         router.replace('/')
         return

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { api } from "@/lib/api-client"
+import { getCurrentUser } from "@/lib/auth"
 
 function formatCurrency(value) {
   if (!value) return 'R$ 0,00'
@@ -26,6 +27,7 @@ function formatDateTime(dateStr) {
 
 function getRoleIcon(role) {
   switch (role) {
+    case 'god': return '⚡'
     case 'admin': return '👑'
     case 'consultor': return '🎯'
     default: return '👤'
@@ -34,6 +36,7 @@ function getRoleIcon(role) {
 
 function getRoleLabel(role) {
   switch (role) {
+    case 'god': return 'GOD'
     case 'admin': return 'Administrador'
     case 'consultor': return 'Consultor'
     default: return 'Cliente'
@@ -107,8 +110,15 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState(null)
   const [editingUser, setEditingUser] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [viewingPassword, setViewingPassword] = useState(null)
+  const [editingPassword, setEditingPassword] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [passwordHash, setPasswordHash] = useState('')
+  const [isGod, setIsGod] = useState(false)
 
   useEffect(() => {
+    const currentUser = getCurrentUser()
+    setIsGod(currentUser?.role === 'god')
     loadUsers()
   }, [])
 
@@ -159,6 +169,42 @@ export default function UsersPage() {
       alert('✅ Usuário reativado')
     } catch (error) {
       alert('❌ Erro: ' + error.message)
+    }
+  }
+
+  const handleViewPassword = async (user) => {
+    try {
+      const data = await api.getUserPassword(user.id)
+      setPasswordHash(data.hashed_password)
+      setViewingPassword(user)
+    } catch (error) {
+      alert('❌ Erro ao obter senha: ' + error.message)
+    }
+  }
+
+  const handleEditPassword = (user) => {
+    setEditingPassword(user)
+    setNewPassword('')
+  }
+
+  const handleSavePassword = async () => {
+    if (!editingPassword || !newPassword) {
+      alert('⚠️ Digite a nova senha')
+      return
+    }
+    if (newPassword.length < 6) {
+      alert('⚠️ A senha deve ter pelo menos 6 caracteres')
+      return
+    }
+    if (!confirm('Deseja realmente alterar a senha deste usuário?')) return
+    
+    try {
+      await api.updateUserPassword(editingPassword.id, newPassword)
+      setEditingPassword(null)
+      setNewPassword('')
+      alert('✅ Senha atualizada com sucesso!')
+    } catch (error) {
+      alert('❌ Erro ao atualizar senha: ' + error.message)
     }
   }
 
@@ -365,7 +411,8 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${user.role === 'admin' ? 'bg-purple-500/20 text-purple-400' :
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${user.role === 'god' ? 'bg-yellow-500/20 text-yellow-400' :
+                        user.role === 'admin' ? 'bg-purple-500/20 text-purple-400' :
                         user.role === 'consultor' ? 'bg-blue-500/20 text-blue-400' :
                           'bg-gray-500/20 text-gray-400'
                         }`}>
@@ -411,6 +458,15 @@ export default function UsersPage() {
                         >
                           👁️
                         </button>
+                        {isGod && (
+                          <button
+                            onClick={() => handleViewPassword(user)}
+                            className="p-2 rounded-lg hover:bg-yellow-500/20 transition-colors"
+                            title="Ver senha"
+                          >
+                            🔑
+                          </button>
+                        )}
                         <button
                           onClick={() => { setEditingUser({ ...user }); setSelectedUser(null) }}
                           className="p-2 rounded-lg hover:bg-[#2d3640] transition-colors"
@@ -418,6 +474,15 @@ export default function UsersPage() {
                         >
                           ✏️
                         </button>
+                        {isGod && (
+                          <button
+                            onClick={() => handleEditPassword(user)}
+                            className="p-2 rounded-lg hover:bg-yellow-500/20 transition-colors"
+                            title="Editar senha"
+                          >
+                            🔐
+                          </button>
+                        )}
                         {user.approval_status === 'approved' ? (
                           <button
                             onClick={() => handleSuspendUser(user.id)}
@@ -767,6 +832,93 @@ export default function UsersPage() {
                 className="flex-1 py-3 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50"
               >
                 {saving ? 'Salvando...' : '✅ Salvar Alterações'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Visualizar Senha */}
+      {viewingPassword && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] w-full max-w-lg">
+            <div className="p-6 border-b border-[#2d3640] flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-gray-100">🔑 Senha do Usuário</h3>
+                <p className="text-sm text-gray-400 mt-1">{viewingPassword.name} ({viewingPassword.email})</p>
+              </div>
+              <button onClick={() => { setViewingPassword(null); setPasswordHash('') }} className="text-gray-400 hover:text-gray-100 text-2xl">✕</button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <p className="text-xs text-yellow-400 mb-2">⚠️ Esta é a senha criptografada (hash). Não é possível descriptografar.</p>
+              </div>
+              
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Senha Criptografada (Hash)</label>
+                <div className="bg-[#0f1318] border border-[#2d3640] rounded-lg p-4">
+                  <code className="text-xs text-gray-300 break-all font-mono">{passwordHash || 'Carregando...'}</code>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-[#2d3640]">
+              <button
+                onClick={() => { setViewingPassword(null); setPasswordHash('') }}
+                className="w-full py-3 rounded-lg bg-[#2d3640] text-gray-300 font-medium hover:bg-[#3d4650] transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Senha */}
+      {editingPassword && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] w-full max-w-lg">
+            <div className="p-6 border-b border-[#2d3640] flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-gray-100">🔐 Alterar Senha</h3>
+                <p className="text-sm text-gray-400 mt-1">{editingPassword.name} ({editingPassword.email})</p>
+              </div>
+              <button onClick={() => { setEditingPassword(null); setNewPassword('') }} className="text-gray-400 hover:text-gray-100 text-2xl">✕</button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <p className="text-xs text-red-400 mb-2">⚠️ ATENÇÃO: Esta ação alterará a senha do usuário permanentemente!</p>
+              </div>
+              
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Nova Senha</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Digite a nova senha (mínimo 6 caracteres)"
+                  className="w-full bg-[#0f1318] border border-[#2d3640] rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-emerald-500"
+                  autoFocus
+                />
+                <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-[#2d3640] flex gap-3">
+              <button
+                onClick={() => { setEditingPassword(null); setNewPassword('') }}
+                className="flex-1 py-3 rounded-lg bg-[#2d3640] text-gray-300 font-medium hover:bg-[#3d4650] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSavePassword}
+                disabled={!newPassword || newPassword.length < 6}
+                className="flex-1 py-3 rounded-lg bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                🔐 Alterar Senha
               </button>
             </div>
           </div>
