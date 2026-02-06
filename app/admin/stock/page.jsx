@@ -33,7 +33,7 @@ export default function StockPage() {
 
   const loadProducts = async () => {
     try {
-      const data = await api.getProducts()
+      const data = await api.getProducts({ activeOnly: false })
       setProducts(data || [])
     } catch (error) {
       console.error('Erro ao carregar produtos:', error)
@@ -245,7 +245,7 @@ export default function StockPage() {
                 <th className="w-[10%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Categoria</th>
                 <th className="w-[8%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Preço</th>
                 <th className="w-[10%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Estoque</th>
-                <th className="w-[17%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">📥 Entrada</th>
+                <th className="w-[17%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Entrada</th>
                 <th className="w-[10%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Disponível</th>
                 <th className="w-[10%] text-center p-4 text-gray-400 font-semibold text-xs uppercase">Status</th>
               </tr>

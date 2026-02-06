@@ -45,7 +45,7 @@ export default function ProductsPage() {
   const [editingBasePrice, setEditingBasePrice] = useState({}) // { productId: value }
   const [editingPromoPrice, setEditingPromoPrice] = useState({}) // { productId: value }
   const [savingPrice, setSavingPrice] = useState(null) // 'productId-base' ou 'productId-promo'
-  
+
   // Estados para edição em massa
   const [showBulkPricing, setShowBulkPricing] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState(new Set())
@@ -65,7 +65,7 @@ export default function ProductsPage() {
 
   const loadProducts = async () => {
     try {
-      const data = await api.getProducts()
+      const data = await api.getProducts({ activeOnly: false })
       setProducts(data)
     } catch (error) {
       console.error('Erro ao carregar produtos:', error)
@@ -103,7 +103,7 @@ export default function ProductsPage() {
 
   // Abrir popup para definir preço promocional
   const handleTogglePromo = (product) => {
-    const isCurrentlyPromo = product.isPromo || product.is_promo
+    const isCurrentlyPromo = product.isPromo
 
     if (isCurrentlyPromo) {
       // Desativar promoção
@@ -154,12 +154,11 @@ export default function ProductsPage() {
       }
 
       // Manter disponibilidade
-      formData.append('is_active', product.is_active !== false ? 'true' : 'false')
+      formData.append('is_active', product.isActive !== false ? 'true' : 'false')
 
       // SEMPRE enviar is_promo, seja true ou false
       formData.append('is_promo', isPromo ? 'true' : 'false')
 
-      // Preço promocional (só se ativar promoção)
       if (isPromo && promoPrice) {
         formData.append('promo_price', String(promoPrice))
       }
@@ -184,55 +183,19 @@ export default function ProductsPage() {
   }
 
   const handleToggleAvailable = async (product) => {
-    // Backend usa is_active para disponibilidade
-    const currentValue = product.is_active !== false
-    const newValue = !currentValue
+    // Implementação simplificada igual à página de Estoque
+    const newValue = !product.isActive
 
-    // Atualização otimista imediata
+    // Atualização otimista
     setProducts(prev => prev.map(p =>
-      p.id === product.id ? { ...p, is_available: newValue, is_active: newValue } : p
+      p.id === product.id ? { ...p, isActive: newValue } : p
     ))
 
     try {
-      // Envia todos os campos do produto
-      const formData = new FormData()
-      formData.append('name', product.name)
-      formData.append('category', product.category)
-      formData.append('price', String(product.price))
-      formData.append('unit', product.unit)
-      formData.append('min_order', String(product.min_order || product.minOrder || 1))
-      formData.append('stock', String(product.stock))
-      formData.append('description', product.description || '')
-
-      // SEMPRE enviar is_active
-      formData.append('is_active', newValue ? 'true' : 'false')
-
-      // Importante: manter a imagem
-      if (product.image_url) {
-        formData.append('image_url', product.image_url)
-      }
-      if (product.cloudinary_public_id) {
-        formData.append('cloudinary_public_id', product.cloudinary_public_id)
-      }
-
-      // SEMPRE enviar is_promo (não apenas quando for true)
-      formData.append('is_promo', product.is_promo ? 'true' : 'false')
-      if (product.is_promo && product.promo_price) {
-        formData.append('promo_price', String(product.promo_price))
-      }
-
-      // Manter display_order
-      if (product.display_order !== undefined) {
-        formData.append('display_order', String(product.display_order))
-      }
-
-      console.log('📤 Salvando disponibilidade:', product.name, 'is_active:', newValue)
-
-      const response = await api.updateProduct(product.id, formData)
-      console.log('✅ Disponibilidade atualizada:', response)
-
-      // Recarregar para confirmar que salvou
-      await loadProducts()
+      // Usa o método específico de disponibilidade
+      console.log('📤 Salvando disponibilidade:', product.name, 'isActive:', newValue)
+      await api.updateProductAvailability(product.id, newValue)
+      console.log('✅ Disponibilidade atualizada')
     } catch (error) {
       console.error('❌ Erro ao atualizar disponibilidade:', error)
       alert('Erro ao salvar: ' + error.message)
@@ -248,13 +211,12 @@ export default function ProductsPage() {
       const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter
 
       // Filtro de disponibilidade
-      const isAvailable = p.is_active !== false
       const matchesAvailability = availabilityFilter === 'all' ||
-        (availabilityFilter === 'available' && isAvailable) ||
-        (availabilityFilter === 'unavailable' && !isAvailable)
+        (availabilityFilter === 'available' && p.isActive) ||
+        (availabilityFilter === 'unavailable' && !p.isActive)
 
       // Filtro de promoção
-      const isPromo = p.isPromo || p.is_promo
+      const isPromo = p.isPromo
       const matchesPromo = promoFilter === 'all' ||
         (promoFilter === 'promo' && isPromo) ||
         (promoFilter === 'not-promo' && !isPromo)
@@ -289,10 +251,10 @@ export default function ProductsPage() {
 
   const filteredProducts = getFilteredProducts()
 
-  // Produtos em promoção ordenados (backend usa display_order)
+  // Produtos em promoção ordenados
   const promoProducts = products
-    .filter(p => p.isPromo || p.is_promo)
-    .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999))
+    .filter(p => p.isPromo)
+    .sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999))
 
   // Inicializar lista de ordenação quando mudar para a view de promo-order
   useEffect(() => {
@@ -393,9 +355,8 @@ export default function ProductsPage() {
     }
 
     setSavingTierPrice(`${productId}-${tier}`)
-    
+
     try {
-      const currentTierPricing = product.tierPricing || product.tier_pricing || {}
       const newTierPricing = {
         ...currentTierPricing,
         [tier]: {
@@ -412,10 +373,10 @@ export default function ProductsPage() {
       formData.append('min_order', String(product.min_order || product.minOrder || 1))
       formData.append('stock', String(product.stock))
       formData.append('description', product.description || '')
-      formData.append('is_active', product.is_active !== false ? 'true' : 'false')
-      formData.append('is_promo', product.is_promo ? 'true' : 'false')
-      if (product.is_promo && product.promo_price) {
-        formData.append('promo_price', String(product.promo_price))
+      formData.append('is_active', product.isActive !== false ? 'true' : 'false')
+      formData.append('is_promo', product.isPromo ? 'true' : 'false')
+      if (product.isPromo && product.promoPrice) {
+        formData.append('promo_price', String(product.promoPrice))
       }
       if (product.display_order !== undefined) {
         formData.append('display_order', String(product.display_order))
@@ -429,7 +390,7 @@ export default function ProductsPage() {
       formData.append('tier_pricing', JSON.stringify(newTierPricing))
 
       await api.updateProduct(productId, formData, true)
-      
+
       // Limpar edição
       const newEditing = { ...editingTierPrices }
       if (newEditing[productId]) {
@@ -439,7 +400,7 @@ export default function ProductsPage() {
         }
       }
       setEditingTierPrices(newEditing)
-      
+
       await loadProducts()
     } catch (error) {
       console.error('Erro ao salvar preço de tier:', error)
@@ -461,34 +422,34 @@ export default function ProductsPage() {
     }
 
     setSavingPrice(`${productId}-${type}`)
-    
+
     try {
       const formData = new FormData()
       formData.append('name', product.name)
       formData.append('category', product.category)
-      
+
       if (type === 'base') {
         formData.append('price', String(numValue))
       } else {
         formData.append('price', String(product.price))
       }
-      
+
       formData.append('unit', product.unit)
       formData.append('min_order', String(product.min_order || product.minOrder || 1))
       formData.append('stock', String(product.stock))
       formData.append('description', product.description || '')
-      formData.append('is_active', product.is_active !== false ? 'true' : 'false')
-      
+      formData.append('is_active', product.isActive !== false ? 'true' : 'false')
+
       if (type === 'promo') {
         formData.append('is_promo', 'true')
         formData.append('promo_price', String(numValue))
       } else {
-        formData.append('is_promo', product.is_promo ? 'true' : 'false')
-        if (product.is_promo && product.promo_price) {
-          formData.append('promo_price', String(product.promo_price))
+        formData.append('is_promo', product.isPromo ? 'true' : 'false')
+        if (product.isPromo && product.promoPrice) {
+          formData.append('promo_price', String(product.promoPrice))
         }
       }
-      
+
       if (product.display_order !== undefined) {
         formData.append('display_order', String(product.display_order))
       }
@@ -498,12 +459,12 @@ export default function ProductsPage() {
       if (product.cloudinary_public_id) {
         formData.append('cloudinary_public_id', product.cloudinary_public_id)
       }
-      if (product.tierPricing || product.tier_pricing) {
-        formData.append('tier_pricing', JSON.stringify(product.tierPricing || product.tier_pricing))
+      if (product.tierPricing) {
+        formData.append('tier_pricing', JSON.stringify(product.tierPricing))
       }
 
       await api.updateProduct(productId, formData, true)
-      
+
       // Limpar edição
       if (type === 'base') {
         const newEditing = { ...editingBasePrice }
@@ -514,7 +475,7 @@ export default function ProductsPage() {
         delete newEditing[productId]
         setEditingPromoPrice(newEditing)
       }
-      
+
       await loadProducts()
     } catch (error) {
       console.error('Erro ao salvar preço:', error)
@@ -565,7 +526,7 @@ export default function ProductsPage() {
 
   const getBulkFilteredProducts = () => {
     return products.filter(p => {
-      const matchesSearch = !bulkSearch || 
+      const matchesSearch = !bulkSearch ||
         p.name.toLowerCase().includes(bulkSearch.toLowerCase()) ||
         p.category.toLowerCase().includes(bulkSearch.toLowerCase())
       const matchesCategory = bulkCategoryFilter === 'all' || p.category === bulkCategoryFilter
@@ -605,7 +566,7 @@ export default function ProductsPage() {
       .slice(0, 15)
       .join(', ')
     const moreProducts = selectedProducts.size > 15 ? ` e mais ${selectedProducts.size - 15}` : ''
-    
+
     const TIERS_LABELS = {
       'bronze': 'Bronze',
       'prata': 'Prata',
@@ -641,13 +602,13 @@ export default function ProductsPage() {
       })
 
       alert(`✅ ${response.message}\n\n${response.updated_count} produtos atualizados com sucesso!`)
-      
+
       // Limpar seleções
       setSelectedProducts(new Set())
       setSelectedTiers(new Set())
       setBulkPercentages({})
       setShowBulkPricing(false)
-      
+
       // Recarregar produtos
       await loadProducts()
     } catch (error) {
@@ -904,9 +865,9 @@ export default function ProductsPage() {
                                 {savingPrice === `${product.id}-base` ? '...' : formatCurrency(product.price)}
                               </p>
                             )}
-                            
+
                             {/* Preço Promoção */}
-                            {(product.isPromo || product.is_promo) && (product.promoPrice || product.promo_price) && (
+                            {(product.isPromo) && (product.promoPrice) && (
                               editingPromoPrice[product.id] !== undefined ? (
                                 <input
                                   type="number"
@@ -957,7 +918,7 @@ export default function ProductsPage() {
                               const isEditing = editingTierPrices[product.id]?.[tier] !== undefined
                               const editingData = editingTierPrices[product.id]?.[tier]
                               const savingKey = `${product.id}-${tier}`
-                              
+
                               const TIERS_COLORS = {
                                 'bronze': { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
                                 'prata': { bg: 'bg-gray-400/10', border: 'border-gray-400/30', text: 'text-gray-300' },
@@ -972,7 +933,7 @@ export default function ProductsPage() {
                                 'platina': 'Platina',
                                 'diamante': 'Diamante'
                               }
-                              
+
                               // Calcular preço final para exibição - sempre mostra o preço calculado do nível
                               const getDisplayPrice = () => {
                                 if (!tierData) {
@@ -990,9 +951,9 @@ export default function ProductsPage() {
                                 }
                                 return product.price
                               }
-                              
+
                               const displayPrice = getDisplayPrice()
-                              
+
                               return (
                                 <div key={tier} className={`flex flex-col gap-1 p-1.5 rounded border ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].border} min-w-0 overflow-hidden`}>
                                   <span className={`text-[10px] font-bold uppercase ${TIERS_COLORS[tier].text} truncate text-center`}>
@@ -1071,11 +1032,10 @@ export default function ProductsPage() {
                                         })
                                       }}
                                       disabled={savingTierPrice === savingKey}
-                                      className={`text-xs px-1 py-1 rounded font-medium transition-colors text-left w-full truncate border ${
-                                        tierData 
-                                          ? `${TIERS_COLORS[tier].border} ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].text} hover:opacity-80 cursor-pointer` 
-                                          : 'bg-gray-700/30 border-gray-600/50 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
-                                      } disabled:opacity-50`}
+                                      className={`text-xs px-1 py-1 rounded font-medium transition-colors text-left w-full truncate border ${tierData
+                                        ? `${TIERS_COLORS[tier].border} ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].text} hover:opacity-80 cursor-pointer`
+                                        : 'bg-gray-700/30 border-gray-600/50 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
+                                        } disabled:opacity-50`}
                                       title={`${TIERS_LABELS[tier]}: ${formatCurrency(displayPrice)} (clique para editar)`}
                                     >
                                       {savingTierPrice === savingKey ? '...' : formatCurrency(displayPrice)}
@@ -1099,10 +1059,10 @@ export default function ProductsPage() {
                         <td className="p-4 text-center">
                           <button
                             onClick={() => handleToggleAvailable(product)}
-                            className={`w-12 h-6 rounded-full relative transition-colors ${(product.is_available ?? product.is_active) !== false ? 'bg-emerald-500' : 'bg-gray-600'
+                            className={`w-12 h-6 rounded-full relative transition-colors ${product.isActive !== false ? 'bg-emerald-500' : 'bg-gray-600'
                               }`}
                           >
-                            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${(product.is_available ?? product.is_active) !== false ? 'right-1' : 'left-1'
+                            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${product.isActive !== false ? 'right-1' : 'left-1'
                               }`} />
                           </button>
                         </td>
@@ -1110,10 +1070,10 @@ export default function ProductsPage() {
                         <td className="p-4 text-center">
                           <button
                             onClick={() => handleTogglePromo(product)}
-                            className={`w-12 h-6 rounded-full relative transition-colors ${(product.isPromo || product.is_promo) ? 'bg-orange-500' : 'bg-gray-600'
+                            className={`w-12 h-6 rounded-full relative transition-colors ${product.isPromo ? 'bg-orange-500' : 'bg-gray-600'
                               }`}
                           >
-                            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${(product.isPromo || product.is_promo) ? 'right-1' : 'left-1'
+                            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${product.isPromo ? 'right-1' : 'left-1'
                               }`} />
                           </button>
                         </td>
@@ -1410,7 +1370,7 @@ export default function ProductsPage() {
               <p className="text-gray-300">
                 Deseja aplicar os descontos nos níveis para <span className="font-bold text-emerald-400">{bulkConfirmData.productCount} produto(s)</span>?
               </p>
-              
+
               <div className="bg-[#0f1318] rounded-lg p-4">
                 <p className="text-sm font-medium text-gray-400 mb-3">Descontos por Nível:</p>
                 <div className="flex flex-wrap gap-3">
@@ -1473,7 +1433,7 @@ export default function ProductsPage() {
       {tierEditPopup.show && (() => {
         const product = products.find(p => p.id === tierEditPopup.productId)
         if (!product) return null
-        
+
         const TIERS_COLORS = {
           'bronze': { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
           'prata': { bg: 'bg-gray-400/10', border: 'border-gray-400/30', text: 'text-gray-300' },
@@ -1490,23 +1450,23 @@ export default function ProductsPage() {
         }
         const tierColor = TIERS_COLORS[tierEditPopup.tier] || TIERS_COLORS['bronze']
         const tierLabel = TIERS_LABELS[tierEditPopup.tier] || 'Nível'
-        
+
         const handleSave = async () => {
           if (!tierEditPopup.value || isNaN(parseFloat(tierEditPopup.value))) {
             alert('⚠️ Digite um valor válido')
             return
           }
-          
+
           const numValue = parseFloat(tierEditPopup.value)
           if (tierEditPopup.type === 'percentage' && (numValue < -100 || numValue > 0)) {
             alert('⚠️ O desconto deve estar entre -100% e 0%')
             return
           }
-          
+
           await handleSaveTierPrice(tierEditPopup.productId, tierEditPopup.tier, tierEditPopup.value, tierEditPopup.type)
           setTierEditPopup({ show: false, productId: null, tier: null, type: 'fixed', value: '' })
         }
-        
+
         return (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-4">
             <div className={`bg-[#1a1f26] rounded-xl border ${tierColor.border} w-full max-w-sm shadow-2xl`}>
@@ -1515,14 +1475,14 @@ export default function ProductsPage() {
                   <h3 className={`text-lg font-bold ${tierColor.text}`}>👑 {tierLabel}</h3>
                   <p className="text-xs text-gray-400 mt-1">{product.name}</p>
                 </div>
-                <button 
+                <button
                   onClick={() => setTierEditPopup({ show: false, productId: null, tier: null, type: 'fixed', value: '' })}
                   className="text-gray-400 hover:text-gray-100 text-xl"
                 >
                   ✕
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-4">
                 <div>
                   <label className="text-xs text-gray-400 mb-2 block">Tipo</label>
@@ -1535,7 +1495,7 @@ export default function ProductsPage() {
                     <option value="percentage">Desconto (%)</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="text-xs text-gray-400 mb-2 block">
                     {tierEditPopup.type === 'fixed' ? 'Valor (R$)' : 'Desconto (%)'}
@@ -1568,12 +1528,12 @@ export default function ProductsPage() {
                     placeholder={tierEditPopup.type === 'fixed' ? '0.00' : '-0'}
                   />
                 </div>
-                
+
                 {tierEditPopup.value && !isNaN(parseFloat(tierEditPopup.value)) && (
                   <div className={`p-3 rounded-lg ${tierColor.bg} border ${tierColor.border}`}>
                     <p className="text-xs text-gray-400 mb-1">Preço Final:</p>
                     <p className={`text-lg font-bold ${tierColor.text}`}>
-                      {tierEditPopup.type === 'fixed' 
+                      {tierEditPopup.type === 'fixed'
                         ? formatCurrency(parseFloat(tierEditPopup.value))
                         : formatCurrency(product.price * (1 + (parseFloat(tierEditPopup.value) / 100)))
                       }
@@ -1581,7 +1541,7 @@ export default function ProductsPage() {
                   </div>
                 )}
               </div>
-              
+
               <div className="p-4 border-t border-[#2d3640] flex gap-3">
                 <button
                   onClick={() => setTierEditPopup({ show: false, productId: null, tier: null, type: 'fixed', value: '' })}
@@ -1606,7 +1566,7 @@ export default function ProductsPage() {
       {showTierModal.productId && (() => {
         const product = products.find(p => p.id === showTierModal.productId)
         if (!product) return null
-        
+
         return (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4 xl:hidden">
             <div className="bg-[#1a1f26] rounded-xl border border-[#2d3640] w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -1615,14 +1575,14 @@ export default function ProductsPage() {
                   <h3 className="text-xl font-bold text-gray-100">👑 Preços por Nível</h3>
                   <p className="text-sm text-gray-400 mt-1">{product.name}</p>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowTierModal({ productId: null, tier: null })}
                   className="text-gray-400 hover:text-gray-100 text-2xl"
                 >
                   ✕
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-3">
                 {['bronze', 'prata', 'ouro', 'platina', 'diamante'].map(tier => {
                   const tierPricing = product.tierPricing || product.tier_pricing || {}
@@ -1632,7 +1592,7 @@ export default function ProductsPage() {
                   const isEditing = editingTierPrices[product.id]?.[tier] !== undefined
                   const editingData = editingTierPrices[product.id]?.[tier]
                   const savingKey = `${product.id}-${tier}`
-                  
+
                   const TIERS_COLORS = {
                     'bronze': { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
                     'prata': { bg: 'bg-gray-400/10', border: 'border-gray-400/30', text: 'text-gray-300' },
@@ -1647,7 +1607,7 @@ export default function ProductsPage() {
                     'platina': 'Platina',
                     'diamante': 'Diamante'
                   }
-                  
+
                   const getDisplayPrice = () => {
                     if (!tierData) {
                       // Se não tem tier customizado, retorna o preço base
@@ -1664,9 +1624,9 @@ export default function ProductsPage() {
                     }
                     return product.price
                   }
-                  
+
                   const displayPrice = getDisplayPrice()
-                  
+
                   return (
                     <div key={tier} className={`p-4 rounded-lg border ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].border}`}>
                       <div className="flex items-center justify-between mb-3">
@@ -1677,7 +1637,7 @@ export default function ProductsPage() {
                           Final: {formatCurrency(displayPrice)}
                         </span>
                       </div>
-                      
+
                       {isEditing ? (
                         <div className="space-y-2">
                           <select
@@ -1769,11 +1729,10 @@ export default function ProductsPage() {
                             setShowTierModal({ productId: null, tier: null })
                           }}
                           disabled={savingTierPrice === savingKey}
-                          className={`w-full px-3 py-2 rounded-lg font-medium transition-colors text-left border ${
-                            tierData 
-                              ? `${TIERS_COLORS[tier].border} ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].text} hover:opacity-80 cursor-pointer` 
-                              : 'bg-gray-700/30 border-gray-600/50 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
-                          } disabled:opacity-50`}
+                          className={`w-full px-3 py-2 rounded-lg font-medium transition-colors text-left border ${tierData
+                            ? `${TIERS_COLORS[tier].border} ${TIERS_COLORS[tier].bg} ${TIERS_COLORS[tier].text} hover:opacity-80 cursor-pointer`
+                            : 'bg-gray-700/30 border-gray-600/50 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
+                            } disabled:opacity-50`}
                         >
                           {savingTierPrice === savingKey ? 'Salvando...' : formatCurrency(displayPrice)}
                         </button>
@@ -1870,7 +1829,7 @@ function BulkPricingModal({ products, onClose, onApply, selectedProducts, setSel
 
   const getFilteredProducts = () => {
     return products.filter(p => {
-      const matchesSearch = !search || 
+      const matchesSearch = !search ||
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.category.toLowerCase().includes(search.toLowerCase())
       const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter
@@ -1943,11 +1902,10 @@ function BulkPricingModal({ products, onClose, onApply, selectedProducts, setSel
                     filteredProducts.map(product => (
                       <label
                         key={product.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                          selectedProducts.has(product.id)
-                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : 'bg-[#1a1f26] border-[#2d3640] hover:border-[#3d4650]'
-                        }`}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedProducts.has(product.id)
+                          ? 'bg-emerald-500/10 border-emerald-500/30'
+                          : 'bg-[#1a1f26] border-[#2d3640] hover:border-[#3d4650]'
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -2006,11 +1964,10 @@ function BulkPricingModal({ products, onClose, onApply, selectedProducts, setSel
                   {TIERS.map(tier => (
                     <div
                       key={tier.id}
-                      className={`p-3 rounded-lg border transition-all ${
-                        selectedTiers.has(tier.id)
-                          ? `${tier.color} border-current`
-                          : 'bg-[#1a1f26] border-[#2d3640]'
-                      }`}
+                      className={`p-3 rounded-lg border transition-all ${selectedTiers.has(tier.id)
+                        ? `${tier.color} border-current`
+                        : 'bg-[#1a1f26] border-[#2d3640]'
+                        }`}
                     >
                       <label className="flex items-center gap-3 cursor-pointer mb-2">
                         <input
@@ -2021,7 +1978,7 @@ function BulkPricingModal({ products, onClose, onApply, selectedProducts, setSel
                         />
                         <span className="font-medium">{tier.name}</span>
                       </label>
-                      
+
                       {selectedTiers.has(tier.id) && (
                         <div className="mt-2 ml-8">
                           <label className="text-xs text-gray-400 mb-1 block">Desconto para {tier.name} (%)</label>

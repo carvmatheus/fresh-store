@@ -200,7 +200,7 @@ class ApiClient {
         if (response.status === 500) {
           throw new Error('Erro interno do servidor. Por favor, tente novamente mais tarde.');
         }
-        
+
         throw new Error(`Erro ${response.status}: ${response.statusText || 'Erro desconhecido'}`);
       }
 
@@ -332,6 +332,7 @@ class ApiClient {
     search?: string;
     skip?: number;
     limit?: number;
+    activeOnly?: boolean;
   } = {}): Promise<Product[]> {
     const params = new URLSearchParams();
 
@@ -342,14 +343,25 @@ class ApiClient {
     // Sempre buscar todos os produtos (limite alto) para evitar paginação
     const limit = filters.limit ?? 500;
     params.append('limit', String(limit));
-    params.append('active_only', 'false');
+
+    // Tratamento explícito do activeOnly
+    // Se activeOnly for undefined ou true, envia 'true'. Se for false, envia 'false'
+    const activeOnly = filters.activeOnly !== false;
+    params.append('active_only', activeOnly ? 'true' : 'false');
     const queryString = params.toString();
     const endpoint = `/products?${queryString}`;
 
     const productsData = await this.request<any[]>(endpoint);
 
     // Normalizar dados do PostgreSQL
-    return productsData.map(p => ({
+    return productsData.map(p => this.normalizeProduct(p));
+  }
+
+  /**
+   * Helper para normalizar produto vindo da API
+   */
+  private normalizeProduct(p: any): Product {
+    return {
       id: String(p.id),
       name: p.name,
       category: p.category,
@@ -364,12 +376,13 @@ class ApiClient {
       tierPricing: p.tier_pricing,
       finalPrice: p.final_price ? parseFloat(p.final_price) : undefined,
       displayOrder: p.display_order || 0,
-      isActive: p.is_active !== false
-    }));
+      isActive: p.is_active !== false // Garante que isActive seja mapeado corretamente de is_active
+    };
   }
 
   async getProduct(id: string): Promise<Product> {
-    return await this.request<Product>(`/products/${id}`);
+    const p = await this.request<any>(`/products/${id}`);
+    return this.normalizeProduct(p);
   }
 
   async createProduct(productData: FormData | Partial<Product>): Promise<Product> {
@@ -377,10 +390,11 @@ class ApiClient {
       ? productData
       : JSON.stringify(productData);
 
-    return await this.request<Product>('/products', {
+    const p = await this.request<any>('/products', {
       method: 'POST',
       body: body as BodyInit
     });
+    return this.normalizeProduct(p);
   }
 
   async updateProduct(id: string, productData: FormData | Partial<Product>): Promise<Product> {
@@ -388,28 +402,31 @@ class ApiClient {
       ? productData
       : JSON.stringify(productData);
 
-    return await this.request<Product>(`/products/${id}`, {
+    const p = await this.request<any>(`/products/${id}`, {
       method: 'PUT',
       body: body as BodyInit
     });
+    return this.normalizeProduct(p);
   }
 
   async updateProductStock(id: string, stock: number): Promise<Product> {
     const formData = new FormData();
     formData.append('stock', stock.toString());
-    return await this.request<Product>(`/products/${id}`, {
+    const p = await this.request<any>(`/products/${id}`, {
       method: 'PUT',
       body: formData
     });
+    return this.normalizeProduct(p);
   }
 
   async updateProductAvailability(id: string, isActive: boolean): Promise<Product> {
     const formData = new FormData();
     formData.append('is_active', isActive.toString());
-    return await this.request<Product>(`/products/${id}`, {
+    const p = await this.request<any>(`/products/${id}`, {
       method: 'PUT',
       body: formData
     });
+    return this.normalizeProduct(p);
   }
 
   async deleteProduct(id: string): Promise<void> {
@@ -427,10 +444,11 @@ class ApiClient {
     const formData = new FormData();
     formData.append('tier_pricing', JSON.stringify(tierPricing));
 
-    return await this.request<Product>(`/products/${id}`, {
+    const p = await this.request<any>(`/products/${id}`, {
       method: 'PUT',
       body: formData
     });
+    return this.normalizeProduct(p);
   }
 
   async getCategories(): Promise<string[]> {
