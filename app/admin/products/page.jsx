@@ -2194,8 +2194,7 @@ function ProductModal({ product, onClose, onSave }) {
     formDataToSend.append('category', formData.category)
     formDataToSend.append('min_order', parseInt(formData.minOrder) || 1)
     formDataToSend.append('is_promo', formData.isPromo)
-    formDataToSend.append('is_active', formData.is_active)
-    formDataToSend.append('is_active', formData.is_active)
+    formDataToSend.append('is_active', formData.is_active ? 'true' : 'false')
     formDataToSend.append('display_order', parseInt(formData.display_order) || 0)
 
     // Tier Pricing
