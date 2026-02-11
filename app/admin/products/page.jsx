@@ -2146,10 +2146,10 @@ function ProductModal({ product, onClose, onSave }) {
     if (formData.promoPrice) {
       formDataToSend.append('promo_price', parseFloat(formData.promoPrice))
     }
-    formDataToSend.append('stock', parseInt(formData.stock) || 0)
+    formDataToSend.append('stock', parseFloat(formData.stock) || 0)
     formDataToSend.append('unit', formData.unit)
     formDataToSend.append('category', formData.category)
-    formDataToSend.append('min_order', parseInt(formData.minOrder) || 1)
+    formDataToSend.append('min_order', parseFloat(formData.minOrder) || 1)
     formDataToSend.append('is_promo', formData.isPromo)
     formDataToSend.append('is_active', formData.is_active ? 'true' : 'false')
     formDataToSend.append('display_order', parseInt(formData.display_order) || 0)
@@ -2290,6 +2290,7 @@ function ProductModal({ product, onClose, onSave }) {
               <label className="block text-sm font-medium text-gray-400 mb-1">Estoque *</label>
               <input
                 type="number"
+                step="any"
                 value={formData.stock}
                 onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                 className="w-full bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"
@@ -2331,7 +2332,8 @@ function ProductModal({ product, onClose, onSave }) {
               <label className="block text-sm font-medium text-gray-400 mb-1">Pedido Mínimo</label>
               <input
                 type="number"
-                min="1"
+                step="any"
+                min="0.1"
                 value={formData.minOrder}
                 onChange={(e) => setFormData({ ...formData, minOrder: e.target.value })}
                 className="w-full bg-[#0f1419] border border-[#2d3640] rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-emerald-500"

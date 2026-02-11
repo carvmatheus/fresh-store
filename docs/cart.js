@@ -180,9 +180,9 @@ function renderCartItems() {
       </div>
       <div class="cart-item-controls">
         <div class="quantity-control">
-          <button class="qty-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
+          <button class="qty-btn" onclick="updateQuantity('${item.id}', -${item.minOrder || 1})">-</button>
           <span class="qty-display">${item.quantity}</span>
-          <button class="qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+          <button class="qty-btn" onclick="updateQuantity('${item.id}', ${item.minOrder || 1})">+</button>
         </div>
         <p class="item-total ${hasPromo ? 'promo-total' : ''}">
           ${hasPromo ? `<s class="original-total">R$ ${(item.price * item.quantity).toFixed(2)}</s><br>` : ''}

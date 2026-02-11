@@ -1136,10 +1136,11 @@
                             </div>
                             <div class="item-bottom">
                                 <div class="quantity-selector">
-                                    <button class="qty-btn" onclick="updateQty('${item.id}', -1)">−</button>
-                                    <input type="number" 
-                                           class="qty-input" 
-                                           value="${item.quantity}" 
+                                    <button class="qty-btn" onclick="updateQty('${item.id}', -${item.minOrder || 1})">−</button>
+                                    <input type="number"
+                                           step="any"
+                                           class="qty-input"
+                                           value="${item.quantity}"
                                            min="${item.minOrder || 1}"
                                            data-product-id="${item.id}"
                                            data-min-order="${item.minOrder || 1}"
@@ -1147,7 +1148,7 @@
                                            data-product-unit="${item.unit || 'un'}"
                                            onchange="validateQtyInput(this)"
                                            onkeypress="if(event.key==='Enter'){this.blur();}">
-                                    <button class="qty-btn" onclick="updateQty('${item.id}', 1)">+</button>
+                                    <button class="qty-btn" onclick="updateQty('${item.id}', ${item.minOrder || 1})">+</button>
                                 </div>
                                 <div class="item-total-price ${hasPromo ? 'promo-total' : ''}">
                                     ${hasPromo ? `<s class="original-total">${formatCurrency(item.price * item.quantity)}</s><br>` : ''}
@@ -1221,10 +1222,10 @@
         // Validar quantidade digitada no input
         function validateQtyInput(input) {
             const productId = input.dataset.productId;
-            const minOrder = parseInt(input.dataset.minOrder) || 1;
+            const minOrder = parseFloat(input.dataset.minOrder) || 1;
             const productName = input.dataset.productName || 'Produto';
             const productUnit = input.dataset.productUnit || 'un';
-            let newQty = parseInt(input.value) || minOrder;
+            let newQty = parseFloat(input.value) || minOrder;
             
             const item = cart.find(i => String(i.id) === String(productId));
             if (!item) return;

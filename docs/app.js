@@ -802,8 +802,8 @@ function removeFromCart(productId) {
 // Validar e atualizar quantidade digitada
 function validateAndUpdateQuantity(input) {
   const productId = input.dataset.productId;
-  const minOrder = parseInt(input.dataset.minOrder) || 1;
-  let newQty = parseInt(input.value) || minOrder;
+  const minOrder = parseFloat(input.dataset.minOrder) || 1;
+  let newQty = parseFloat(input.value) || minOrder;
   
   const normalizedId = String(productId);
   const item = cart.find(i => String(i.id) === normalizedId);
@@ -885,16 +885,17 @@ function updateCartUI() {
           </div>
           <div class="cart-item-controls">
             <div class="cart-item-quantity">
-              <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', -1)">−</button>
-              <input type="number" 
-                     class="cart-item-qty-input" 
-                     value="${item.quantity}" 
+              <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', -${item.minOrder || 1})">−</button>
+              <input type="number"
+                     step="any"
+                     class="cart-item-qty-input"
+                     value="${item.quantity}"
                      min="${item.minOrder || 1}"
                      data-product-id="${item.id}"
                      data-min-order="${item.minOrder || 1}"
                      onchange="validateAndUpdateQuantity(this)"
                      onkeypress="if(event.key==='Enter'){this.blur();}">
-              <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+              <button class="cart-qty-btn" onclick="updateQuantity('${item.id}', ${item.minOrder || 1})">+</button>
             </div>
             <button class="cart-item-remove" onclick="removeFromCart('${item.id}')" title="Remover">🗑️</button>
           </div>

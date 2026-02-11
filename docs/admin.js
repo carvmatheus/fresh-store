@@ -406,8 +406,8 @@ async function saveProduct() {
   formData.append('category', document.getElementById('productCategory').value);
   formData.append('price', parseFloat(document.getElementById('productPrice').value));
   formData.append('unit', document.getElementById('productUnit').value);
-  formData.append('min_order', parseInt(document.getElementById('productMinOrder').value) || 1);
-  formData.append('stock', parseInt(document.getElementById('productStock').value));
+  formData.append('min_order', parseFloat(document.getElementById('productMinOrder').value) || 1);
+  formData.append('stock', parseFloat(document.getElementById('productStock').value));
   formData.append('description', document.getElementById('productDescription').value || '');
   
   // Adicionar imagem: arquivo tem prioridade sobre URL

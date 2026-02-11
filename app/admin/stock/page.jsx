@@ -44,7 +44,7 @@ export default function StockPage() {
 
   const handleUpdateStock = async (productId, newStock) => {
     // Permite estoque negativo
-    const newStockValue = parseInt(newStock) || 0
+    const newStockValue = parseFloat(newStock) || 0
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStockValue } : p))
     setEditingStock(null)
     setStockValue('')
@@ -74,7 +74,7 @@ export default function StockPage() {
   }
 
   const handleSaveEntry = (productId) => {
-    const value = parseInt(entryValue) || 0
+    const value = parseFloat(entryValue) || 0
     if (value > 0) {
       setPendingEntries(prev => {
         const updated = { ...prev, [productId]: (prev[productId] || 0) + value }
@@ -297,6 +297,7 @@ export default function StockPage() {
                             <div className="flex items-center gap-1">
                               <input
                                 type="number"
+                                step="any"
                                 value={stockValue}
                                 onChange={(e) => setStockValue(e.target.value)}
                                 className="w-16 h-8 bg-[#0f1419] border border-emerald-500 rounded text-center text-gray-100 text-sm focus:outline-none"
@@ -326,6 +327,7 @@ export default function StockPage() {
                             <>
                               <input
                                 type="number"
+                                step="any"
                                 placeholder="Qtd"
                                 value={entryValue}
                                 onChange={(e) => setEntryValue(e.target.value)}
@@ -427,6 +429,7 @@ export default function StockPage() {
                       {isEditingStock ? (
                         <input
                           type="number"
+                          step="any"
                           value={stockValue}
                           onChange={(e) => setStockValue(e.target.value)}
                           className="w-16 h-8 bg-[#1a1f26] border border-emerald-500 rounded text-center text-gray-100 focus:outline-none"
@@ -446,6 +449,7 @@ export default function StockPage() {
                         <div className="flex items-center justify-center gap-1">
                           <input
                             type="number"
+                            step="any"
                             value={entryValue}
                             onChange={(e) => setEntryValue(e.target.value)}
                             className="w-12 h-8 bg-[#1a1f26] border border-purple-500 rounded text-center text-gray-100 text-sm focus:outline-none"

@@ -37,14 +37,14 @@ function CartItem({ item, onUpdateQuantity, onRemoveItem, isWarned = false }) {
   }, [item.quantity, isFocused])
 
   const handleInputChange = (e) => {
-    // Permitir apenas números
-    const value = e.target.value.replace(/\D/g, '')
+    // Permitir números e ponto decimal
+    const value = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
     setInputValue(value)
   }
 
   const handleInputBlur = () => {
     // Ao sair do input, aplicar a mudança usando valor absoluto
-    const newQty = parseInt(inputValue) || minOrder
+    const newQty = parseFloat(inputValue) || minOrder
     const finalQty = Math.max(minOrder, newQty)
     setInputValue(String(finalQty))
     
@@ -100,16 +100,16 @@ function CartItem({ item, onUpdateQuantity, onRemoveItem, isWarned = false }) {
         </div>
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1">
-            <button 
-              onClick={() => onUpdateQuantity(item.id, -1)}
+            <button
+              onClick={() => onUpdateQuantity(item.id, -minOrder)}
               className="w-7 h-7 rounded-full bg-white text-gray-700 font-semibold flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all"
             >
               −
             </button>
             <input
               type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="decimal"
+              pattern="[0-9]*\.?[0-9]*"
               value={inputValue}
               onChange={handleInputChange}
               onBlur={() => {
@@ -123,8 +123,8 @@ function CartItem({ item, onUpdateQuantity, onRemoveItem, isWarned = false }) {
               }}
               className="w-12 text-center font-semibold text-sm border border-gray-200 rounded-md py-1 focus:outline-none focus:border-emerald-500"
             />
-            <button 
-              onClick={() => onUpdateQuantity(item.id, 1)}
+            <button
+              onClick={() => onUpdateQuantity(item.id, minOrder)}
               className="w-7 h-7 rounded-full bg-white text-gray-700 font-semibold flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all"
             >
               +
