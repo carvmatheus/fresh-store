@@ -879,7 +879,8 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
   // Produtos do pedido
   const [orderItems, setOrderItems] = useState([])
   const [searchProduct, setSearchProduct] = useState('')
-  
+  const [productQuantities, setProductQuantities] = useState({}) // qty digitada por produto
+
   // Notas
   const [notes, setNotes] = useState('')
 
@@ -940,11 +941,13 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
   }
 
   const handleAddProduct = (product) => {
+    const inputQty = parseFloat(productQuantities[product.id])
+    const qty = inputQty > 0 ? inputQty : (product.min_order || 1)
     const existing = orderItems.find(i => i.product_id === product.id)
     if (existing) {
-      setOrderItems(prev => prev.map(i => 
-        i.product_id === product.id 
-          ? { ...i, quantity: i.quantity + (product.min_order || 1) }
+      setOrderItems(prev => prev.map(i =>
+        i.product_id === product.id
+          ? { ...i, quantity: i.quantity + qty }
           : i
       ))
     } else {
@@ -952,9 +955,10 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
         product_id: product.id,
         name: product.name,
         price: product.isPromo && product.promoPrice ? product.promoPrice : product.price,
-        quantity: product.min_order || 1,
+        quantity: qty,
         unit: product.unit,
-        stock: product.stock
+        stock: product.stock,
+        minOrder: product.min_order || 1
       }])
     }
   }
@@ -1361,10 +1365,9 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
                 {filteredProducts.map(product => (
-                  <button
+                  <div
                     key={product.id}
-                    onClick={() => handleAddProduct(product)}
-                    className="flex items-center gap-3 p-3 bg-[#0f1419] border border-[#2d3640] rounded-lg text-left hover:border-emerald-500 transition-colors"
+                    className="flex items-center gap-3 p-3 bg-[#0f1419] border border-[#2d3640] rounded-lg hover:border-emerald-500 transition-colors"
                   >
                     <div className="w-12 h-12 rounded bg-gray-700 flex-shrink-0 overflow-hidden">
                       {product.image && <img src={product.image} alt="" className="w-full h-full object-cover" />}
@@ -1373,8 +1376,25 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                       <p className="font-medium text-gray-100 truncate">{product.name}</p>
                       <p className="text-sm text-emerald-400">{formatCurrency(product.isPromo && product.promoPrice ? product.promoPrice : product.price)}/{product.unit}</p>
                     </div>
-                    <span className="text-xl">➕</span>
-                  </button>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={productQuantities[product.id] ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+                        setProductQuantities(prev => ({ ...prev, [product.id]: v }))
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      placeholder={String(product.min_order || 1)}
+                      className="w-14 text-center text-sm font-bold bg-[#1a1f26] border border-[#2d3640] rounded-md py-1.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500"
+                    />
+                    <button
+                      onClick={() => handleAddProduct(product)}
+                      className="text-xl hover:scale-110 transition-transform"
+                    >
+                      ➕
+                    </button>
+                  </div>
                 ))}
               </div>
 
@@ -1394,9 +1414,28 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                           )}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <button onClick={() => handleUpdateQty(item.product_id, item.quantity - 1)} className="w-8 h-8 rounded bg-gray-700 text-gray-100 hover:bg-gray-600">−</button>
-                          <span className="w-12 text-center font-bold text-gray-100">{item.quantity}</span>
-                          <button onClick={() => handleUpdateQty(item.product_id, item.quantity + 1)} className="w-8 h-8 rounded bg-gray-700 text-gray-100 hover:bg-gray-600">+</button>
+                          <button onClick={() => handleUpdateQty(item.product_id, Math.max(0, item.quantity - (item.minOrder || 1)))} className="w-8 h-8 rounded bg-gray-700 text-gray-100 hover:bg-gray-600">−</button>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+                              const num = parseFloat(v)
+                              if (v === '' || v === '.') {
+                                handleUpdateQty(item.product_id, 0)
+                              } else if (!isNaN(num)) {
+                                handleUpdateQty(item.product_id, num)
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const num = parseFloat(e.target.value)
+                              if (!num || num <= 0) handleUpdateQty(item.product_id, 0)
+                            }}
+                            onFocus={(e) => e.target.select()}
+                            className="w-14 text-center font-bold text-sm bg-[#1a1f26] border border-[#2d3640] rounded-md py-1 text-gray-100 focus:outline-none focus:border-emerald-500"
+                          />
+                          <button onClick={() => handleUpdateQty(item.product_id, item.quantity + (item.minOrder || 1))} className="w-8 h-8 rounded bg-gray-700 text-gray-100 hover:bg-gray-600">+</button>
                           <button onClick={() => handleUpdateQty(item.product_id, 0)} className="ml-2 text-red-400 hover:text-red-300">🗑️</button>
                         </div>
                       </div>
@@ -1553,7 +1592,7 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
                 <div className="space-y-2">
                   {orderItems.map(item => (
                     <div key={item.product_id} className="flex justify-between text-sm">
-                      <span className="text-gray-300">{item.quantity}x {item.name}</span>
+                      <span className="text-gray-300">{item.quantity} {item.unit || 'un'} - {item.name}</span>
                       <span className="text-emerald-400">{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   ))}
