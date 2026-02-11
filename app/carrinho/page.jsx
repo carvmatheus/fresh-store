@@ -39,14 +39,14 @@ function QuantityInput({ item, onValidate }) {
   }, [item.quantity, isFocused])
 
   const handleChange = (e) => {
-    // Permitir apenas números
-    const value = e.target.value.replace(/\D/g, '')
+    // Permitir números e ponto decimal
+    const value = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
     setInputValue(value)
   }
 
   const handleBlur = () => {
     setIsFocused(false)
-    const newQty = parseInt(inputValue) || minOrder
+    const newQty = parseFloat(inputValue) || minOrder
     onValidate(item.id, newQty)
   }
 
@@ -59,8 +59,8 @@ function QuantityInput({ item, onValidate }) {
   return (
     <input
       type="text"
-      inputMode="numeric"
-      pattern="[0-9]*"
+      inputMode="decimal"
+      pattern="[0-9]*\.?[0-9]*"
       value={inputValue}
       onChange={handleChange}
       onBlur={handleBlur}
@@ -84,6 +84,22 @@ export default function CarrinhoPage() {
   const [cep, setCep] = useState('')
   const [shippingCalculated, setShippingCalculated] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState({})
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [orderSuccess, setOrderSuccess] = useState(null)
+  const [checkoutForm, setCheckoutForm] = useState({
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zipcode: '',
+    name: '',
+    email: '',
+    phone: '',
+    notes: ''
+  })
 
   // Verificar autenticação
   useEffect(() => {
@@ -241,6 +257,83 @@ export default function CarrinhoPage() {
       toast.classList.remove('show')
       setTimeout(() => toast.remove(), 400)
     }, 2500)
+  }
+
+  // Abrir checkout e pré-preencher dados do usuário
+  const openCheckout = () => {
+    const user = getCurrentUser()
+    if (user) {
+      setCheckoutForm(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        street: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        zipcode: user.cep || cep.replace('-', '') || ''
+      }))
+    }
+    setShowCheckout(true)
+  }
+
+  // Enviar pedido
+  const handleCheckout = async (e) => {
+    e.preventDefault()
+
+    // Validar campos obrigatórios
+    const required = ['street', 'number', 'neighborhood', 'city', 'state', 'zipcode', 'name', 'email', 'phone']
+    const missing = required.filter(f => !checkoutForm[f]?.trim())
+    if (missing.length > 0) {
+      showToast('Preencha todos os campos obrigatórios', '⚠️')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const orderData = {
+        items: cart.map(item => ({
+          product_id: String(item.id),
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit || 'un',
+          price: getEffectivePrice(item),
+          image: item.image || null
+        })),
+        shipping_address: {
+          street: checkoutForm.street,
+          number: checkoutForm.number,
+          complement: checkoutForm.complement || null,
+          neighborhood: checkoutForm.neighborhood,
+          city: checkoutForm.city,
+          state: checkoutForm.state,
+          zipcode: checkoutForm.zipcode.replace(/\D/g, '')
+        },
+        contact_info: {
+          name: checkoutForm.name,
+          email: checkoutForm.email,
+          phone: checkoutForm.phone
+        },
+        delivery_fee: shippingCalculated ? 15 : 0,
+        notes: checkoutForm.notes || undefined
+      }
+
+      const order = await api.createOrder(orderData)
+
+      // Limpar carrinho
+      setCart([])
+      await api.clearCart().catch(() => {})
+      const user = getCurrentUser()
+      if (user) localStorage.removeItem(`user_cart_${user.id}`)
+
+      setOrderSuccess(order)
+      setShowCheckout(false)
+    } catch (error) {
+      console.error('Erro ao criar pedido:', error)
+      showToast(error.message || 'Erro ao criar pedido', '❌')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   // Formatar CEP
@@ -485,18 +578,18 @@ export default function CarrinhoPage() {
 
                         {/* Controles de quantidade */}
                         <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1 w-fit mt-3">
-                          <button 
-                            onClick={() => updateQuantity(item.id, -1)}
+                          <button
+                            onClick={() => updateQuantity(item.id, -(item.minOrder || 1))}
                             className="w-8 h-8 rounded-full bg-white text-gray-700 font-semibold flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
                           >
                             −
                           </button>
-                          <QuantityInput 
+                          <QuantityInput
                             item={item}
                             onValidate={validateQuantityInput}
                           />
-                          <button 
-                            onClick={() => updateQuantity(item.id, 1)}
+                          <button
+                            onClick={() => updateQuantity(item.id, item.minOrder || 1)}
                             className="w-8 h-8 rounded-full bg-white text-gray-700 font-semibold flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
                           >
                             +
@@ -596,8 +689,8 @@ export default function CarrinhoPage() {
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => alert('Funcionalidade de checkout em desenvolvimento!')}
+                <button
+                  onClick={openCheckout}
                   className="w-full py-4 mt-6 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-lg transition-all"
                 >
                   💳 Finalizar Compra
@@ -639,6 +732,191 @@ export default function CarrinhoPage() {
           </div>
         </div>
       </main>
+
+      {/* Tela de Sucesso */}
+      {orderSuccess && (
+        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 text-center shadow-2xl">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Pedido Realizado!</h2>
+            <p className="text-gray-600 mb-1">
+              Número do pedido: <strong className="text-emerald-600">{orderSuccess.order_number}</strong>
+            </p>
+            <p className="text-gray-500 text-sm mb-6">
+              Total: <strong>{formatCurrency(orderSuccess.total)}</strong>
+            </p>
+            <div className="flex flex-col gap-3">
+              <Link
+                href="/"
+                className="py-3 px-6 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-all"
+              >
+                Continuar Comprando
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Checkout */}
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl my-8">
+            <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4 rounded-t-2xl flex justify-between items-center">
+              <h2 className="text-lg font-bold">📋 Dados do Pedido</h2>
+              <button onClick={() => setShowCheckout(false)} className="text-white/80 hover:text-white text-2xl">✕</button>
+            </div>
+
+            <form onSubmit={handleCheckout} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+              {/* Contato */}
+              <div>
+                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">👤 Contato</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Nome completo *"
+                    value={checkoutForm.name}
+                    onChange={e => setCheckoutForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="email"
+                      placeholder="E-mail *"
+                      value={checkoutForm.email}
+                      onChange={e => setCheckoutForm(f => ({ ...f, email: e.target.value }))}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Telefone *"
+                      value={checkoutForm.phone}
+                      onChange={e => setCheckoutForm(f => ({ ...f, phone: e.target.value }))}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Endereço */}
+              <div>
+                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">📍 Endereço de Entrega</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-[1fr_100px] gap-3">
+                    <input
+                      type="text"
+                      placeholder="Rua / Avenida *"
+                      value={checkoutForm.street}
+                      onChange={e => setCheckoutForm(f => ({ ...f, street: e.target.value }))}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nº *"
+                      value={checkoutForm.number}
+                      onChange={e => setCheckoutForm(f => ({ ...f, number: e.target.value }))}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Complemento"
+                      value={checkoutForm.complement}
+                      onChange={e => setCheckoutForm(f => ({ ...f, complement: e.target.value }))}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Bairro *"
+                      value={checkoutForm.neighborhood}
+                      onChange={e => setCheckoutForm(f => ({ ...f, neighborhood: e.target.value }))}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-[1fr_80px_120px] gap-3">
+                    <input
+                      type="text"
+                      placeholder="Cidade *"
+                      value={checkoutForm.city}
+                      onChange={e => setCheckoutForm(f => ({ ...f, city: e.target.value }))}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="UF *"
+                      maxLength={2}
+                      value={checkoutForm.state}
+                      onChange={e => setCheckoutForm(f => ({ ...f, state: e.target.value.toUpperCase() }))}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="CEP *"
+                      maxLength={9}
+                      value={checkoutForm.zipcode}
+                      onChange={e => {
+                        let v = e.target.value.replace(/\D/g, '')
+                        if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5, 8)
+                        setCheckoutForm(f => ({ ...f, zipcode: v }))
+                      }}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Observações */}
+              <div>
+                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">📝 Observações</h3>
+                <textarea
+                  placeholder="Informações adicionais sobre o pedido (opcional)"
+                  value={checkoutForm.notes}
+                  onChange={e => setCheckoutForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={3}
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 resize-none"
+                />
+              </div>
+
+              {/* Resumo */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>{cart.length} produto(s)</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Frete</span>
+                  <span>{shippingCalculated ? 'R$ 15,00' : 'Grátis'}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold text-gray-900 border-t pt-2">
+                  <span>Total</span>
+                  <span className="text-emerald-500">{formatCurrency(subtotal + (shippingCalculated ? 15 : 0))}</span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              >
+                {submitting ? (
+                  <>⏳ Enviando pedido...</>
+                ) : (
+                  <>✅ Confirmar Pedido</>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
