@@ -8,6 +8,21 @@ function formatCurrency(value) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+function getClientName(order) {
+  // Para pedidos criados pelo admin, extrair nome do "Contato:" nas notes
+  if (order.notes?.includes('Pedido criado manualmente via painel admin')) {
+    const match = order.notes.match(/^Contato:\s*(.+)$/m)
+    if (match) return match[1].trim()
+  }
+  // Pedidos da plataforma: usar dados do user normalmente
+  return order.user?.company_name || order.user?.name || order.user?.razao_social || order.user?.email || order.customer_name || 'Cliente não identificado'
+}
+
+function getCreatedBy(order) {
+  const match = order.notes?.match(/^Criado por:\s*(.+)$/m)
+  return match ? match[1].trim() : null
+}
+
 const statusOptions = [
   { value: 'pendente', label: 'Pendente', color: 'amber', bg: 'bg-amber-500/20', text: 'text-amber-400' },
   { value: 'confirmado', label: 'Confirmado', color: 'blue', bg: 'bg-blue-500/20', text: 'text-blue-400' },
@@ -160,12 +175,12 @@ export default function OrdersPage() {
           <div class="client-grid">
             <div class="client-field">
               <span class="field-label">Razão Social/Nome:</span>
-              <span class="field-value">${order.user?.company_name || order.user?.razao_social || order.user?.name || 'Cliente'}</span>
+              <span class="field-value">${getClientName(order)}</span>
             </div>
-            ${order.user?.name && order.user?.company_name && order.user?.name !== order.user?.company_name ? `
+            ${getCreatedBy(order) ? `
             <div class="client-field">
               <span class="field-label">Responsável:</span>
-              <span class="field-value">${order.user.name}</span>
+              <span class="field-value">${getCreatedBy(order)}</span>
             </div>
             ` : ''}
           </div>
@@ -645,10 +660,10 @@ export default function OrdersPage() {
                         </h3>
                         <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
                         <p className="text-base font-semibold text-emerald-400 mt-1">
-                          👤 {order.user?.company_name || order.user?.name || order.user?.razao_social || order.user?.email || order.customer_name || 'Cliente não identificado'}
+                          👤 {getClientName(order)}
                         </p>
-                        {order.user?.company_name && order.user?.name && order.user?.company_name !== order.user?.name && (
-                          <p className="text-sm text-gray-400">{order.user?.name}</p>
+                        {getCreatedBy(order) && (
+                          <p className="text-sm text-gray-400">Resp: {getCreatedBy(order)}</p>
                         )}
                       </div>
                     </div>
@@ -767,9 +782,9 @@ export default function OrdersPage() {
                       {/* Cliente */}
                       <div className="bg-[#1a1f26] rounded-lg p-4">
                         <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase">Cliente</h4>
-                        <p className="font-medium text-gray-100">{order.user?.name || order.user?.company_name || '-'}</p>
-                        {order.user?.company_name && order.user?.company_name !== order.user?.name && (
-                          <p className="text-sm text-gray-400">{order.user.company_name}</p>
+                        <p className="font-medium text-gray-100">{getClientName(order)}</p>
+                        {getCreatedBy(order) && (
+                          <p className="text-sm text-gray-400">Responsável: {getCreatedBy(order)}</p>
                         )}
                               </div>
 
