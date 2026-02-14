@@ -509,6 +509,7 @@ class ApiClient {
     };
     delivery_fee: number;
     notes?: string;
+    user_id?: string;
   }): Promise<Order> {
     return await this.request<Order>('/orders', {
       method: 'POST',

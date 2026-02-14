@@ -644,12 +644,12 @@ export default function OrdersPage() {
                           {formatOrderNumber(order)}
                         </h3>
                         <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
-                        <p className="text-sm text-gray-400 mt-1">
-                          👤 {order.user?.company_name || order.user?.name || order.user?.razao_social || order.user?.email || order.customer_name || 'Cliente não identificado'} 
-                          {order.user?.company_name && order.user?.name && order.user?.company_name !== order.user?.name && (
-                            <span className="text-gray-500"> • {order.user?.name}</span>
-                          )}
+                        <p className="text-base font-semibold text-emerald-400 mt-1">
+                          👤 {order.user?.company_name || order.user?.name || order.user?.razao_social || order.user?.email || order.customer_name || 'Cliente não identificado'}
                         </p>
+                        {order.user?.company_name && order.user?.name && order.user?.company_name !== order.user?.name && (
+                          <p className="text-sm text-gray-400">{order.user?.name}</p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
@@ -1106,7 +1106,8 @@ function CreateOrderModal({ users, products, onClose, onCreated }) {
           phone: clientInfo.phone || '00000000000'
         },
         delivery_fee: 0, // Pode ser calculado depois se necessário
-        notes: notes || `Pedido criado manualmente via painel admin`
+        notes: notes || `Pedido criado manualmente via painel admin`,
+        user_id: userId ? String(userId) : undefined
       }
 
       console.log('📦 Dados do pedido:', JSON.stringify(orderData, null, 2))
